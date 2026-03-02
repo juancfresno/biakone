@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,11 +78,14 @@
       position:fixed; inset:0;
       display:flex; flex-direction:column;
       justify-content:space-between;
-      padding:24px; z-index:3;
+      padding:24px 0 24px 0; z-index:3;
       pointer-events:none;
     }
     #page > * { pointer-events:auto; }
-    nav { display:flex; justify-content:space-between; align-items:flex-start; }
+    nav {
+      display:flex; justify-content:space-between; align-items:flex-start;
+      padding: 0 24px;
+    }
     .nav-tags {
       font-size:10px; letter-spacing:0.08em;
       color:#fff; text-transform:uppercase;
@@ -89,7 +93,7 @@
     }
     footer {
       display:flex; justify-content:space-between; align-items:flex-end;
-      position:relative;
+      position:relative; padding: 0 24px;
     }
     .footer-text {
       font-size:10px; letter-spacing:0.06em;
@@ -130,6 +134,21 @@
     @keyframes igFlicker { 0%,50%{ opacity:1; } 25%,75%{ opacity:.6; } }
     .fresno-glitch-r, .fresno-glitch-b { opacity:0; }
     [data-scramble] { cursor:none; }
+    #ig-carousel {
+      position: fixed;
+      bottom: 56px; /* justo encima del footer ~56px */
+      left: 0; right: 0;
+      overflow: hidden;
+      pointer-events: auto;
+      z-index: 3;
+    }
+    #ig-carousel behold-widget {
+      --behold-background-color: transparent;
+      --behold-gap: 6px;
+      --behold-border-radius: 0px;
+      display: block;
+      width: 100%;
+    }
     #cursor-canvas { position:fixed; inset:0; pointer-events:none; z-index:9999; }
   </style>
 </head>
@@ -175,6 +194,10 @@
   </footer>
 </div>
 
+<div id="ig-carousel">
+  <behold-widget feed-id="ycvnqU7KcqurQ5en6NK6"></behold-widget>
+</div>
+
 <canvas id="cursor-canvas"></canvas>
 
 <!-- THREE.JS MODULE — logo 3D glass -->
@@ -207,7 +230,7 @@ const scene = new THREE.Scene();
 // sin background — el negro viene del body
 
 const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
-camera.position.set(0, 0, 5.5);
+camera.position.set(0, 0, 7.5);
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
 renderer.setSize(innerWidth, innerHeight);
@@ -568,6 +591,14 @@ function loop() {
 })();
 
 loop();
+</script>
+<script>
+  (() => {
+    const d=document,s=d.createElement('script');
+    s.type='module';
+    s.src='https://w.behold.so/widget.js';
+    d.head.append(s);
+  })();
 </script>
 </body>
 </html>
