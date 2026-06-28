@@ -1,0 +1,237 @@
+/* ============================================================
+   BIAKO — Design Tokens
+   Derived from FDS (Fresno Design System) foundations.
+   Scope kept intentionally tight: COLOR + TYPOGRAPHY (+ spacing).
+   No component/UI furniture — Biako is an art/brand site.
+
+   Skin model:
+   - :root holds the SEMANTIC tokens in their LIGHT values (FDS default).
+   - [data-theme="dark"] overrides them to the FDS dark values.
+   - Biako runs DARK. Set <html data-theme="dark"> and use the
+     standard semantic tokens (--bg-surface, --text-primary, ...).
+   - "Light is a switch": remove data-theme="dark" (or set "light").
+
+   Rule: never hardcode a hex in markup. Always reference a token.
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   FONT LOADING (free fonts — wire up in <head>, not here)
+   Geist Mono   → Google Fonts
+   Instrument Serif → Google Fonts
+   Switzer      → Fontshare (https://www.fontshare.com/fonts/switzer)
+   Example <head>:
+   <link rel="preconnect" href="https://fonts.googleapis.com">
+   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400&family=Instrument+Serif&display=swap" rel="stylesheet">
+   <link href="https://api.fontshare.com/v2/css?f[]=switzer@300,400&display=swap" rel="stylesheet">
+   ------------------------------------------------------------ */
+
+:root {
+  /* ==========================================================
+     PRIMITIVES — raw color scales (do not use directly in UI;
+     reference the semantic tokens below instead)
+     ========================================================== */
+
+  /* neutral — the spine of Biako */
+  --neutral-50:  #F4F2EA;
+  --neutral-100: #ECEBE6;
+  --neutral-200: #DAD8D2;
+  --neutral-300: #C9C5BD;
+  --neutral-400: #A9AEA9;
+  --neutral-500: #8A918D;
+  --neutral-600: #636965;
+  --neutral-700: #4A4D4B;
+  --neutral-800: #373737;
+  --neutral-900: #242625;
+  --neutral-950: #141414;
+
+  /* brand */
+  --brand-blue-50:  #F0F5FE;
+  --brand-blue-100: #DCE8FC;
+  --brand-blue-200: #C6DBF9;
+  --brand-blue-300: #A3C3F3;
+  --brand-blue-400: #7BA1E8;
+  --brand-blue-500: #557FDB;
+  --brand-blue-600: #4063C2;
+  --brand-blue-700: #344E9B;
+  --brand-blue-800: #2E4178;
+  --brand-blue-900: #29375E;
+  --brand-blue-950: #1A2340;
+  --brand-blue:     #C6DBF9; /* DEFAULT */
+
+  --brand-green:  #8DF8CD;
+  --brand-yellow: #FFFFE6; /* the logo cream */
+
+  /* feedback (for Shop / forms later) */
+  --feedback-success: #38AE7A;
+  --feedback-warning: #E0AC3A;
+  --feedback-error:   #E0655A;
+  --feedback-info:    #5A82D2;
+
+  /* ==========================================================
+     SEMANTIC — LIGHT values (FDS default).
+     Use THESE in components, never the primitives.
+     ========================================================== */
+
+  /* text */
+  --text-primary:          var(--neutral-950);
+  --text-secondary:        var(--neutral-700);
+  --text-tertiary:         var(--neutral-600);
+  --text-inverse-primary:  var(--neutral-50);
+  --text-inverse-secondary:var(--neutral-300);
+  --text-brand:            var(--brand-blue-700);
+  --text-brand-yellow:     var(--brand-yellow);
+
+  /* background */
+  --bg-page:           var(--neutral-100);
+  --bg-surface:        var(--neutral-50);
+  --bg-subtle:         var(--neutral-300);
+  --bg-inverse:        var(--neutral-950);
+  --bg-inverse-surface:var(--neutral-900);
+  --bg-brand:          var(--brand-blue);
+  --bg-brand-yellow:   var(--brand-yellow);
+
+  /* border */
+  --border-default:  var(--neutral-300);
+  --border-subtle:   var(--neutral-200);
+  --border-strong:   var(--neutral-400);
+  --border-strongest:var(--neutral-950);
+  --border-brand:    var(--brand-blue);
+
+  /* icon */
+  --icon-default:  var(--neutral-950);
+  --icon-muted:    var(--neutral-600);
+  --icon-disabled: var(--neutral-400);
+  --icon-inverse:  var(--neutral-50);
+
+  /* ==========================================================
+     TYPOGRAPHY — families
+     ========================================================== */
+  --font-display:   'Geist Mono', ui-monospace, monospace; /* uppercase, impact statements */
+  --font-ui:        'Geist Mono', ui-monospace, monospace; /* nav, labels, buttons (uppercase) */
+  --font-heading:   'Switzer', system-ui, sans-serif;
+  --font-body:      'Switzer', system-ui, sans-serif;
+  --font-editorial: 'Instrument Serif', Georgia, serif;    /* quotes, editorial */
+
+  /* weights */
+  --weight-light:   300;
+  --weight-regular: 400;
+
+  /* line-heights */
+  --leading-display: 1;    /* 100% */
+  --leading-heading: 1.1;  /* 110% */
+  --leading-body:    1.4;  /* 140% */
+
+  /* ==========================================================
+     TYPE SCALE — base = MOBILE values (FDS mobile specimen).
+     Desktop overrides at the breakpoint below.
+     ========================================================== */
+
+  /* display — Geist Mono, uppercase, leading 1.0, puntual */
+  --text-display-xl: 3rem;      /* 48 */
+  --text-display-lg: 2.5rem;    /* 40 */
+  --text-display-md: 2rem;      /* 32 */
+  --text-display-sm: 1.625rem;  /* 26 */
+
+  /* heading — Switzer, leading 1.1 */
+  --text-heading-1: 1.875rem;   /* 30 */
+  --text-heading-2: 1.625rem;   /* 26 */
+  --text-heading-3: 1.375rem;   /* 22 */
+  --text-heading-4: 1.125rem;   /* 18 */
+
+  /* body — Switzer, leading 1.4 */
+  --text-body-xl: 1.25rem;      /* 20 */
+  --text-body-lg: 1.0625rem;    /* 17 */
+  --text-body-md: 1rem;         /* 16 */
+  --text-body-sm: 0.875rem;     /* 14 */
+  --text-body-xs: 0.75rem;      /* 12 */
+
+  /* ui — Geist Mono, uppercase, leading 1.4 (fixed, no scale-up) */
+  --text-ui-md: 0.75rem;        /* 12 */
+  --text-ui-sm: 0.6875rem;      /* 11 */
+
+  /* editorial — Instrument Serif, leading 1.4 */
+  --text-editorial-lg: 1.25rem; /* 20 */
+  --text-editorial-md: 1rem;    /* 16 */
+
+  /* ==========================================================
+     SPACING — Tailwind v4 base (4px). Optional, kept for layout.
+     ========================================================== */
+  --space-1:  0.25rem;  /* 4  */
+  --space-2:  0.5rem;   /* 8  */
+  --space-3:  0.75rem;  /* 12 */
+  --space-4:  1rem;     /* 16 */
+  --space-5:  1.25rem;  /* 20 */
+  --space-6:  1.5rem;   /* 24 */
+  --space-8:  2rem;     /* 32 */
+  --space-10: 2.5rem;   /* 40 */
+  --space-12: 3rem;     /* 48 */
+  --space-16: 4rem;     /* 64 */
+  --space-20: 5rem;     /* 80 */
+  --space-24: 6rem;     /* 96 */
+  --space-32: 8rem;     /* 128 */
+  --space-40: 10rem;    /* 160 */
+  --space-48: 12rem;    /* 192 */
+  --space-64: 16rem;    /* 256 */
+}
+
+/* ------------------------------------------------------------
+   DARK SKIN — Biako's main skin.
+   Set <html data-theme="dark">. Overrides semantic tokens to
+   FDS dark values. Components keep using the same token names.
+   ------------------------------------------------------------ */
+[data-theme="dark"] {
+  /* text */
+  --text-primary:          var(--neutral-50);
+  --text-secondary:        var(--neutral-300);
+  --text-tertiary:         var(--neutral-400);
+  --text-inverse-primary:  var(--neutral-950);
+  --text-inverse-secondary:var(--neutral-700);
+  --text-brand:            var(--brand-blue-300);
+
+  /* background */
+  --bg-page:           var(--neutral-900);
+  --bg-surface:        var(--neutral-950);
+  --bg-subtle:         var(--neutral-800);
+  --bg-inverse:        var(--neutral-50);
+  --bg-inverse-surface:var(--neutral-100);
+
+  /* border */
+  --border-default:  var(--neutral-700);
+  --border-subtle:   var(--neutral-800);
+  --border-strong:   var(--neutral-600);
+  --border-strongest:var(--neutral-50);
+
+  /* icon */
+  --icon-default:  var(--neutral-50);
+  --icon-muted:    var(--neutral-400);
+  --icon-disabled: var(--neutral-600);
+  --icon-inverse:  var(--neutral-950);
+}
+
+/* ------------------------------------------------------------
+   DESKTOP TYPE SCALE — FDS desktop specimen.
+   Switch point adjustable (1024px = lg). Mobile values above.
+   ------------------------------------------------------------ */
+@media (min-width: 1024px) {
+  :root {
+    /* display */
+    --text-display-xl: 5.5rem;   /* 88 */
+    --text-display-lg: 4.5rem;   /* 72 */
+    --text-display-md: 3rem;     /* 48 */
+    --text-display-sm: 2.25rem;  /* 36 */
+
+    /* heading */
+    --text-heading-1: 2.5rem;    /* 40 */
+    --text-heading-2: 2rem;      /* 32 */
+    --text-heading-3: 1.5rem;    /* 24 */
+    --text-heading-4: 1.25rem;   /* 20 */
+
+    /* body */
+    --text-body-xl: 1.5rem;      /* 24 */
+    --text-body-lg: 1.125rem;    /* 18 */
+
+    /* editorial */
+    --text-editorial-lg: 1.5rem; /* 24 */
+    --text-editorial-md: 1.125rem;/* 18 */
+  }
+}
