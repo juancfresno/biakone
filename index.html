@@ -45,7 +45,7 @@
       min-height: 100vh;
       display: grid;
       grid-template-rows: auto 1fr auto auto;
-      padding: 0 var(--space-10);
+      padding: 0 var(--space-6);
       position: relative;
     }
 
@@ -201,25 +201,28 @@
     .theme-toggle:active { transform: rotate(180deg); }
 
     /* ================================================================
-       HERO
+       HERO — upper-middle alignment of the hero row (Figma 6134:188).
        ================================================================ */
     .hero {
       display: grid;
-      place-items: center;
+      place-items: start center;
       text-align: center;
-      padding: var(--space-12) 0;
+      padding-top: clamp(var(--space-12), 18vh, 22vh);
+      padding-bottom: var(--space-6);
     }
-    .hero h1 {
+    .hero__title {
       margin: 0;
+      display: grid;
+      gap: 0;
       font-family: var(--font-display);
       font-weight: var(--weight-regular);
-      font-size: var(--text-display-xl);
-      line-height: var(--leading-display);
-      letter-spacing: -0.01em;
+      font-size: clamp(1.125rem, 4.5vw, 2.25rem);  /* 18px → 36px */
+      line-height: 1;
+      letter-spacing: 0;
       text-transform: uppercase;
       color: var(--text-primary);
-      max-width: 18ch;
     }
+    .hero__title span { display: block; }
 
     /* ================================================================
        FOOTER — 16/24 padding, grid 3-col: clock · copyright · face.
@@ -403,7 +406,7 @@
       align-items: center;
       justify-content: center;
       padding: var(--space-6) 0 var(--space-4);
-      margin: 0 calc(-1 * var(--space-10));     /* bleed to viewport edges */
+      margin: 0 calc(-1 * var(--space-6));     /* bleed to viewport edges */
     }
 
     .carousel__track {
@@ -542,7 +545,6 @@
        DESKTOP TWEAKS
        ================================================================ */
     @media (min-width: 768px) {
-      body { padding: 0 var(--space-10); }
       .fresno-face { width: 32px; height: 38px; }
     }
   </style>
@@ -606,7 +608,11 @@
   </header>
 
   <main class="hero">
-    <h1>Results, not promises</h1>
+    <h1 class="hero__title">
+      <span>Miniature Artist — Designer</span>
+      <span>↘ Urban Culture, Graffiti &amp; Weathering</span>
+      <span>⊕ 1:12 Scale</span>
+    </h1>
   </main>
 
   <section class="carousel" id="gallery" aria-label="Gallery">

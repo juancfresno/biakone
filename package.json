@@ -1,0 +1,13 @@
+{
+  "name": "biakone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Biako — public website (v0).",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-feed.mjs"
+  },
+  "devDependencies": {
+    "sharp": "^0.33.5"
+  }
+}
