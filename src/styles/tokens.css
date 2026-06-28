@@ -61,6 +61,10 @@
   --brand-green:  #8DF8CD;
   --brand-yellow: #FFFFE6; /* the logo cream */
 
+  /* foreign-asset accent — the censor-bar blue used in the FRESNO-face mark.
+     Fresno Studio brand, used as a credit on Biako, hence its own token. */
+  --logo-fresno-accent: #003DFF;
+
   /* feedback (for Shop / forms later) */
   --feedback-success: #38AE7A;
   --feedback-warning: #E0AC3A;
