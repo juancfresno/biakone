@@ -1,0 +1,20 @@
+/* ============================================================
+   LAB — placeholder page (Figma 6166:762 is empty in v0).
+   ============================================================ */
+
+.lab {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-16);
+  min-height: 40vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lab__placeholder {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  text-align: center;
+}

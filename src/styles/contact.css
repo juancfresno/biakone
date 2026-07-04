@@ -1,0 +1,31 @@
+/* ============================================================
+   CONTACT — placeholder page (no Figma frame in v0).
+   ============================================================ */
+
+.contact {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-16);
+  max-width: 60ch;
+}
+.contact__body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body-lg);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.contact__body p { margin: 0 0 var(--space-4) 0; }
+.contact__body p:last-child { margin-bottom: 0; }
+.contact__mail {
+  display: inline-block;
+  margin-top: var(--space-6);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-md);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-default);
+  transition: border-color 140ms ease;
+}
+.contact__mail:hover { border-bottom-color: var(--text-primary); }

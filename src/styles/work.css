@@ -1,0 +1,113 @@
+/* ============================================================
+   WORK — list + grid views, Figma 6166:580 / 6167:1252.
+   Wave-text effect mount point is left empty for a later phase.
+   ============================================================ */
+
+.work {
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+}
+
+/* View toggle (list ↔ grid) — top-right of the section. */
+.work__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+.work__view-btn {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px;
+  color: var(--icon-muted);
+  cursor: pointer;
+  line-height: 0;
+  transition: color 140ms ease;
+}
+.work__view-btn[aria-pressed="true"] { color: var(--icon-default); }
+.work__view-btn:hover { color: var(--icon-default); }
+.work__view-btn svg { display: block; width: 16px; height: 16px; }
+
+/* ─── LIST VIEW ─── */
+.work__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.work__row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-top: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: color 140ms ease;
+}
+.work__row:last-child { border-bottom: 1px solid var(--border-subtle); }
+.work__row:hover { color: var(--text-primary); }
+.work__row-code { color: var(--text-tertiary); }
+.work__row-name { color: inherit; }
+.work__row-scale,
+.work__row-date { color: var(--text-tertiary); }
+
+/* Hover preview slot — reserved for later phase; sized so layout is stable. */
+.work__preview {
+  position: fixed;
+  pointer-events: none;
+  opacity: 0;
+  z-index: 5;
+}
+
+/* ─── GRID VIEW ─── */
+.work__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+.work__cell {
+  aspect-ratio: 9 / 16;
+  background: var(--bg-subtle);
+  overflow: hidden;
+  position: relative;
+}
+.work__cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.work__cell-code {
+  position: absolute;
+  bottom: var(--space-2);
+  left: var(--space-2);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-inverse-primary);
+  background: rgba(0, 0, 0, 0.55);
+  padding: 2px 6px;
+}
+
+/* Wave-text effect mount — later phase will hydrate this element. */
+[data-effect="wavetext"] { display: contents; }
+
+.work[data-view="list"] .work__grid { display: none; }
+.work[data-view="grid"] .work__list { display: none; }
+
+/* Empty state */
+.work__empty {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-6) 0;
+}

@@ -1,0 +1,174 @@
+/* ============================================================
+   HOME — feed carousel (marquee) + lightbox.
+   Only the home page loads this.
+   ============================================================ */
+
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  text-align: left;
+  padding-top: var(--space-2);
+  padding-bottom: 0;
+  gap: var(--space-4);
+}
+.hero__tag {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body-xl);
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.carousel {
+  --card-w: 137.7px;
+  --card-h: 244.8px;
+  --card-gap: var(--space-8);
+  --marquee-duration: 90s;
+
+  margin-inline: calc(-1 * var(--space-6));
+  padding-top: clamp(48px, 10vh, 104px);
+  padding-bottom: 0;
+  overflow: hidden;
+}
+.carousel__track {
+  display: flex;
+  align-items: center;
+  gap: var(--card-gap);
+  width: max-content;
+  will-change: transform;
+  animation: marquee var(--marquee-duration) linear infinite;
+}
+@keyframes marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .carousel:hover .carousel__track,
+  .carousel:focus-within .carousel__track {
+    animation-play-state: paused;
+  }
+}
+.carousel__card {
+  flex: 0 0 var(--card-w);
+  width: var(--card-w);
+  height: var(--card-h);
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: var(--bg-subtle);
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+  cursor: pointer;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 220ms ease,
+              opacity   220ms ease;
+}
+.carousel__card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  user-select: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .carousel:hover .carousel__card { opacity: 0.55; }
+  .carousel:hover .carousel__card:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
+  }
+}
+[data-theme="dark"] .carousel__card { background: var(--neutral-800); }
+.carousel__empty {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-6) var(--space-6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .carousel__track {
+    animation: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .carousel__track::-webkit-scrollbar { display: none; }
+  .carousel__card { scroll-snap-align: start; }
+}
+
+/* ================================================================
+   LIGHTBOX — fullscreen overlay, blurred backdrop, perspective tilt.
+   ================================================================ */
+.lightbox[hidden] { display: none; }
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 5vmin, 64px);
+  animation: lb-fade 200ms ease both;
+}
+.lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-home) 55%, transparent);
+  backdrop-filter: blur(18px) saturate(0.9);
+  -webkit-backdrop-filter: blur(18px) saturate(0.9);
+}
+.lightbox__frame {
+  position: relative;
+  margin: 0;
+  max-width: min(82vw, 600px);
+  max-height: 86vh;
+  perspective: 1200px;
+  will-change: transform;
+}
+.lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: 86vh;
+  object-fit: contain;
+  transform-style: preserve-3d;
+  transform:
+    rotateX(var(--lb-rx, 0deg))
+    rotateY(var(--lb-ry, 0deg))
+    translateZ(0);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.45);
+  background: var(--bg-subtle);
+}
+.lightbox__close {
+  position: absolute;
+  top: -42px;
+  right: -4px;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.lightbox__close:hover { opacity: 0.7; }
+@keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__img { transition: none; transform: none; }
+  .carousel__card { transition: none; }
+}

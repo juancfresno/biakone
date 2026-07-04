@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>BIAKO. — Stickers</title>
+  <!-- @include partials/head.html -->
+  <link rel="stylesheet" href="/src/styles/stickers.css">
+</head>
+<body data-page="stickers">
+  <!-- @include partials/grain.html -->
+  <!-- @include partials/nav.html -->
+
+  <main class="intro">
+    <p class="intro__bio">
+      Artist — Designer<br>
+      ↘ Urban culture, graffiti &amp; scale work
+    </p>
+
+    <!-- VFX-JS effect mount point — hydrated by a later phase. -->
+    <section class="stickers" data-effect="vfx" aria-label="Stickers">
+      <div id="stickers-grid">
+        <!-- cells injected from /stickers.json -->
+      </div>
+    </section>
+  </main>
+
+  <!-- @include partials/footer.html -->
+
+  <script type="module" src="/src/js/shell.js"></script>
+  <script type="module" src="/src/js/stickers.js"></script>
+</body>
+</html>

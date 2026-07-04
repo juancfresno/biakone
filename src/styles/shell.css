@@ -1,0 +1,339 @@
+/* ============================================================
+   BIAKO — shared shell: top nav, footer, glitch, theme toggle.
+   Consumed by every page.
+   ============================================================ */
+
+/* ================================================================
+   TOP NAV
+   ================================================================ */
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-4);
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  color: var(--logo-wordmark);
+  text-decoration: none;
+  line-height: 0;
+  outline-offset: 4px;
+}
+.wordmark svg {
+  display: block;
+  height: 1rem;
+  width: auto;
+  fill: currentColor;
+}
+@media (min-width: 768px) {
+  .wordmark svg { height: 1.25rem; }
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);              /* Figma: 25px ≈ 24px */
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* NAV LINK — chip + diagonal arrow on hover. */
+.nav-link {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 140ms ease-in;
+  padding: 0;
+}
+.nav-link::before {
+  content: '';
+  position: absolute;
+  inset: -3px -6px;
+  border-radius: 3px;
+  background: var(--brand-blue);
+  opacity: 0;
+  transform: scale(0.88);
+  transition: opacity 140ms ease-in, transform 180ms ease-in;
+  pointer-events: none;
+  z-index: -1;
+}
+.nav-arrow {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-top: 0.5px;
+  overflow: visible;
+}
+.nav-arrow .shaft {
+  stroke-dasharray: 8.5;
+  stroke-dashoffset: 8.5;
+  transition: stroke-dashoffset 200ms ease-in;
+}
+.nav-arrow .head {
+  stroke-dasharray: 8;
+  stroke-dashoffset: 8;
+  transition: stroke-dashoffset 180ms ease-in;
+}
+
+/* Active state = same visual as hover. Body[data-page] drives it. */
+body[data-page="home"]     .nav-link[data-nav="home"],
+body[data-page="work"]     .nav-link[data-nav="work"],
+body[data-page="stickers"] .nav-link[data-nav="stickers"],
+body[data-page="lab"]      .nav-link[data-nav="lab"],
+body[data-page="about"]    .nav-link[data-nav="about"],
+body[data-page="contact"]  .nav-link[data-nav="contact"] {
+  color: var(--neutral-950);
+}
+body[data-page="home"]     .nav-link[data-nav="home"]::before,
+body[data-page="work"]     .nav-link[data-nav="work"]::before,
+body[data-page="stickers"] .nav-link[data-nav="stickers"]::before,
+body[data-page="lab"]      .nav-link[data-nav="lab"]::before,
+body[data-page="about"]    .nav-link[data-nav="about"]::before,
+body[data-page="contact"]  .nav-link[data-nav="contact"]::before {
+  opacity: 1;
+  transform: scale(1);
+}
+body[data-page="home"]     .nav-link[data-nav="home"] .nav-arrow .shaft,
+body[data-page="work"]     .nav-link[data-nav="work"] .nav-arrow .shaft,
+body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .shaft,
+body[data-page="lab"]      .nav-link[data-nav="lab"] .nav-arrow .shaft,
+body[data-page="about"]    .nav-link[data-nav="about"] .nav-arrow .shaft,
+body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .shaft,
+body[data-page="home"]     .nav-link[data-nav="home"] .nav-arrow .head,
+body[data-page="work"]     .nav-link[data-nav="work"] .nav-arrow .head,
+body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .head,
+body[data-page="lab"]      .nav-link[data-nav="lab"] .nav-arrow .head,
+body[data-page="about"]    .nav-link[data-nav="about"] .nav-arrow .head,
+body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .head {
+  stroke-dashoffset: 0;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nav-link:hover,
+  .nav-link:focus-visible {
+    color: var(--neutral-950);
+    outline: none;
+  }
+  .nav-link:hover::before,
+  .nav-link:focus-visible::before {
+    opacity: 1;
+    transform: scale(1);
+    transition:
+      opacity 180ms ease-out,
+      transform 260ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .nav-link:hover .nav-arrow .shaft,
+  .nav-link:focus-visible .nav-arrow .shaft {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 360ms cubic-bezier(0.16, 1, 0.3, 1) 150ms;
+  }
+  .nav-link:hover .nav-arrow .head,
+  .nav-link:focus-visible .nav-arrow .head {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 320ms cubic-bezier(0.16, 1, 0.3, 1) 310ms;
+  }
+}
+
+/* THEME TOGGLE ◐ */
+.theme-toggle {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--text-secondary);
+  line-height: 1;
+  cursor: pointer;
+  transition: color 140ms ease, transform 200ms ease;
+}
+.theme-toggle:hover { color: var(--text-primary); }
+.theme-toggle:active { transform: rotate(180deg); }
+
+/* ================================================================
+   PAGE INTRO — mono bio label, top-left, sits below nav on every page.
+   ================================================================ */
+.intro {
+  padding-top: var(--space-2);
+  padding-bottom: 0;
+}
+.intro__bio {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+/* ================================================================
+   FOOTER
+   ================================================================ */
+.bottom {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+  padding-bottom: var(--space-6);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+.bottom .clock {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.bottom .credit {
+  text-align: right;
+  white-space: nowrap;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  .bottom { font-size: 10px; gap: var(--space-3); }
+  .bottom .credit { white-space: normal; }
+}
+@media (max-width: 420px) {
+  .bottom .credit__email { display: none; }
+}
+.bottom .credit a {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+.bottom .credit a:hover,
+.bottom .credit a:focus-visible {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-default);
+  outline: none;
+}
+
+.fresno-face {
+  display: block;
+  flex-shrink: 0;
+  width: 28px;
+  height: 34px;
+  color: var(--text-primary);
+  outline-offset: 4px;
+}
+.fresno-face svg { display: block; width: 100%; height: 100%; }
+.fresno-face__bar { fill: var(--logo-accent); }
+
+@media (max-width: 480px) {
+  .bottom { gap: var(--space-3); font-size: 10px; }
+  .bottom .credit { font-size: 10px; }
+}
+@media (min-width: 768px) {
+  .fresno-face { width: 32px; height: 38px; }
+}
+
+/* ================================================================
+   VHS GLITCH — used on wordmark + Fresno-face on hover.
+   ================================================================ */
+.glitch {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+.glitch__layer { display: block; line-height: 0; }
+.glitch__layer svg { display: block; }
+.glitch__layer--main {
+  position: relative;
+  z-index: 3;
+  color: inherit;
+  will-change: transform;
+}
+.glitch__layer--r,
+.glitch__layer--b {
+  position: absolute;
+  inset: 0;
+  will-change: transform, clip-path;
+  clip-path: inset(0 0 100% 0);
+}
+.glitch__layer--r { z-index: 2; color: #ff1a3c; }
+.glitch__layer--b { z-index: 1; color: #00e5ff; }
+
+@media (hover: hover) and (pointer: fine) {
+  .glitch-host:hover .glitch__layer--main {
+    animation:
+      vhs-body 0.31s steps(1) infinite,
+      vhs-flicker 0.83s linear infinite;
+  }
+  .glitch-host:hover .glitch__layer--r { animation: vhs-r 0.43s steps(1) infinite; }
+  .glitch-host:hover .glitch__layer--b { animation: vhs-b 0.57s steps(1) infinite 0.09s; }
+}
+
+@keyframes vhs-r {
+  0%   { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+  7%   { transform: translateX(10px); clip-path: inset(0% 0 55% 0);  }
+  14%  { transform: translateX(8px);  clip-path: inset(58% 0 5% 0);  }
+  21%  { transform: translateX(11px); clip-path: inset(18% 0 47% 0); }
+  28%  { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+  35%  { transform: translateX(12px); clip-path: inset(35% 0 30% 0); }
+  42%  { transform: translateX(8px);  clip-path: inset(0% 0 62% 0);  }
+  49%  { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+  56%  { transform: translateX(14px); clip-path: inset(60% 0 0% 0);  }
+  63%  { transform: translateX(9px);  clip-path: inset(5% 0 58% 0);  }
+  70%  { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+  77%  { transform: translateX(11px); clip-path: inset(42% 0 22% 0); }
+  84%  { transform: translateX(8px);  clip-path: inset(0% 0 60% 0);  }
+  91%  { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+  98%  { transform: translateX(13px); clip-path: inset(55% 0 8% 0);  }
+  100% { transform: translateX(0);    clip-path: inset(0 0 100% 0);  }
+}
+@keyframes vhs-b {
+  0%   { transform: translateX(0);     clip-path: inset(0 0 100% 0);  }
+  11%  { transform: translateX(-11px); clip-path: inset(62% 0 3% 0);  }
+  19%  { transform: translateX(-8px);  clip-path: inset(8% 0 55% 0);  }
+  27%  { transform: translateX(-10px); clip-path: inset(40% 0 25% 0); }
+  35%  { transform: translateX(0);     clip-path: inset(0 0 100% 0);  }
+  43%  { transform: translateX(-13px); clip-path: inset(0% 0 60% 0);  }
+  51%  { transform: translateX(-9px);  clip-path: inset(58% 0 5% 0);  }
+  59%  { transform: translateX(-12px); clip-path: inset(22% 0 43% 0); }
+  67%  { transform: translateX(0);     clip-path: inset(0 0 100% 0);  }
+  75%  { transform: translateX(-10px); clip-path: inset(48% 0 15% 0); }
+  83%  { transform: translateX(-8px);  clip-path: inset(0% 0 65% 0);  }
+  91%  { transform: translateX(0);     clip-path: inset(0 0 100% 0);  }
+  99%  { transform: translateX(-11px); clip-path: inset(30% 0 35% 0); }
+  100% { transform: translateX(0);     clip-path: inset(0 0 100% 0);  }
+}
+@keyframes vhs-body {
+  0%, 100% { transform: translate(0, 0)    skewX(0deg);    }
+  8%       { transform: translate(2px, 0)  skewX(-0.6deg); }
+  16%      { transform: translate(-1px, 0) skewX(0.4deg);  }
+  24%      { transform: translate(0, 0)    skewX(0deg);    }
+  44%      { transform: translate(-3px, 0) skewX(0.8deg);  }
+  52%      { transform: translate(1px, 0)  skewX(-0.5deg); }
+  60%      { transform: translate(0, 0)    skewX(0deg);    }
+  74%      { transform: translate(4px, 0)  skewX(-1deg);   }
+  82%      { transform: translate(-2px, 0) skewX(0.7deg);  }
+  90%      { transform: translate(0, 0)    skewX(0deg);    }
+}
+@keyframes vhs-flicker {
+  0%, 100% { opacity: 1;    }
+  29%      { opacity: 1;    }
+  30%      { opacity: 0.3;  }
+  31%      { opacity: 1;    }
+  58%      { opacity: 1;    }
+  59%      { opacity: 0.65; }
+  60%      { opacity: 1;    }
+  81%      { opacity: 1;    }
+  82%      { opacity: 0.12; }
+  83%      { opacity: 0.9;  }
+  84%      { opacity: 1;    }
+}

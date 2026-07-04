@@ -1,0 +1,33 @@
+/* ============================================================
+   ABOUT — long-form bio, Figma 6164:325.
+   ============================================================ */
+
+.about {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-16);
+  max-width: 82ch;
+}
+.about__body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body-lg);
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.about__body p { margin: 0 0 var(--space-4) 0; }
+.about__body p:last-child { margin-bottom: 0; }
+.about__contact {
+  margin-top: var(--space-8);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+.about__contact a {
+  color: var(--text-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-default);
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.about__contact a:hover { border-bottom-color: var(--text-primary); }

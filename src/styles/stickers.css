@@ -1,0 +1,40 @@
+/* ============================================================
+   STICKERS — full-bleed vertical stack, Figma 6166:711.
+   VFX-JS effect mount point is left empty for a later phase.
+   ============================================================ */
+
+.stickers {
+  margin-inline: calc(-1 * var(--space-6));
+  padding-top: var(--space-6);
+  padding-bottom: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.stickers__cell {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 5;
+  background: var(--bg-subtle);
+  overflow: hidden;
+}
+.stickers__cell img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+[data-theme="dark"] .stickers__cell { background: var(--neutral-800); }
+
+/* VFX-JS mount — later phase will hydrate this element. */
+[data-effect="vfx"] { display: contents; }
+
+.stickers__empty {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-6) 0;
+  text-align: center;
+}
