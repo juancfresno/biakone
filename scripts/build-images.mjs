@@ -21,11 +21,12 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 // Add a section = drop images at public/<name>/ and rebuild.
 const SECTIONS = [
   { name: 'feed',     manifest: 'feed.json' },
-  { name: 'work',     manifest: 'work.json' },
   { name: 'stickers', manifest: 'stickers.json' },
   { name: 'tags',     manifest: 'tags.json' },
   { name: 'about',    manifest: 'about.json' },
 ]
+// `work` is NOT a flat section — it's built by buildWork() below, because each
+// project is a SUBFOLDER (public/work/<NN-slug>/) holding image(s) + meta.json.
 
 const RASTER_EXT  = new Set(['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif'])
 const VECTOR_EXT  = new Set(['.svg'])
@@ -121,8 +122,73 @@ async function buildSection ({ name: folder, manifest }) {
   }
 }
 
+// ─── WORK — project-per-subfolder builder ──────────────────────────────────
+// public/work/<NN-slug>/  →  image(s) + meta.json  →  rich public/work.json:
+//   [{ code, slug, name, scale, date, description, images:[{src}] }]
+// Add a project = drop a subfolder with images + meta.json and rebuild.
+async function buildWork () {
+  const workAbs = path.join(ROOT, 'public', 'work')
+  let dirs = []
+  try {
+    const entries = await fs.readdir(workAbs, { withFileTypes: true })
+    dirs = entries
+      .filter(e => e.isDirectory() && !e.name.startsWith('_') && !e.name.startsWith('.'))
+      .map(e => e.name)
+      .sort((a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }))
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      await fs.mkdir(path.join(ROOT, 'public'), { recursive: true })
+      await fs.writeFile(path.join(ROOT, 'public', 'work.json'), '[]\n', 'utf8')
+      console.log('build-images[work]: no folder — wrote empty work.json')
+      return
+    }
+    throw err
+  }
+
+  const projects = []
+  let totalSrc = 0, totalOpt = 0
+  for (let idx = 0; idx < dirs.length; idx++) {
+    const slug = dirs[idx]
+    const dirAbs = path.join(workAbs, slug)
+    const entries = await fs.readdir(dirAbs, { withFileTypes: true })
+    const imgFiles = entries
+      .filter(e => e.isFile() && isSource(e.name))
+      .map(e => e.name)
+      .sort((a, b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }))
+
+    let meta = {}
+    try { meta = JSON.parse(await fs.readFile(path.join(dirAbs, 'meta.json'), 'utf8')) } catch { /* optional */ }
+
+    if (imgFiles.length) await fs.mkdir(path.join(dirAbs, '_opt'), { recursive: true })
+    const images = []
+    for (const name of imgFiles) {
+      const r = await optimize(`work/${slug}`, path.join(dirAbs, name), name)
+      images.push({ src: r.src })
+      if (r.srcBytes != null) { totalSrc += r.srcBytes; totalOpt += r.optBytes }
+    }
+
+    projects.push({
+      code: String(idx + 1).padStart(2, '0'),
+      slug,
+      name: meta.name || slug.replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase(),
+      scale: meta.scale || '1:12',
+      date: meta.date || '',
+      description: meta.description || '',
+      images,
+    })
+  }
+
+  await fs.writeFile(path.join(ROOT, 'public', 'work.json'), JSON.stringify(projects, null, 2) + '\n', 'utf8')
+  console.log(`build-images[work]: ${projects.length} projects → public/work.json`)
+  if (totalSrc) {
+    const pct = ((1 - totalOpt / totalSrc) * 100).toFixed(1)
+    console.log(`build-images[work]: ${fmtMB(totalSrc)} → ${fmtMB(totalOpt)} (-${pct}%)`)
+  }
+}
+
 async function main () {
   for (const section of SECTIONS) await buildSection(section)
+  await buildWork()
 }
 
 main().catch(err => {

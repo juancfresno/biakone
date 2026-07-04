@@ -32,14 +32,14 @@
         </button>
       </div>
 
-      <!-- Wave-text effect mount point — hydrated by a later phase. -->
-      <div data-effect="wavetext">
-        <ul class="work__list" id="work-list" role="list">
-          <!-- rows injected from /work.json -->
-        </ul>
-        <div class="work__grid" id="work-grid">
-          <!-- cells injected from /work.json -->
-        </div>
+      <!-- Floating centre image (active project) — populated by work.js. -->
+      <div class="work__stage" id="work-stage" aria-hidden="true"></div>
+
+      <ul class="work__list" id="work-list" role="list">
+        <!-- rows injected from /work.json -->
+      </ul>
+      <div class="work__grid" id="work-grid">
+        <!-- cells injected from /work.json -->
       </div>
     </section>
   </main>

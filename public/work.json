@@ -1,1 +1,133 @@
-[]
+[
+  {
+    "code": "01",
+    "slug": "01-trash-bin",
+    "name": "TRASH BIN",
+    "scale": "1:12",
+    "date": "JUN.2026",
+    "description": "1:12 scale street bin, 3D-printed and hand-finished with weathering, rust and graffiti.",
+    "images": [
+      {
+        "src": "/work/01-trash-bin/_opt/01.webp"
+      },
+      {
+        "src": "/work/01-trash-bin/_opt/02.webp"
+      },
+      {
+        "src": "/work/01-trash-bin/_opt/03.webp"
+      }
+    ]
+  },
+  {
+    "code": "02",
+    "slug": "02-fire-hydrant",
+    "name": "FIRE HYDRANT",
+    "scale": "1:12",
+    "date": "MAY.2026",
+    "description": "Miniature hydrant with oxidised paint and street patina, shot on location.",
+    "images": [
+      {
+        "src": "/work/02-fire-hydrant/_opt/01.webp"
+      }
+    ]
+  },
+  {
+    "code": "03",
+    "slug": "03-spray-can",
+    "name": "SPRAY CAN",
+    "scale": "1:12",
+    "date": "MAY.2026",
+    "description": "Scale spray can — hand-painted label, worn cap, dented body.",
+    "images": [
+      {
+        "src": "/work/03-spray-can/_opt/01.webp"
+      },
+      {
+        "src": "/work/03-spray-can/_opt/02.webp"
+      },
+      {
+        "src": "/work/03-spray-can/_opt/03.webp"
+      }
+    ]
+  },
+  {
+    "code": "04",
+    "slug": "04-graffiti-letters",
+    "name": "GRAFFITI LETTERS",
+    "scale": "1:12",
+    "date": "APR.2026",
+    "description": "Freestanding 3D letters with marker fills, outlines and drips.",
+    "images": [
+      {
+        "src": "/work/04-graffiti-letters/_opt/01.webp"
+      },
+      {
+        "src": "/work/04-graffiti-letters/_opt/02.webp"
+      },
+      {
+        "src": "/work/04-graffiti-letters/_opt/03.webp"
+      }
+    ]
+  },
+  {
+    "code": "05",
+    "slug": "05-utility-door",
+    "name": "UTILITY DOOR",
+    "scale": "1:12",
+    "date": "APR.2026",
+    "description": "Sticker-bombed utility door, tagged and weathered, placed in the street.",
+    "images": [
+      {
+        "src": "/work/05-utility-door/_opt/01.webp"
+      },
+      {
+        "src": "/work/05-utility-door/_opt/02.webp"
+      }
+    ]
+  },
+  {
+    "code": "06",
+    "slug": "06-framed-panel",
+    "name": "FRAMED PANEL",
+    "scale": "PANEL",
+    "date": "MAR.2026",
+    "description": "Flat-backed facade fragment — framed, hung, built to read as wall.",
+    "images": [
+      {
+        "src": "/work/06-framed-panel/_opt/01.webp"
+      },
+      {
+        "src": "/work/06-framed-panel/_opt/02.webp"
+      },
+      {
+        "src": "/work/06-framed-panel/_opt/03.webp"
+      }
+    ]
+  },
+  {
+    "code": "07",
+    "slug": "07-planter-tag",
+    "name": "PLANTER TAG",
+    "scale": "1:12",
+    "date": "MAR.2026",
+    "description": "Outdoor scale marker planted in situ among real foliage.",
+    "images": [
+      {
+        "src": "/work/07-planter-tag/_opt/01.webp"
+      }
+    ]
+  },
+  {
+    "code": "08",
+    "slug": "08-process-plates",
+    "name": "PROCESS PLATES",
+    "scale": "PROCESS",
+    "date": "FEB.2026",
+    "description": "Work-in-progress plates and test prints from the studio table.",
+    "images": [
+      {
+        "src": "/work/08-process-plates/_opt/01.webp"
+      }
+    ]
+  }
+]
