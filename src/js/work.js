@@ -148,10 +148,104 @@ function bindOpen () {
   })
 }
 
+// ─── Detail drawer ──────────────────────────────────────────────────────────
+const drawer  = document.getElementById('work-drawer')
+const dGallery = document.getElementById('drawer-gallery')
+const dInfo   = drawer && drawer.querySelector('#drawer-info')
+let drawerIndex = -1
+let lastFocused = null
+
+function fillDrawer (i) {
+  const p = projects[i]
+  if (!p) return
+  drawerIndex = i
+  dGallery.innerHTML = (p.images || [])
+    .map(im => '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async">')
+    .join('')
+  dGallery.scrollLeft = 0
+  dGallery.scrollTop = 0
+  dInfo.querySelector('[data-code]').textContent  = p.code + '.'
+  dInfo.querySelector('[data-name]').textContent  = p.name
+  dInfo.querySelector('[data-scale]').textContent = p.scale || ''
+  dInfo.querySelector('[data-date]').textContent  = p.date || ''
+  dInfo.querySelector('[data-desc]').textContent  = p.description || ''
+}
+
+function openDrawer (i) {
+  if (!drawer || !projects[i]) return
+  lastFocused = document.activeElement
+  fillDrawer(i)
+  drawer.hidden = false
+  requestAnimationFrame(() => drawer.classList.add('is-open'))
+  document.body.style.overflow = 'hidden'
+  drawer.querySelector('.drawer__close').focus()
+}
+function closeDrawer () {
+  if (!drawer || drawer.hidden) return
+  drawer.classList.remove('is-open')
+  const done = () => {
+    drawer.hidden = true
+    dGallery.innerHTML = ''
+    drawer.removeEventListener('transitionend', done)
+  }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  if (reduce) done(); else drawer.addEventListener('transitionend', done)
+  document.body.style.overflow = ''
+  if (lastFocused && lastFocused.focus) lastFocused.focus()
+}
+function step (dir) {
+  if (!projects.length) return
+  fillDrawer((drawerIndex + dir + projects.length) % projects.length)
+}
+
+function bindDrawer () {
+  if (!drawer) return
+  window.addEventListener('work:open', (e) => openDrawer(e.detail.index))
+
+  drawer.addEventListener('click', (e) => {
+    if (e.target.closest('[data-drawer-close]')) { closeDrawer(); return }
+    if (e.target.closest('[data-prev]')) { step(-1); return }
+    if (e.target.closest('[data-next]')) { step(1); return }
+    // Click on the gallery background (not an image, not the info box) closes.
+    if (e.target === dGallery) closeDrawer()
+  })
+  document.addEventListener('keydown', (e) => {
+    if (drawer.hidden) return
+    if (e.key === 'Escape') closeDrawer()
+    else if (e.key === 'ArrowRight') step(1)
+    else if (e.key === 'ArrowLeft') step(-1)
+  })
+
+  // Click-drag to pan the horizontal gallery (desktop).
+  let down = false, startX = 0, startScroll = 0, moved = 0
+  dGallery.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') return
+    down = true; moved = 0; startX = e.clientX; startScroll = dGallery.scrollLeft
+    dGallery.setPointerCapture(e.pointerId)
+  })
+  dGallery.addEventListener('pointermove', (e) => {
+    if (!down) return
+    const dx = e.clientX - startX
+    if (Math.abs(dx) > 3) dGallery.classList.add('is-dragging')
+    moved = Math.max(moved, Math.abs(dx))
+    dGallery.scrollLeft = startScroll - dx
+  })
+  const end = (e) => {
+    if (!down) return
+    down = false; dGallery.classList.remove('is-dragging')
+    try { dGallery.releasePointerCapture(e.pointerId) } catch {}
+  }
+  dGallery.addEventListener('pointerup', end)
+  dGallery.addEventListener('pointercancel', end)
+  // Swallow the click after a real drag so it can't close the drawer.
+  dGallery.addEventListener('click', (e) => { if (moved > 4) { e.stopPropagation() } }, true)
+}
+
 if (list && grid && stage && section) {
   bindCursor()
   bindToggle()
   bindOpen()
+  bindDrawer()
   window.addEventListener('scroll', onScroll, { passive: true })
   window.addEventListener('resize', () => { syncToScroll() })
 
@@ -160,6 +254,6 @@ if (list && grid && stage && section) {
     .then(render)
     .catch(() => render([]))
 
-  // Expose for the drawer phase.
-  window.biakoWork = { get projects () { return projects }, setActive }
+  // Expose for debugging / external control.
+  window.biakoWork = { get projects () { return projects }, setActive, openDrawer, closeDrawer }
 }

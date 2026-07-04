@@ -44,6 +44,32 @@
     </section>
   </main>
 
+  <!-- Detail drawer — slide-in panel opened when a project is clicked. -->
+  <div class="drawer" id="work-drawer" role="dialog" aria-modal="true" aria-label="Project detail" hidden>
+    <div class="drawer__gallery" id="drawer-gallery" data-drawer-scrim>
+      <!-- full-height images injected per project -->
+    </div>
+    <button class="drawer__close" type="button" data-drawer-close aria-label="Close">Close ✕</button>
+    <aside class="drawer__info" id="drawer-info">
+      <div class="drawer__info-head">
+        <span class="drawer__title">
+          <span class="drawer__arrow" aria-hidden="true">↘</span>
+          <span class="drawer__code" data-code></span>
+          <span class="drawer__name" data-name></span>
+        </span>
+        <span class="drawer__spec">
+          <span data-scale></span>
+          <span data-date></span>
+        </span>
+      </div>
+      <p class="drawer__desc" data-desc></p>
+      <div class="drawer__pager">
+        <button class="drawer__pg" type="button" data-prev>Previous</button>
+        <button class="drawer__pg" type="button" data-next>Next</button>
+      </div>
+    </aside>
+  </div>
+
   <!-- @include partials/footer.html -->
 
   <script type="module" src="/src/js/shell.js"></script>
