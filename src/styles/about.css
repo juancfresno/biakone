@@ -1,10 +1,57 @@
 /* ============================================================
    ABOUT — long-form bio, Figma 6164:325.
+   Bg #c9c5bd / dark text = the default (light) theme, so no token
+   overrides needed. Layout: bio (top-left) · horizontal photo
+   strip · long about text · contact · shared tag marquee (bottom).
    ============================================================ */
 
+/* ─── Horizontal photo strip ───────────────────────────────────
+   Sits inside the .intro padding (Figma: x=24). Scrolls right on
+   overflow; about.js adds click-drag panning on top of native
+   wheel / trackpad / touch scrolling. */
+.about-gallery {
+  margin-top: var(--space-8);
+}
+.about-gallery__strip {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+.about-gallery__strip::-webkit-scrollbar { display: none; }
+.about-gallery__strip.is-dragging { cursor: grabbing; }
+.about-gallery__strip.is-dragging img { pointer-events: none; }
+.about-gallery__cell {
+  flex: 0 0 auto;
+  height: clamp(220px, 34vh, 340px);
+  background: var(--neutral-400);
+  overflow: hidden;
+}
+.about-gallery__cell img {
+  display: block;
+  height: 100%;
+  width: auto;               /* keep each photo's natural aspect (Figma varies) */
+  object-fit: cover;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.about-gallery__empty {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-8) 0;
+}
+
+/* ─── About text ───────────────────────────────────────────── */
 .about {
   padding-top: var(--space-16);
-  padding-bottom: var(--space-16);
+  padding-bottom: var(--space-12);
   max-width: 82ch;
 }
 .about__body {
@@ -19,7 +66,7 @@
 .about__contact {
   margin-top: var(--space-8);
   font-family: var(--font-ui);
-  font-size: 11px;
+  font-size: var(--text-ui-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-secondary);
@@ -31,3 +78,18 @@
   transition: border-color 140ms ease, color 140ms ease;
 }
 .about__contact a:hover { border-bottom-color: var(--text-primary); }
+
+/* ─── Tag marquee — static at the end of the flow, full-bleed ───
+   Breaks out of the .intro side padding to run edge-to-edge, then
+   clears the fixed footer. */
+.about__tags {
+  margin-top: var(--space-16);
+  margin-inline: calc(50% - 50vw);
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .about-gallery { margin-top: var(--space-6); }
+  .about-gallery__cell { height: clamp(180px, 30vh, 260px); }
+  .about__body { font-size: var(--text-body-md); }
+}

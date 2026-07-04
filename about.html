@@ -3,6 +3,7 @@
 <head>
   <title>BIAKO. — About</title>
   <!-- @include partials/head.html -->
+  <link rel="stylesheet" href="/src/styles/tags.css">
   <link rel="stylesheet" href="/src/styles/about.css">
 </head>
 <body data-page="about">
@@ -14,6 +15,13 @@
       Visual Artist — Designer<br>
       ↘ Urban culture, graffiti &amp; scale work
     </p>
+
+    <!-- Horizontal photo strip — drag / scroll right. Folder-driven. -->
+    <section class="about-gallery" aria-label="Studio photos">
+      <div class="about-gallery__strip" id="about-gallery">
+        <!-- photos injected from /about.json -->
+      </div>
+    </section>
 
     <section class="about">
       <div class="about__body">
@@ -28,10 +36,27 @@
         <a href="mailto:hello@biakone.com">hello@biakone.com</a>
       </p>
     </section>
+
+    <!-- Tag marquee — shared component (tags.css + tags.js). -->
+    <section class="about__tags" aria-label="Handstyle tags" data-marquee>
+      <div class="tags__track" id="tags-track" role="list">
+        <!-- tag items injected from /tags.json -->
+      </div>
+    </section>
   </main>
+
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+    <div class="lightbox__backdrop" data-lightbox-close></div>
+    <figure class="lightbox__frame" id="lightbox-frame">
+      <img class="lightbox__img" id="lightbox-img" alt="">
+      <button class="lightbox__close" type="button" data-lightbox-close aria-label="Close">Close ✕</button>
+    </figure>
+  </div>
 
   <!-- @include partials/footer.html -->
 
   <script type="module" src="/src/js/shell.js"></script>
+  <script type="module" src="/src/js/about.js"></script>
+  <script type="module" src="/src/js/tags.js"></script>
 </body>
 </html>
