@@ -6,8 +6,10 @@
 const strip = document.getElementById('about-gallery')
 
 function cellHtml (item) {
+  // --ar = crop aspect (w/h); cells flex-grow by it so the strip fills 100%.
+  const ar = item.w && item.h ? (item.w / item.h).toFixed(4) : '0.5625'
   return (
-    '<figure class="about-gallery__cell">' +
+    '<figure class="about-gallery__cell" style="--ar:' + ar + '">' +
       '<img src="' + item.src + '" alt="" loading="lazy" decoding="async" draggable="false">' +
     '</figure>'
   )

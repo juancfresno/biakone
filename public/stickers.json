@@ -1,38 +1,56 @@
 [
   {
     "src": "/stickers/_opt/sticker-01.webp",
-    "name": "sticker-01.png"
+    "name": "sticker-01.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-02.webp",
-    "name": "sticker-02.png"
+    "name": "sticker-02.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-03.webp",
-    "name": "sticker-03.png"
+    "name": "sticker-03.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-04.webp",
-    "name": "sticker-04.png"
+    "name": "sticker-04.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-05.webp",
-    "name": "sticker-05.png"
+    "name": "sticker-05.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-06.webp",
-    "name": "sticker-06.png"
+    "name": "sticker-06.png",
+    "w": 1024,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-07.webp",
-    "name": "sticker-07.jpg"
+    "name": "sticker-07.jpg",
+    "w": 720,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-08.webp",
-    "name": "sticker-08.jpg"
+    "name": "sticker-08.jpg",
+    "w": 720,
+    "h": 1280
   },
   {
     "src": "/stickers/_opt/sticker-09.webp",
-    "name": "sticker-09.jpg"
+    "name": "sticker-09.jpg",
+    "w": 960,
+    "h": 1280
   }
 ]

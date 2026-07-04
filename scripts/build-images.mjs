@@ -56,19 +56,20 @@ async function optimize (folder, srcAbs, name) {
   try {
     const [srcStat, outStat] = await Promise.all([fs.stat(srcAbs), fs.stat(optAbs)])
     if (outStat.mtimeMs >= srcStat.mtimeMs) {
-      return { src: optUrl, name, srcBytes: srcStat.size, optBytes: outStat.size, cached: true }
+      const meta = await sharp(optAbs).metadata()
+      return { src: optUrl, name, srcBytes: srcStat.size, optBytes: outStat.size, cached: true, w: meta.width, h: meta.height }
     }
   } catch { /* fall through */ }
 
   const srcStat = await fs.stat(srcAbs)
-  await sharp(srcAbs, { failOn: 'none' })
+  const info = await sharp(srcAbs, { failOn: 'none' })
     .rotate()                                                     // honor EXIF
     .resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true })
     .webp({ quality: OPT_QUALITY, effort: 5 })
     .toFile(optAbs)
 
   const outStat = await fs.stat(optAbs)
-  return { src: optUrl, name, srcBytes: srcStat.size, optBytes: outStat.size }
+  return { src: optUrl, name, srcBytes: srcStat.size, optBytes: outStat.size, w: info.width, h: info.height }
 }
 
 function fmtMB (bytes) { return (bytes / 1024 / 1024).toFixed(2) + ' MB' }
@@ -102,7 +103,9 @@ async function buildSection ({ name: folder, manifest }) {
   let totalSrc = 0, totalOpt = 0
   for (const name of files) {
     const result = await optimize(folder, path.join(dirAbs, name), name)
-    items.push({ src: result.src, name })
+    const item = { src: result.src, name }
+    if (result.w) { item.w = result.w; item.h = result.h }
+    items.push(item)
     if (result.srcBytes != null) {
       totalSrc += result.srcBytes
       totalOpt += result.optBytes
