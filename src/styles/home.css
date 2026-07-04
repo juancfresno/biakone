@@ -149,21 +149,21 @@
   padding: clamp(16px, 5vmin, 64px);
   animation: lb-fade 200ms ease both;
 }
-/* The tag floats: the backdrop blurs + darkens the WHOLE page behind it,
-   and the PNG sits on top with no box, no background, no shadow, no border. */
+/* The tag floats: the whole page behind it is blurred + darkened (the blur is
+   applied to the page-content elements, see `body.lb-open` below — reliable
+   where backdrop-filter is defeated by the fixed-background stacking context).
+   The PNG sits on top with no box, no background, no shadow, no border. */
 .lightbox__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  backdrop-filter: blur(30px) saturate(0.85);
-  -webkit-backdrop-filter: blur(30px) saturate(0.85);
+  background: rgba(0, 0, 0, 0.6);
 }
 .lightbox__frame {
   position: relative;
   margin: 0;
   max-width: min(90vw, 760px);
   max-height: 90vh;
-  perspective: 1200px;
+  perspective: 1400px;
   will-change: transform;
 }
 .lightbox__img {
@@ -173,11 +173,21 @@
   object-fit: contain;
   transform-style: preserve-3d;
   transform:
+    translate3d(var(--lb-tx, 0px), var(--lb-ty, 0px), 0)
     rotateX(var(--lb-rx, 0deg))
-    rotateY(var(--lb-ry, 0deg))
-    translateZ(0);
-  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    rotateY(var(--lb-ry, 0deg));
+  transition: transform 320ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  will-change: transform;
 }
+
+/* Whole-page blur while the lightbox is open — applied to the content itself so
+   it can't be defeated by stacking contexts. Slight scale on the bg hides the
+   transparent edge halo blur would otherwise reveal. */
+body.lb-open > *:not(.lightbox):not(script) {
+  filter: blur(30px);
+  transition: filter 320ms ease;
+}
+body.lb-open .home-bg { transform: scale(1.08); }
 .lightbox__close {
   position: absolute;
   top: -42px;

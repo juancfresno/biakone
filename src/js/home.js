@@ -44,22 +44,30 @@
   const track = document.getElementById('tags-track')
   if (!lb || !img || !frame || !track) return
 
-  const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const MAX_DEG = 9
+  const reduce   = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const MAX_DEG  = 22      // exaggerated tilt
+  const MAX_TX   = 26      // px of parallax drift toward the cursor
+
+  function recenter () {
+    frame.style.setProperty('--lb-rx', '0deg')
+    frame.style.setProperty('--lb-ry', '0deg')
+    frame.style.setProperty('--lb-tx', '0px')
+    frame.style.setProperty('--lb-ty', '0px')
+  }
 
   function open (src) {
     img.src = src
     lb.hidden = false
+    document.body.classList.add('lb-open')
     document.body.style.overflow = 'hidden'
-    frame.style.setProperty('--lb-rx', '0deg')
-    frame.style.setProperty('--lb-ry', '0deg')
+    recenter()
   }
   function close () {
     lb.hidden = true
     img.src = ''
+    document.body.classList.remove('lb-open')
     document.body.style.overflow = ''
-    frame.style.removeProperty('--lb-rx')
-    frame.style.removeProperty('--lb-ry')
+    recenter()
   }
 
   track.addEventListener('click', (e) => {
@@ -78,20 +86,18 @@
   })
 
   if (!reduce) {
-    frame.addEventListener('mousemove', (e) => {
-      const rect = img.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const nx = Math.max(-1, Math.min(1, (e.clientX - cx) / (rect.width / 2)))
-      const ny = Math.max(-1, Math.min(1, (e.clientY - cy) / (rect.height / 2)))
-      const ry = nx * MAX_DEG
+    // Track the cursor across the WHOLE overlay/viewport: the tag tilts and
+    // drifts toward wherever the cursor is, not just when over the image.
+    lb.addEventListener('mousemove', (e) => {
+      const nx = (e.clientX / window.innerWidth  - 0.5) * 2   // -1 … 1
+      const ny = (e.clientY / window.innerHeight - 0.5) * 2   // -1 … 1
+      const ry =  nx * MAX_DEG
       const rx = -ny * MAX_DEG
       frame.style.setProperty('--lb-ry', ry.toFixed(2) + 'deg')
       frame.style.setProperty('--lb-rx', rx.toFixed(2) + 'deg')
+      frame.style.setProperty('--lb-tx', (nx * MAX_TX).toFixed(1) + 'px')
+      frame.style.setProperty('--lb-ty', (ny * MAX_TX).toFixed(1) + 'px')
     })
-    frame.addEventListener('mouseleave', () => {
-      frame.style.setProperty('--lb-rx', '0deg')
-      frame.style.setProperty('--lb-ry', '0deg')
-    })
+    lb.addEventListener('mouseleave', recenter)
   }
 })()
