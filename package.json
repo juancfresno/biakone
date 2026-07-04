@@ -13,5 +13,8 @@
   "devDependencies": {
     "sharp": "^0.33.5",
     "vite": "^5.4.10"
+  },
+  "dependencies": {
+    "@vfx-js/core": "^1.1.0"
   }
 }
