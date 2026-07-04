@@ -47,11 +47,15 @@ function rowHtml (p) {
   return (
     '<li class="work__row" data-index="' + p._i + '" tabindex="0" role="button" ' +
         'aria-label="' + p.name + '">' +
-      '<span class="work__row-arrow" aria-hidden="true">↘</span>' +
-      '<span class="work__row-code">' + p.code + '.</span>' +
-      '<span class="work__row-name">' + p.name + '</span>' +
-      '<span class="work__row-scale">' + (p.scale || '') + '</span>' +
-      '<span class="work__row-date">' + (p.date || '') + '</span>' +
+      '<span class="work__row-left">' +
+        '<span class="work__row-arrow" aria-hidden="true">↘</span>' +
+        '<span class="work__row-code">' + p.code + '.</span>' +
+        '<span class="work__row-name">' + p.name + '</span>' +
+      '</span>' +
+      '<span class="work__row-right">' +
+        '<span class="work__row-scale">' + (p.scale || '') + '</span>' +
+        '<span class="work__row-date">' + (p.date || '') + '</span>' +
+      '</span>' +
     '</li>'
   )
 }
@@ -81,6 +85,88 @@ function render (items) {
   buildStage()
   setActive(0)
   syncToScroll()   // pick the row nearest the viewport centre on load
+  initElasticLines()
+}
+
+// ─── Elastic divider lines ──────────────────────────────────────────────────
+// Faithful port of the portfolio's ui/ElasticLine/ElasticLine.tsx spring: an
+// SVG path bulges toward the cursor within a proximity band and springs back
+// (underdamped → bounce), with a velocity-proportional impulse on exit. One
+// shared mousemove + one rAF drives every row's divider. Desktop / motion only.
+function initElasticLines () {
+  if (!rows.length) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+  const NS = 'http://www.w3.org/2000/svg'
+  const SPRING_K = 0.06   // restoring force
+  const DAMPING  = 0.93   // per-frame velocity retention → underdamped, oscillates
+  const PROXIMITY = 55    // px vertical detection band
+  const MAX_DISP  = 26    // px max target (y can exceed it on the bounce)
+  const lines = []
+
+  function addLine (row, isTop) {
+    const svg = document.createElementNS(NS, 'svg')
+    svg.setAttribute('class', 'work__row-line' + (isTop ? ' work__row-line--top' : ''))
+    svg.setAttribute('aria-hidden', 'true')
+    const path = document.createElementNS(NS, 'path')
+    path.setAttribute('stroke', 'currentColor')
+    path.setAttribute('stroke-width', '1')
+    path.setAttribute('fill', 'none')
+    path.setAttribute('d', 'M 0 0.5 L 1 0.5')
+    svg.appendChild(path)
+    row.appendChild(svg)
+    lines.push({ svg, path, y: 0, vy: 0, cpx: 0, target: 0, w: 0, wasNear: false, straight: true })
+  }
+  rows.forEach((row, i) => { if (i === 0) addLine(row, true); addLine(row, false) })
+
+  function measure () {
+    for (const L of lines) { L.w = L.svg.getBoundingClientRect().width; L.path.setAttribute('d', 'M 0 0.5 L ' + L.w + ' 0.5') }
+  }
+  measure()
+
+  let lastMouseY = 0, lastTime = 0, mouseVY = 0
+  function onMove (e) {
+    const now = Date.now()
+    const dt = now - lastTime
+    if (dt > 0 && dt < 80) mouseVY = (e.clientY - lastMouseY) / dt
+    lastMouseY = e.clientY; lastTime = now
+    for (const L of lines) {
+      const rect = L.svg.getBoundingClientRect()
+      const distY = e.clientY - (rect.top + 0.5)
+      const inX = e.clientX >= rect.left && e.clientX <= rect.right
+      const near = inX && Math.abs(distY) < PROXIMITY
+      if (near) {
+        L.cpx = e.clientX - rect.left
+        L.target = Math.max(-MAX_DISP, Math.min(MAX_DISP, distY * 0.8))
+      } else {
+        if (L.wasNear) L.vy += mouseVY * 0.35   // impulse ∝ pass speed on exit
+        L.target = 0
+      }
+      L.wasNear = near
+    }
+  }
+  window.addEventListener('mousemove', onMove, { passive: true })
+  window.addEventListener('resize', measure)
+
+  function tick () {
+    for (const L of lines) {
+      L.vy += (L.target - L.y) * SPRING_K
+      L.vy *= DAMPING
+      L.y += L.vy
+      const flat = Math.abs(L.y) < 0.08 && Math.abs(L.vy) < 0.05
+      if (!flat) {
+        L.straight = false
+        L.path.setAttribute('d', 'M 0 0.5 Q ' + L.cpx + ' ' + (0.5 + L.y) + ' ' + L.w + ' 0.5')
+      } else if (!L.straight) {
+        L.straight = true; L.y = 0; L.vy = 0
+        L.path.setAttribute('d', 'M 0 0.5 L ' + L.w + ' 0.5')
+      }
+    }
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+  section.classList.add('work--elastic')
 }
 
 // ─── Drivers: cursor + scroll ───────────────────────────────────────────────

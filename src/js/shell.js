@@ -35,3 +35,35 @@
     applyTheme(current === 'dark' ? 'light' : 'dark')
   })
 })()
+
+// ─── Nav link letter scramble ──────────────────────────────────────────────
+// Faithful port of the portfolio's useScramble (layout/Nav/Nav.tsx): on hover
+// the label cycles random characters and resolves left→right over 420ms.
+// Desktop hover only; themed by tokens (uses the link's own currentColor).
+;(function () {
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%?'
+  const DURATION = 420
+
+  document.querySelectorAll('.nav-link > span').forEach((span) => {
+    const text = span.textContent
+    const link = span.closest('.nav-link')
+    let raf = 0, t0 = 0
+
+    function frame (ts) {
+      if (!t0) t0 = ts
+      const progress = Math.min((ts - t0) / DURATION, 1)
+      const resolved = Math.floor(progress * text.length)
+      span.textContent = text.split('').map((ch, i) => {
+        if (ch === ' ') return ' '
+        if (i < resolved) return ch
+        return CHARS[Math.floor(Math.random() * CHARS.length)]
+      }).join('')
+      if (progress < 1) raf = requestAnimationFrame(frame)
+      else { span.textContent = text; t0 = 0 }
+    }
+
+    link.addEventListener('mouseenter', () => { cancelAnimationFrame(raf); t0 = 0; raf = requestAnimationFrame(frame) })
+    link.addEventListener('mouseleave', () => { cancelAnimationFrame(raf); t0 = 0; span.textContent = text })
+  })
+})()
