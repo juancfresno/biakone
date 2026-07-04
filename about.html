@@ -3,60 +3,58 @@
 <head>
   <title>BIAKO. — About</title>
   <!-- @include partials/head.html -->
-  <link rel="stylesheet" href="/src/styles/tags.css">
-  <link rel="stylesheet" href="/src/styles/about.css">
 </head>
-<body data-page="about">
+<body data-page="about" data-barba="wrapper">
   <!-- @include partials/grain.html -->
   <!-- @include partials/nav.html -->
 
-  <main class="intro">
-    <p class="intro__bio">
-      Visual Artist — Designer<br>
-      ↘ Urban culture, graffiti &amp; scale work
-    </p>
-
-    <!-- Horizontal photo strip — drag / scroll right. Folder-driven. -->
-    <section class="about-gallery" aria-label="Studio photos">
-      <div class="about-gallery__strip" id="about-gallery">
-        <!-- photos injected from /about.json -->
-      </div>
-    </section>
-
-    <section class="about">
-      <div class="about__body">
-        <p>Biakone —or Biako— is my visual alter ego.</p>
-        <p>It started as my graffiti name and has grown into a visual lab where I mix urban culture, design, physical objects, miniatures, stickers, 3D printing, painting and digital experiments.</p>
-        <p>A space to build pieces, test ideas and reinterpret elements.</p>
-        <p>Some pieces become scale scenes; others become objects, tags, art toys, posters, interactive tools or simple visual studies.</p>
-        <p>An ongoing archive: design, objects, symbols and urban codes reinterpreted from the studio.</p>
-      </div>
-      <p class="about__contact">
-        For collaborations, commissions or questions:<br>
-        <a href="mailto:hello@biakone.com">hello@biakone.com</a>
+  <div data-barba="container" data-barba-namespace="about">
+    <main class="intro">
+      <p class="intro__bio">
+        Visual Artist — Designer<br>
+        ↘ Urban culture, graffiti &amp; scale work
       </p>
-    </section>
 
-    <!-- Tag marquee — shared component (tags.css + tags.js). -->
-    <section class="about__tags" aria-label="Handstyle tags" data-marquee>
-      <div class="tags__track" id="tags-track" role="list">
-        <!-- tag items injected from /tags.json -->
-      </div>
-    </section>
-  </main>
+      <!-- Horizontal photo strip — drag / scroll right. Folder-driven. -->
+      <section class="about-gallery" aria-label="Studio photos">
+        <div class="about-gallery__strip" id="about-gallery">
+          <!-- photos injected from /about.json -->
+        </div>
+      </section>
 
-  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
-    <div class="lightbox__backdrop" data-lightbox-close></div>
-    <figure class="lightbox__frame" id="lightbox-frame">
-      <img class="lightbox__img" id="lightbox-img" alt="">
-      <button class="lightbox__close" type="button" data-lightbox-close aria-label="Close">Close ✕</button>
-    </figure>
+      <section class="about">
+        <div class="about__body">
+          <p>Biakone —or Biako— is my visual alter ego.</p>
+          <p>It started as my graffiti name and has grown into a visual lab where I mix urban culture, design, physical objects, miniatures, stickers, 3D printing, painting and digital experiments.</p>
+          <p>A space to build pieces, test ideas and reinterpret elements.</p>
+          <p>Some pieces become scale scenes; others become objects, tags, art toys, posters, interactive tools or simple visual studies.</p>
+          <p>An ongoing archive: design, objects, symbols and urban codes reinterpreted from the studio.</p>
+        </div>
+        <p class="about__contact">
+          For collaborations, commissions or questions:<br>
+          <a href="mailto:hello@biakone.com">hello@biakone.com</a>
+        </p>
+      </section>
+
+      <!-- Tag marquee — shared component (tags.css + tags.js). -->
+      <section class="about__tags" aria-label="Handstyle tags" data-marquee>
+        <div class="tags__track" id="tags-track" role="list">
+          <!-- tag items injected from /tags.json -->
+        </div>
+      </section>
+    </main>
+
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+      <div class="lightbox__backdrop" data-lightbox-close></div>
+      <figure class="lightbox__frame" id="lightbox-frame">
+        <img class="lightbox__img" id="lightbox-img" alt="">
+        <button class="lightbox__close" type="button" data-lightbox-close aria-label="Close">Close ✕</button>
+      </figure>
+    </div>
   </div>
 
   <!-- @include partials/footer.html -->
 
-  <script type="module" src="/src/js/shell.js"></script>
-  <script type="module" src="/src/js/about.js"></script>
-  <script type="module" src="/src/js/tags.js"></script>
+  <script type="module" src="/src/js/app.js"></script>
 </body>
 </html>

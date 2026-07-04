@@ -1,23 +1,26 @@
 // Tag marquee + 3D lightbox — shared component (Home + About).
-// Fetches /tags.json, renders a duplicated tag row for a seamless marquee,
-// and opens the floating 3D lightbox when a tag is clicked. Runs only if the
-// expected elements (#tags-track, #lightbox*) exist on the page, so it's safe
-// to import from any shell page that includes the markup.
+// initTags() renders the marquee from /tags.json and wires the floating 3D
+// lightbox; destroyTags() tears down the listeners it put on document/body so
+// nothing leaks across barba transitions. Elements (#tags-track, #lightbox*)
+// live inside the swapped container, so per-element listeners GC with the DOM —
+// we only need to clean up the document/body ones ourselves.
 
-// ─── Tag marquee ───────────────────────────────────────────────
-;(function () {
+let cleanup = []
+
+function itemHtml (item, i) {
+  return (
+    '<button class="tags__item" type="button" data-src="' + item.src + '" ' +
+      'aria-label="Open tag ' + (i + 1) + '">' +
+      '<img src="' + item.src + '" alt="" loading="lazy" decoding="async">' +
+    '</button>'
+  )
+}
+
+export function initTags () {
   const track = document.getElementById('tags-track')
   if (!track) return
 
-  function itemHtml (item, i) {
-    return (
-      '<button class="tags__item" type="button" data-src="' + item.src + '" ' +
-        'aria-label="Open tag ' + (i + 1) + '">' +
-        '<img src="' + item.src + '" alt="" loading="lazy" decoding="async">' +
-      '</button>'
-    )
-  }
-
+  // ─── Marquee ───────────────────────────────────────────────
   function render (items) {
     if (!items.length) {
       track.innerHTML = '<div class="tags__empty">No tags yet — drop images in /public/tags</div>'
@@ -32,24 +35,20 @@
       nodes[i].setAttribute('tabindex', '-1')
     }
   }
-
   fetch('/tags.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(render)
     .catch(() => render([]))
-})()
 
-// ─── Lightbox — open on tag click, perspective tilt, Esc/outside close.
-;(function () {
+  // ─── Lightbox ──────────────────────────────────────────────
   const lb    = document.getElementById('lightbox')
   const img   = document.getElementById('lightbox-img')
   const frame = document.getElementById('lightbox-frame')
-  const track = document.getElementById('tags-track')
-  if (!lb || !img || !frame || !track) return
+  if (!lb || !img || !frame) return
 
-  const reduce   = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const MAX_DEG  = 22      // exaggerated tilt
-  const MAX_TX   = 26      // px of parallax drift toward the cursor
+  const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const MAX_DEG = 22
+  const MAX_TX  = 26
 
   function recenter () {
     frame.style.setProperty('--lb-rx', '0deg')
@@ -57,7 +56,6 @@
     frame.style.setProperty('--lb-tx', '0px')
     frame.style.setProperty('--lb-ty', '0px')
   }
-
   function open (src) {
     img.src = src
     lb.hidden = false
@@ -79,28 +77,31 @@
     const src = item.getAttribute('data-src')
     if (src) open(src)
   })
-
   lb.addEventListener('click', (e) => {
     if (e.target.closest('[data-lightbox-close]')) close()
   })
 
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !lb.hidden) close()
-  })
+  const onKey = (e) => { if (e.key === 'Escape' && !lb.hidden) close() }
+  document.addEventListener('keydown', onKey)
+  cleanup.push(() => document.removeEventListener('keydown', onKey))
 
   if (!reduce) {
-    // Track the cursor across the WHOLE overlay/viewport: the tag tilts and
-    // drifts toward wherever the cursor is, not just when over the image.
     lb.addEventListener('mousemove', (e) => {
-      const nx = (e.clientX / window.innerWidth  - 0.5) * 2   // -1 … 1
-      const ny = (e.clientY / window.innerHeight - 0.5) * 2   // -1 … 1
-      const ry =  nx * MAX_DEG
-      const rx = -ny * MAX_DEG
-      frame.style.setProperty('--lb-ry', ry.toFixed(2) + 'deg')
-      frame.style.setProperty('--lb-rx', rx.toFixed(2) + 'deg')
+      const nx = (e.clientX / window.innerWidth  - 0.5) * 2
+      const ny = (e.clientY / window.innerHeight - 0.5) * 2
+      frame.style.setProperty('--lb-ry', (nx * MAX_DEG).toFixed(2) + 'deg')
+      frame.style.setProperty('--lb-rx', (-ny * MAX_DEG).toFixed(2) + 'deg')
       frame.style.setProperty('--lb-tx', (nx * MAX_TX).toFixed(1) + 'px')
       frame.style.setProperty('--lb-ty', (ny * MAX_TX).toFixed(1) + 'px')
     })
     lb.addEventListener('mouseleave', recenter)
   }
-})()
+
+  // Ensure a page leaving mid-lightbox doesn't strip the next page's scroll lock.
+  cleanup.push(() => { document.body.classList.remove('lb-open'); document.body.style.overflow = '' })
+}
+
+export function destroyTags () {
+  cleanup.forEach(fn => fn())
+  cleanup = []
+}

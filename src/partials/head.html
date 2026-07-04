@@ -8,6 +8,17 @@
   <link rel="stylesheet" href="/src/styles/tokens.css">
   <link rel="stylesheet" href="/src/styles/base.css">
   <link rel="stylesheet" href="/src/styles/shell.css">
+  <!-- All page styles are loaded up front so the SPA shell never has to swap
+       <head> between barba transitions. Page CSS is scoped by body[data-page]
+       and unique class names, so loading it all together is safe. -->
+  <link rel="stylesheet" href="/src/styles/tags.css">
+  <link rel="stylesheet" href="/src/styles/home.css">
+  <link rel="stylesheet" href="/src/styles/work.css">
+  <link rel="stylesheet" href="/src/styles/stickers.css">
+  <link rel="stylesheet" href="/src/styles/lab.css">
+  <link rel="stylesheet" href="/src/styles/about.css">
+  <link rel="stylesheet" href="/src/styles/contact.css">
+  <link rel="stylesheet" href="/src/styles/transition.css">
   <script>
     // Theme bootstrap — set BEFORE first paint to avoid flash.
     (function () {

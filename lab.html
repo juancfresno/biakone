@@ -3,27 +3,28 @@
 <head>
   <title>BIAKO. — Lab</title>
   <!-- @include partials/head.html -->
-  <link rel="stylesheet" href="/src/styles/lab.css">
 </head>
-<body data-page="lab">
+<body data-page="lab" data-barba="wrapper">
   <!-- @include partials/grain.html -->
   <!-- @include partials/nav.html -->
 
-  <main class="intro">
-    <p class="intro__bio">
-      Artist — Designer<br>
-      ↘ Urban culture, graffiti &amp; scale work
-    </p>
-
-    <section class="lab" aria-label="Lab">
-      <p class="lab__placeholder">
-        [ PLACEHOLDER ] &nbsp;·&nbsp; Lab — coming soon
+  <div data-barba="container" data-barba-namespace="lab">
+    <main class="intro">
+      <p class="intro__bio">
+        Artist — Designer<br>
+        ↘ Urban culture, graffiti &amp; scale work
       </p>
-    </section>
-  </main>
+
+      <section class="lab" aria-label="Lab">
+        <p class="lab__placeholder">
+          [ PLACEHOLDER ] &nbsp;·&nbsp; Lab — coming soon
+        </p>
+      </section>
+    </main>
+  </div>
 
   <!-- @include partials/footer.html -->
 
-  <script type="module" src="/src/js/shell.js"></script>
+  <script type="module" src="/src/js/app.js"></script>
 </body>
 </html>

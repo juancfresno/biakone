@@ -3,23 +3,23 @@
 <head>
   <title>BIAKO. — Stickers</title>
   <!-- @include partials/head.html -->
-  <link rel="stylesheet" href="/src/styles/stickers.css">
 </head>
-<body data-page="stickers">
+<body data-page="stickers" data-barba="wrapper">
   <!-- @include partials/grain.html -->
   <!-- @include partials/nav.html -->
 
-  <main class="intro">
-    <section class="stickers" aria-label="Stickers">
-      <div class="stickers__stack" id="stickers-grid">
-        <!-- cells injected from /stickers.json -->
-      </div>
-    </section>
-  </main>
+  <div data-barba="container" data-barba-namespace="stickers">
+    <main class="intro">
+      <section class="stickers" aria-label="Stickers">
+        <div class="stickers__stack" id="stickers-grid">
+          <!-- cells injected from /stickers.json -->
+        </div>
+      </section>
+    </main>
+  </div>
 
   <!-- @include partials/footer.html -->
 
-  <script type="module" src="/src/js/shell.js"></script>
-  <script type="module" src="/src/js/stickers.js"></script>
+  <script type="module" src="/src/js/app.js"></script>
 </body>
 </html>

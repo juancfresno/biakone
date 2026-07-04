@@ -1,0 +1,14 @@
+/* ============================================================
+   PAGE TRANSITION — barba container + (Phase 2) VHS overlay.
+   ============================================================ */
+
+/* The swappable page container. Keep it a plain block so fixed children
+   (home-bg, lightbox, drawer) still anchor to the viewport. */
+[data-barba="container"] {
+  will-change: opacity;
+}
+
+/* While barba is mid-transition, block pointer input on the leaving page. */
+html.is-transitioning [data-barba="container"] {
+  pointer-events: none;
+}

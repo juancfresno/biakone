@@ -1,20 +1,18 @@
-// Work — folder-driven numbered project list (/work.json) with a floating
-// centre image that crossfades to the ACTIVE project. Active selection is
-// driven by BOTH cursor (hovering a row) and scroll (the row nearest the
-// viewport centre). List ↔ grid toggle. Clicking a project opens the detail
-// drawer (added in the drawer phase).
+// Work page module — folder-driven numbered list (/work.json) with a floating
+// crossfade centre image, cursor+scroll active selection, elastic divider
+// lines, list↔grid toggle and a detail drawer.
+//
+// SPA-safe: every window/document listener and rAF loop is tracked and torn
+// down in destroy() so nothing leaks or double-runs across barba transitions.
 
-const list    = document.getElementById('work-list')
-const grid    = document.getElementById('work-grid')
-const stage   = document.getElementById('work-stage')
-const section = document.querySelector('.work')
-
-let projects = []
-let rows = []
-let activeIndex = -1
+let list, grid, stage, section, drawer, dGallery, dInfo
+let projects = [], rows = [], activeIndex = -1
+let front = null, back = null, currentSrc = null
+let drawerIndex = -1, lastFocused = null
+let cleanup = []
+let elasticRafId = 0, scrollRafId = 0
 
 // ─── Crossfade double-buffer for the centre image ───────────────────────────
-let front = null, back = null, currentSrc = null
 function buildStage () {
   front = document.createElement('img'); front.className = 'work__stage-img'
   back  = document.createElement('img'); back.className  = 'work__stage-img'
@@ -28,12 +26,11 @@ function showImage (src) {
   back.onload = () => {
     back.classList.add('is-shown')
     front.classList.remove('is-shown')
-    const t = front; front = back; back = t   // swap roles
+    const t = front; front = back; back = t
   }
   back.src = src
 }
 
-// ─── Active project ─────────────────────────────────────────────────────────
 function setActive (i) {
   if (i < 0 || i >= projects.length || i === activeIndex) return
   activeIndex = i
@@ -84,25 +81,18 @@ function render (items) {
   rows = [...list.querySelectorAll('.work__row')]
   buildStage()
   setActive(0)
-  syncToScroll()   // pick the row nearest the viewport centre on load
+  syncToScroll()
   initElasticLines()
 }
 
-// ─── Elastic divider lines ──────────────────────────────────────────────────
-// Faithful port of the portfolio's ui/ElasticLine/ElasticLine.tsx spring: an
-// SVG path bulges toward the cursor within a proximity band and springs back
-// (underdamped → bounce), with a velocity-proportional impulse on exit. One
-// shared mousemove + one rAF drives every row's divider. Desktop / motion only.
+// ─── Elastic divider lines (port of ElasticLine.tsx) ────────────────────────
 function initElasticLines () {
   if (!rows.length) return
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
   if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
 
   const NS = 'http://www.w3.org/2000/svg'
-  const SPRING_K = 0.06   // restoring force
-  const DAMPING  = 0.93   // per-frame velocity retention → underdamped, oscillates
-  const PROXIMITY = 55    // px vertical detection band
-  const MAX_DISP  = 26    // px max target (y can exceed it on the bounce)
+  const SPRING_K = 0.06, DAMPING = 0.93, PROXIMITY = 55, MAX_DISP = 26
   const lines = []
 
   function addLine (row, isTop) {
@@ -140,7 +130,7 @@ function initElasticLines () {
         L.cpx = e.clientX - rect.left
         L.target = Math.max(-MAX_DISP, Math.min(MAX_DISP, distY * 0.8))
       } else {
-        if (L.wasNear) L.vy += mouseVY * 0.35   // impulse ∝ pass speed on exit
+        if (L.wasNear) L.vy += mouseVY * 0.35
         L.target = 0
       }
       L.wasNear = near
@@ -148,6 +138,8 @@ function initElasticLines () {
   }
   window.addEventListener('mousemove', onMove, { passive: true })
   window.addEventListener('resize', measure)
+  cleanup.push(() => window.removeEventListener('mousemove', onMove))
+  cleanup.push(() => window.removeEventListener('resize', measure))
 
   function tick () {
     for (const L of lines) {
@@ -163,9 +155,9 @@ function initElasticLines () {
         L.path.setAttribute('d', 'M 0 0.5 L ' + L.w + ' 0.5')
       }
     }
-    requestAnimationFrame(tick)
+    elasticRafId = requestAnimationFrame(tick)
   }
-  requestAnimationFrame(tick)
+  elasticRafId = requestAnimationFrame(tick)
   section.classList.add('work--elastic')
 }
 
@@ -174,8 +166,6 @@ function rowIndex (el) {
   const row = el.closest('.work__row')
   return row ? Number(row.dataset.index) : -1
 }
-
-// Cursor: hovering a row activates it.
 function bindCursor () {
   list.addEventListener('pointerover', (e) => {
     if (e.pointerType === 'touch') return
@@ -187,9 +177,6 @@ function bindCursor () {
     if (i >= 0) setActive(i)
   })
 }
-
-// Scroll: the row whose centre is nearest the viewport centre wins.
-let scrollQueued = false
 function syncToScroll () {
   if (!rows.length) return
   const mid = window.innerHeight / 2
@@ -201,10 +188,11 @@ function syncToScroll () {
   }
   setActive(best)
 }
+let scrollQueued = false
 function onScroll () {
   if (scrollQueued) return
   scrollQueued = true
-  requestAnimationFrame(() => { scrollQueued = false; syncToScroll() })
+  scrollRafId = requestAnimationFrame(() => { scrollQueued = false; syncToScroll() })
 }
 
 // ─── View toggle ────────────────────────────────────────────────────────────
@@ -219,13 +207,12 @@ function bindToggle () {
 }
 
 // ─── Row / cell click → detail drawer ───────────────────────────────────────
-// work-drawer.js (drawer phase) listens for this event.
 function bindOpen () {
   const open = (e) => {
     const fig = e.target.closest('.work__cell')
     const i = fig ? Number(fig.dataset.index) : rowIndex(e.target)
     if (i < 0) return
-    window.dispatchEvent(new CustomEvent('work:open', { detail: { index: i, projects } }))
+    openDrawer(i)
   }
   list.addEventListener('click', open)
   grid.addEventListener('click', open)
@@ -235,12 +222,6 @@ function bindOpen () {
 }
 
 // ─── Detail drawer ──────────────────────────────────────────────────────────
-const drawer  = document.getElementById('work-drawer')
-const dGallery = document.getElementById('drawer-gallery')
-const dInfo   = drawer && drawer.querySelector('#drawer-info')
-let drawerIndex = -1
-let lastFocused = null
-
 function fillDrawer (i) {
   const p = projects[i]
   if (!p) return
@@ -256,7 +237,6 @@ function fillDrawer (i) {
   dInfo.querySelector('[data-date]').textContent  = p.date || ''
   dInfo.querySelector('[data-desc]').textContent  = p.description || ''
 }
-
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
   lastFocused = document.activeElement
@@ -283,26 +263,23 @@ function step (dir) {
   if (!projects.length) return
   fillDrawer((drawerIndex + dir + projects.length) % projects.length)
 }
-
 function bindDrawer () {
   if (!drawer) return
-  window.addEventListener('work:open', (e) => openDrawer(e.detail.index))
-
   drawer.addEventListener('click', (e) => {
     if (e.target.closest('[data-drawer-close]')) { closeDrawer(); return }
     if (e.target.closest('[data-prev]')) { step(-1); return }
     if (e.target.closest('[data-next]')) { step(1); return }
-    // Click on the gallery background (not an image, not the info box) closes.
     if (e.target === dGallery) closeDrawer()
   })
-  document.addEventListener('keydown', (e) => {
+  const onKey = (e) => {
     if (drawer.hidden) return
     if (e.key === 'Escape') closeDrawer()
     else if (e.key === 'ArrowRight') step(1)
     else if (e.key === 'ArrowLeft') step(-1)
-  })
+  }
+  document.addEventListener('keydown', onKey)
+  cleanup.push(() => document.removeEventListener('keydown', onKey))
 
-  // Click-drag to pan the horizontal gallery (desktop).
   let down = false, startX = 0, startScroll = 0, moved = 0
   dGallery.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse') return
@@ -323,23 +300,47 @@ function bindDrawer () {
   }
   dGallery.addEventListener('pointerup', end)
   dGallery.addEventListener('pointercancel', end)
-  // Swallow the click after a real drag so it can't close the drawer.
   dGallery.addEventListener('click', (e) => { if (moved > 4) { e.stopPropagation() } }, true)
 }
 
-if (list && grid && stage && section) {
+// ─── Lifecycle ──────────────────────────────────────────────────────────────
+export function init () {
+  list    = document.getElementById('work-list')
+  grid    = document.getElementById('work-grid')
+  stage   = document.getElementById('work-stage')
+  section = document.querySelector('.work')
+  drawer  = document.getElementById('work-drawer')
+  dGallery = document.getElementById('drawer-gallery')
+  dInfo   = drawer && drawer.querySelector('#drawer-info')
+  if (!list || !grid || !stage || !section) return
+
   bindCursor()
   bindToggle()
   bindOpen()
   bindDrawer()
+
   window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('resize', () => { syncToScroll() })
+  const onResize = () => syncToScroll()
+  window.addEventListener('resize', onResize)
+  cleanup.push(() => window.removeEventListener('scroll', onScroll))
+  cleanup.push(() => window.removeEventListener('resize', onResize))
 
   fetch('/work.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(render)
     .catch(() => render([]))
 
-  // Expose for debugging / external control.
   window.biakoWork = { get projects () { return projects }, setActive, openDrawer, closeDrawer }
+}
+
+export function destroy () {
+  cleanup.forEach(fn => fn()); cleanup = []
+  cancelAnimationFrame(elasticRafId); elasticRafId = 0
+  cancelAnimationFrame(scrollRafId); scrollRafId = 0
+  document.body.style.overflow = ''
+  projects = []; rows = []; activeIndex = -1
+  front = back = null; currentSrc = null
+  drawerIndex = -1; lastFocused = null
+  scrollQueued = false
+  delete window.biakoWork
 }

@@ -1,9 +1,8 @@
-// About — folder-driven horizontal photo strip (/about.json).
-// Native wheel / trackpad / touch scrolling works out of the box; this adds
-// click-drag panning for mouse users. The tag marquee + lightbox at the bottom
-// are the shared tags component (see tags.js), loaded separately.
-
-const strip = document.getElementById('about-gallery')
+// About page module — folder-driven horizontal photo strip (/about.json) with
+// click-drag panning, plus the shared tag marquee + lightbox at the bottom.
+// All strip listeners live on the swapped element (GC'd on leave); the tags
+// component cleans up its own document listeners via destroyTags().
+import { initTags, destroyTags } from './tags.js'
 
 function cellHtml (item) {
   // --ar = crop aspect (w/h); cells flex-grow by it so the strip fills 100%.
@@ -15,20 +14,11 @@ function cellHtml (item) {
   )
 }
 
-function render (items) {
-  if (!items.length) {
-    strip.innerHTML = '<p class="about-gallery__empty">No photos yet — drop images in /public/about</p>'
-    return
-  }
-  strip.innerHTML = items.map(cellHtml).join('')
-}
-
 // ─── Click-drag to pan (desktop nicety) ─────────────────────────────────────
 function enableDrag (el) {
   let down = false, startX = 0, startScroll = 0, moved = 0
-
   el.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse') return   // touch already pans natively
+    if (e.pointerType !== 'mouse') return
     down = true; moved = 0
     startX = e.clientX; startScroll = el.scrollLeft
     el.setPointerCapture(e.pointerId)
@@ -48,14 +38,25 @@ function enableDrag (el) {
   }
   el.addEventListener('pointerup', end)
   el.addEventListener('pointercancel', end)
-  // Swallow the click that follows a real drag so it can't trigger anything.
   el.addEventListener('click', (e) => { if (moved > 4) { e.preventDefault(); e.stopPropagation() } }, true)
 }
 
-if (strip) {
-  enableDrag(strip)
-  fetch('/about.json', { cache: 'no-cache' })
-    .then(r => r.ok ? r.json() : [])
-    .then(render)
-    .catch(() => render([]))
+export function init () {
+  const strip = document.getElementById('about-gallery')
+  if (strip) {
+    enableDrag(strip)
+    fetch('/about.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : [])
+      .then(items => {
+        strip.innerHTML = items.length
+          ? items.map(cellHtml).join('')
+          : '<p class="about-gallery__empty">No photos yet — drop images in /public/about</p>'
+      })
+      .catch(() => {})
+  }
+  initTags()
+}
+
+export function destroy () {
+  destroyTags()
 }

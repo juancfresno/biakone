@@ -84,8 +84,6 @@ void main(){
 `
 
 // ─── Render the folder-driven stack ────────────────────────────────────────
-const mount = document.getElementById('stickers-grid')
-
 function cellHtml (item) {
   return (
     '<figure class="stickers__cell">' +
@@ -94,16 +92,9 @@ function cellHtml (item) {
   )
 }
 
-function render (items) {
-  if (!items.length) {
-    mount.innerHTML = '<p class="stickers__empty">No stickers yet — drop images in /public/stickers</p>'
-    return []
-  }
-  mount.innerHTML = items.map(cellHtml).join('')
-  return [...mount.querySelectorAll('.stickers__cell img')]
-}
+// Per-mount VFX instance so we can tear it down on leave (WebGL / rAF cleanup).
+let vfx = null
 
-// ─── Effect wiring ─────────────────────────────────────────────────────────
 function initEffect (imgs) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (reduce || !imgs.length) return
@@ -111,7 +102,6 @@ function initEffect (imgs) {
   const isMobile = window.matchMedia('(max-width: 640px)').matches
   const cfg = { ...TUNE, ...(isMobile ? MOBILE : {}) }
 
-  let vfx
   try {
     vfx = VFX.init({ pixelRatio: isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2), zIndex: 2 })
   } catch { vfx = null }
@@ -130,7 +120,7 @@ function initEffect (imgs) {
   }
 
   const addOne = (img) => {
-    const go = () => vfx.add(img, {
+    const go = () => vfx && vfx.add(img, {
       shader: SHADER,
       uniforms,
       release: 400,     // keep rendering briefly after leaving the viewport
@@ -148,9 +138,25 @@ function initEffect (imgs) {
   }
 }
 
-if (mount) {
+export function init () {
+  const mount = document.getElementById('stickers-grid')
+  if (!mount) return
   fetch('/stickers.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(items => initEffect(render(items)))
-    .catch(() => render([]))
+    .then(items => {
+      if (!items.length) { mount.innerHTML = '<p class="stickers__empty">No stickers yet — drop images in /public/stickers</p>'; return }
+      mount.innerHTML = items.map(cellHtml).join('')
+      initEffect([...mount.querySelectorAll('.stickers__cell img')])
+    })
+    .catch(() => {})
+}
+
+export function destroy () {
+  // Tear down the WebGL context + rAF and remove the fixed canvas VFX appended
+  // to <body> (it lives outside the swapped container, so it must be removed).
+  if (vfx) {
+    try { vfx.destroy() } catch {}
+    vfx = null
+  }
+  delete window.biakoStickers
 }
