@@ -1,14 +1,82 @@
 /* ============================================================
-   PAGE TRANSITION — barba container + (Phase 2) VHS overlay.
+   PAGE TRANSITION — VHS "channel-change" overlay.
+   A single full-screen overlay (built once by transition.js) does all
+   the glitch work — rolling scanlines, static zap, an RGB-tinted
+   tracking bar and horizontal tearing — while the barba container just
+   crossfades its opacity underneath. Keeping the glitch in the overlay
+   (never a transform/filter on the container) means fixed children
+   (home-bg, lightbox, drawer) can't break during a transition.
+   Everything animated is transform/opacity → GPU-friendly.
    ============================================================ */
 
-/* The swappable page container. Keep it a plain block so fixed children
-   (home-bg, lightbox, drawer) still anchor to the viewport. */
-[data-barba="container"] {
-  will-change: opacity;
+[data-barba="container"] { will-change: opacity; }
+html.is-transitioning [data-barba="container"] { pointer-events: none; }
+
+.vhs {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;            /* above nav / drawer / lightbox during the swap */
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+  contain: strict;
+  will-change: transform, opacity;
 }
 
-/* While barba is mid-transition, block pointer input on the leaving page. */
-html.is-transitioning [data-barba="container"] {
-  pointer-events: none;
+/* ── Static / signal noise — opaque grayscale so it covers the page swap on
+   both light and dark backgrounds (screen blend would vanish on light). ── */
+.vhs__static {
+  position: absolute;
+  inset: -10%;
+  opacity: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='discrete' tableValues='1'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+  animation: vhs-static-shift 0.14s steps(4) infinite;
+}
+@keyframes vhs-static-shift {
+  0%   { background-position: 0 0; }
+  25%  { background-position: -80px 40px; }
+  50%  { background-position: 60px -70px; }
+  75%  { background-position: -40px -30px; }
+  100% { background-position: 50px 60px; }
+}
+
+/* ── Scanlines + faint chromatic (cyan / red) offset bands ── */
+.vhs__scan {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  background:
+    repeating-linear-gradient(0deg,
+      rgba(0, 255, 255, 0.05) 0, rgba(0, 255, 255, 0.05) 1px,
+      transparent 1px, transparent 2px),
+    repeating-linear-gradient(0deg,
+      rgba(255, 0, 60, 0.05) 1px, rgba(255, 0, 60, 0.05) 2px,
+      transparent 2px, transparent 3px),
+    repeating-linear-gradient(0deg,
+      rgba(0, 0, 0, 0.38) 0, rgba(0, 0, 0, 0.38) 1px,
+      transparent 1px, transparent 3px);
+}
+
+/* ── Bright rolling tracking bar with an RGB-split edge ── */
+.vhs__roll {
+  position: absolute;
+  left: -5%;
+  right: -5%;
+  height: 16vh;
+  opacity: 0;
+  transform: translateY(-130%);
+  mix-blend-mode: screen;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(0, 255, 255, 0.28) 22%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 0, 60, 0.28) 78%,
+    transparent 100%);
+  filter: blur(0.4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vhs, .vhs__static { animation: none; }
 }
