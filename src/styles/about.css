@@ -1,24 +1,20 @@
 /* ============================================================
    ABOUT — Figma 6164:325.
    Bg #c9c5bd / dark text = the default (light) theme, so no token
-   overrides needed. Layout: bio (top-left, Geist Mono) · full-bleed
-   photo strip · long about copy (Switzer Light) · shared tag marquee.
+   overrides needed. Layout: bio (top-left, Geist Mono) · photo strip
+   (within 24px margins) · about copy (Switzer Light) · tag marquee
+   pinned above the footer.
    ============================================================ */
 
-/* ─── Full-bleed photo strip ───────────────────────────────────
-   Edge-to-edge (breaks out of the .intro padding). One continuous
-   row: every image the SAME height (320px), flush, no gaps. On
-   desktop the cells flex-grow by their Figma crop aspect (--ar, set
-   in about.js) so the strip always fills 100% width; object-cover
-   keeps each image's crop clean at any viewport width. */
+/* ─── Photo strip ──────────────────────────────────────────────
+   Sits within the site's 24px side margins (Figma: x=24, w=1392) —
+   NOT full-bleed — so it aligns with the nav, text and footer. One
+   continuous row: every image the SAME height (320px), flush, no
+   gaps. On desktop the cells flex-grow by their Figma crop aspect
+   (--ar, set in about.js) so the strip fills the content width;
+   object-cover keeps each image's crop clean at any width. */
 .about-gallery {
-  margin-top: var(--space-12);
-  width: 100vw;
-  position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  margin-top: var(--space-8);
 }
 .about-gallery__strip {
   display: flex;
@@ -58,8 +54,8 @@
 
 /* ─── About copy — Switzer Light 14px / 1.4, dark (Figma) ─────── */
 .about {
-  padding-top: var(--space-16);
-  padding-bottom: var(--space-12);
+  padding-top: var(--space-10);
+  padding-bottom: var(--space-8);
   max-width: 96ch;
 }
 .about__body {
@@ -91,9 +87,22 @@
 }
 .about__contact a:hover { border-bottom-color: var(--text-primary); }
 
-/* ─── Tag marquee — static at the end of the flow, full-bleed ─── */
+/* ─── Tag marquee — pinned to the bottom, just above the footer ──
+   The .intro is a min-viewport-tall flex column; margin-top: auto
+   pushes the marquee to the bottom of the column (which clears the
+   fixed footer via the column's padding-bottom), so on tall viewports
+   it sits just above the footer instead of floating mid-page. When the
+   content is taller than the viewport the column grows and the marquee
+   flows after it (scroll). Full-bleed (Figma: marquee runs edge to
+   edge, x=0). */
+body[data-page="about"] .intro {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 .about__tags {
-  margin-top: var(--space-16);
+  margin-top: auto;
   margin-inline: calc(50% - 50vw);
   overflow: hidden;
 }
