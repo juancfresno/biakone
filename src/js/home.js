@@ -1,14 +1,15 @@
-// Home carousel — fetch feed.json, render a duplicated set so the CSS marquee
-// (translateX 0 → -50%) can loop seamlessly. Also wires the lightbox.
+// Home — fetch /tags.json, render a duplicated tag row for a seamless marquee,
+// and reuse the shared 3D lightbox when a tag is clicked.
 
-(function () {
-  const track = document.getElementById('carousel-track')
+// ─── Tag marquee ───────────────────────────────────────────────
+;(function () {
+  const track = document.getElementById('tags-track')
   if (!track) return
 
-  function cardHtml (item, i) {
+  function itemHtml (item, i) {
     return (
-      '<button class="carousel__card" type="button" data-src="' + item.src + '" ' +
-        'aria-label="Open image ' + (i + 1) + '">' +
+      '<button class="tags__item" type="button" data-src="' + item.src + '" ' +
+        'aria-label="Open tag ' + (i + 1) + '">' +
         '<img src="' + item.src + '" alt="" loading="lazy" decoding="async">' +
       '</button>'
     )
@@ -16,31 +17,31 @@
 
   function render (items) {
     if (!items.length) {
-      track.innerHTML = '<div class="carousel__empty">No pieces yet — drop images in /public/feed</div>'
+      track.innerHTML = '<div class="tags__empty">No tags yet — drop images in /public/tags</div>'
       track.style.animation = 'none'
       return
     }
-    const half = items.map(cardHtml).join('')
+    const half = items.map(itemHtml).join('')
     track.innerHTML = half + half
-    const cards = track.querySelectorAll('.carousel__card')
-    for (let i = items.length; i < cards.length; i++) {
-      cards[i].setAttribute('aria-hidden', 'true')
-      cards[i].setAttribute('tabindex', '-1')
+    const nodes = track.querySelectorAll('.tags__item')
+    for (let i = items.length; i < nodes.length; i++) {
+      nodes[i].setAttribute('aria-hidden', 'true')
+      nodes[i].setAttribute('tabindex', '-1')
     }
   }
 
-  fetch('/feed.json', { cache: 'no-cache' })
+  fetch('/tags.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(render)
     .catch(() => render([]))
 })()
 
-// ─── Lightbox — open on card click, perspective tilt, close on outside / Esc.
-(function () {
+// ─── Lightbox — open on tag click, perspective tilt, Esc/outside close.
+;(function () {
   const lb    = document.getElementById('lightbox')
   const img   = document.getElementById('lightbox-img')
   const frame = document.getElementById('lightbox-frame')
-  const track = document.getElementById('carousel-track')
+  const track = document.getElementById('tags-track')
   if (!lb || !img || !frame || !track) return
 
   const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -62,9 +63,9 @@
   }
 
   track.addEventListener('click', (e) => {
-    const card = e.target.closest('.carousel__card')
-    if (!card) return
-    const src = card.getAttribute('data-src')
+    const item = e.target.closest('.tags__item')
+    if (!item) return
+    const src = item.getAttribute('data-src')
     if (src) open(src)
   })
 

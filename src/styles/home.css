@@ -1,0 +1,201 @@
+/* ============================================================
+   HOME — Figma 6166:637.
+   Cutting-mat bg (fixed, full-bleed) + overlay, hero top-left,
+   tag marquee just above the fixed footer.
+   ============================================================ */
+
+/* ─── Background photo + overlay (fixed, full viewport) ───────── */
+.home-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.home-bg__img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.home-bg__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* ─── Home main — full viewport, hero anchored top-left ───────── */
+.home {
+  position: relative;
+  min-height: 100dvh;
+  min-height: 100vh;
+  padding: 0;
+}
+.home__bio {
+  position: absolute;
+  left: var(--space-6);                                 /* 24px */
+  top: calc(var(--nav-h) + var(--space-2));             /* just under fixed nav */
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-50);                             /* cream, both themes */
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* ─── Tag marquee — sits above the fixed footer, full-bleed ──── */
+.home__tags {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--footer-h) + var(--space-4));       /* clear the footer */
+  z-index: 3;
+  overflow: hidden;
+}
+.tags__track {
+  --tag-gap: 10px;                                       /* Figma: 10.2px */
+  --tags-duration: 100s;
+  display: flex;
+  align-items: center;
+  gap: var(--tag-gap);
+  width: max-content;
+  will-change: transform;
+  animation: tags-marquee var(--tags-duration) linear infinite;
+}
+@keyframes tags-marquee {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .home__tags:hover .tags__track,
+  .home__tags:focus-within .tags__track {
+    animation-play-state: paused;
+  }
+}
+.tags__item {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+  line-height: 0;
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+              opacity   220ms ease;
+}
+.tags__item img {
+  display: block;
+  height: clamp(36px, 6.5vh, 56px);
+  width: auto;
+  max-width: none;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .home__tags:hover .tags__item      { opacity: 0.55; }
+  .home__tags:hover .tags__item:hover {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+.tags__empty {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-50);
+  opacity: 0.7;
+  padding: var(--space-4) var(--space-6);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tags__track {
+    animation: none;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .tags__track::-webkit-scrollbar { display: none; }
+}
+
+/* ─── Mobile spacing tweaks ───────────────────────────────────── */
+@media (max-width: 640px) {
+  .home__bio { left: var(--space-4); font-size: 10px; }
+  .tags__track { --tag-gap: 8px; --tags-duration: 70s; }
+  .tags__item img { height: clamp(30px, 5vh, 44px); }
+}
+
+/* ============================================================
+   LIGHTBOX — reused for tags and any future gallery.
+   ============================================================ */
+.lightbox[hidden] { display: none; }
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9990;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(16px, 5vmin, 64px);
+  animation: lb-fade 200ms ease both;
+}
+.lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-home) 55%, transparent);
+  backdrop-filter: blur(18px) saturate(0.9);
+  -webkit-backdrop-filter: blur(18px) saturate(0.9);
+}
+.lightbox__frame {
+  position: relative;
+  margin: 0;
+  max-width: min(82vw, 600px);
+  max-height: 86vh;
+  perspective: 1200px;
+  will-change: transform;
+}
+.lightbox__img {
+  display: block;
+  max-width: 100%;
+  max-height: 86vh;
+  object-fit: contain;
+  transform-style: preserve-3d;
+  transform:
+    rotateX(var(--lb-rx, 0deg))
+    rotateY(var(--lb-ry, 0deg))
+    translateZ(0);
+  transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 40px 80px rgba(0, 0, 0, 0.45);
+}
+.lightbox__close {
+  position: absolute;
+  top: -42px;
+  right: -4px;
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 4px 8px;
+  font: inherit;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.lightbox__close:hover { opacity: 0.7; }
+@keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .lightbox__img { transition: none; transform: none; }
+  .tags__item { transition: none; }
+}

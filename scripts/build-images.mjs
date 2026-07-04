@@ -23,6 +23,7 @@ const SECTIONS = [
   { name: 'feed',     manifest: 'feed.json' },
   { name: 'work',     manifest: 'work.json' },
   { name: 'stickers', manifest: 'stickers.json' },
+  { name: 'tags',     manifest: 'tags.json' },
 ]
 
 const RASTER_EXT  = new Set(['.png', '.jpg', '.jpeg', '.webp', '.avif', '.gif'])

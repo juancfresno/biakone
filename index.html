@@ -3,25 +3,30 @@
 <head>
   <title>BIAKO.</title>
   <!-- @include partials/head.html -->
-  <link rel="stylesheet" href="/src/styles/carousel.css">
+  <link rel="stylesheet" href="/src/styles/home.css">
 </head>
 <body data-page="home">
+
+  <div class="home-bg" aria-hidden="true">
+    <img class="home-bg__img" src="/home-bg.jpg" alt="" loading="eager" decoding="async">
+    <div class="home-bg__overlay"></div>
+  </div>
+
   <!-- @include partials/grain.html -->
   <!-- @include partials/nav.html -->
 
-  <main class="hero">
-    <p class="intro__bio">
+  <main class="home">
+    <p class="home__bio">
       Visual Artist — Designer<br>
       ↘ Urban culture, graffiti &amp; scale work
     </p>
-    <p class="hero__tag">Los pequeños detalles.</p>
-  </main>
 
-  <section class="carousel" id="gallery" aria-label="Gallery">
-    <div class="carousel__track" id="carousel-track" role="list">
-      <!-- cards injected from /feed.json -->
-    </div>
-  </section>
+    <section class="home__tags" aria-label="Handstyle tags">
+      <div class="tags__track" id="tags-track" role="list">
+        <!-- tag items injected from /tags.json -->
+      </div>
+    </section>
+  </main>
 
   <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
     <div class="lightbox__backdrop" data-lightbox-close></div>
@@ -34,6 +39,6 @@
   <!-- @include partials/footer.html -->
 
   <script type="module" src="/src/js/shell.js"></script>
-  <script type="module" src="/src/js/carousel.js"></script>
+  <script type="module" src="/src/js/home.js"></script>
 </body>
 </html>
