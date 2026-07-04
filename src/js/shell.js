@@ -3,7 +3,7 @@
 // - theme toggle (◐) with localStorage persistence
 
 // ─── Real-time clock — DAY.MON.DD — HH:MM (Figma footer).
-(function () {
+;(function () {
   const el = document.getElementById('clock')
   if (!el) return
   const DAYS   = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
@@ -20,7 +20,7 @@
 })()
 
 // ─── Theme toggle ◐ — instant swap, persisted in localStorage.
-(function () {
+;(function () {
   const toggle = document.getElementById('theme-toggle')
   if (!toggle) return
 

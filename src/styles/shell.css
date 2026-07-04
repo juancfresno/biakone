@@ -1,18 +1,30 @@
 /* ============================================================
-   BIAKO — shared shell: top nav, footer, glitch, theme toggle.
+   BIAKO — shared shell: fixed top nav, fixed bottom footer.
    Consumed by every page.
+
+   Reserved shell heights are exposed as CSS custom properties so
+   pages can position content that must not sit under the shell.
    ============================================================ */
 
+:root {
+  --nav-h:    64px;    /* 24 (pt) + 24 (wordmark) + 16 (pb) */
+  --footer-h: 74px;    /* 16 (pt) + 34 (face) + 24 (pb) */
+}
+
 /* ================================================================
-   TOP NAV
+   TOP NAV — fixed to viewport top
    ================================================================ */
 .top {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  padding-top: var(--space-6);
-  padding-bottom: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
 }
 
 .wordmark {
@@ -36,7 +48,7 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: var(--space-6);              /* Figma: 25px ≈ 24px */
+  gap: 25px;                        /* Figma: 25px between links */
   font-family: var(--font-ui);
   font-size: 11px;
   line-height: 1.4;
@@ -85,36 +97,28 @@
   transition: stroke-dashoffset 180ms ease-in;
 }
 
-/* Active state = same visual as hover. Body[data-page] drives it. */
-body[data-page="home"]     .nav-link[data-nav="home"],
+/* Active nav = same visual as hover, driven by body[data-page]. */
 body[data-page="work"]     .nav-link[data-nav="work"],
 body[data-page="stickers"] .nav-link[data-nav="stickers"],
 body[data-page="lab"]      .nav-link[data-nav="lab"],
-body[data-page="about"]    .nav-link[data-nav="about"],
-body[data-page="contact"]  .nav-link[data-nav="contact"] {
+body[data-page="about"]    .nav-link[data-nav="about"] {
   color: var(--neutral-950);
 }
-body[data-page="home"]     .nav-link[data-nav="home"]::before,
 body[data-page="work"]     .nav-link[data-nav="work"]::before,
 body[data-page="stickers"] .nav-link[data-nav="stickers"]::before,
 body[data-page="lab"]      .nav-link[data-nav="lab"]::before,
-body[data-page="about"]    .nav-link[data-nav="about"]::before,
-body[data-page="contact"]  .nav-link[data-nav="contact"]::before {
+body[data-page="about"]    .nav-link[data-nav="about"]::before {
   opacity: 1;
   transform: scale(1);
 }
-body[data-page="home"]     .nav-link[data-nav="home"] .nav-arrow .shaft,
-body[data-page="work"]     .nav-link[data-nav="work"] .nav-arrow .shaft,
+body[data-page="work"]     .nav-link[data-nav="work"]     .nav-arrow .shaft,
 body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .shaft,
-body[data-page="lab"]      .nav-link[data-nav="lab"] .nav-arrow .shaft,
-body[data-page="about"]    .nav-link[data-nav="about"] .nav-arrow .shaft,
-body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .shaft,
-body[data-page="home"]     .nav-link[data-nav="home"] .nav-arrow .head,
-body[data-page="work"]     .nav-link[data-nav="work"] .nav-arrow .head,
+body[data-page="lab"]      .nav-link[data-nav="lab"]      .nav-arrow .shaft,
+body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .shaft,
+body[data-page="work"]     .nav-link[data-nav="work"]     .nav-arrow .head,
 body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .head,
-body[data-page="lab"]      .nav-link[data-nav="lab"] .nav-arrow .head,
-body[data-page="about"]    .nav-link[data-nav="about"] .nav-arrow .head,
-body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .head {
+body[data-page="lab"]      .nav-link[data-nav="lab"]      .nav-arrow .head,
+body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   stroke-dashoffset: 0;
 }
 
@@ -161,32 +165,20 @@ body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .head {
 .theme-toggle:active { transform: rotate(180deg); }
 
 /* ================================================================
-   PAGE INTRO — mono bio label, top-left, sits below nav on every page.
-   ================================================================ */
-.intro {
-  padding-top: var(--space-2);
-  padding-bottom: 0;
-}
-.intro__bio {
-  margin: 0;
-  font-family: var(--font-ui);
-  font-size: var(--text-ui-sm);
-  line-height: 1.4;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-primary);
-}
-
-/* ================================================================
-   FOOTER
+   FOOTER — fixed to viewport bottom, 3-column grid so the IG icon
+   stays visually centered regardless of side widths.
    ================================================================ */
 .bottom {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
   gap: var(--space-4);
-  padding-top: var(--space-4);
-  padding-bottom: var(--space-6);
+  padding: var(--space-4) var(--space-6) var(--space-6);
   font-family: var(--font-ui);
   font-size: 11px;
   line-height: 1.4;
@@ -195,32 +187,34 @@ body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .head {
   color: var(--text-primary);
 }
 .bottom .clock {
-  color: var(--text-primary);
+  justify-self: start;
+  color: inherit;
   white-space: nowrap;
+}
+.bottom .ig {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  color: inherit;
+  line-height: 0;
+  outline-offset: 4px;
+  transition: opacity 140ms ease;
+}
+.bottom .ig:hover { opacity: 0.7; }
+.bottom .ig svg { display: block; width: 22px; height: 22px; }
+@media (min-width: 768px) { .bottom .ig svg { width: 24px; height: 24px; } }
+
+.credit-wrap {
+  justify-self: end;
+  display: flex;
+  align-items: end;
+  gap: var(--space-6);
+  min-width: 0;
 }
 .bottom .credit {
   text-align: right;
   white-space: nowrap;
-  min-width: 0;
-}
-@media (max-width: 600px) {
-  .bottom { font-size: 10px; gap: var(--space-3); }
-  .bottom .credit { white-space: normal; }
-}
-@media (max-width: 420px) {
-  .bottom .credit__email { display: none; }
-}
-.bottom .credit a {
   color: inherit;
-  text-decoration: none;
-  border-bottom: 1px solid transparent;
-  transition: border-color 120ms ease, color 120ms ease;
-}
-.bottom .credit a:hover,
-.bottom .credit a:focus-visible {
-  color: var(--text-primary);
-  border-bottom-color: var(--border-default);
-  outline: none;
 }
 
 .fresno-face {
@@ -233,13 +227,72 @@ body[data-page="contact"]  .nav-link[data-nav="contact"] .nav-arrow .head {
 }
 .fresno-face svg { display: block; width: 100%; height: 100%; }
 .fresno-face__bar { fill: var(--logo-accent); }
-
-@media (max-width: 480px) {
-  .bottom { gap: var(--space-3); font-size: 10px; }
-  .bottom .credit { font-size: 10px; }
-}
 @media (min-width: 768px) {
   .fresno-face { width: 32px; height: 38px; }
+}
+
+/* ================================================================
+   HOME shell — cutting-mat photo is dark; force cream text.
+   Uses raw --neutral-50 so it stays cream in both themes.
+   ================================================================ */
+body[data-page="home"] .wordmark,
+body[data-page="home"] .nav-link,
+body[data-page="home"] .theme-toggle,
+body[data-page="home"] .clock,
+body[data-page="home"] .credit,
+body[data-page="home"] .ig,
+body[data-page="home"] .fresno-face {
+  color: var(--neutral-50);
+}
+/* Nav-link hover on Home: chip stays brand-blue, text goes dark for contrast. */
+@media (hover: hover) and (pointer: fine) {
+  body[data-page="home"] .nav-link:hover,
+  body[data-page="home"] .nav-link:focus-visible {
+    color: var(--neutral-950);
+  }
+}
+body[data-page="home"] .theme-toggle:hover { color: #ffffff; }
+
+/* ================================================================
+   PAGE INTRO — mono bio label under the fixed nav on non-home pages.
+   ================================================================ */
+.intro {
+  padding-top: calc(var(--nav-h) + var(--space-4));  /* clear fixed nav */
+  padding-bottom: calc(var(--footer-h) + var(--space-6)); /* clear fixed footer */
+  padding-inline: var(--space-6);
+}
+.intro__bio {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+}
+
+/* ================================================================
+   MOBILE
+   ================================================================ */
+@media (max-width: 640px) {
+  .nav {
+    gap: 14px;
+    font-size: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 6px;
+    max-width: calc(100vw - 100px);   /* leave room for wordmark + gap */
+  }
+  .nav-arrow { display: none; }        /* reclaim width for tighter items */
+  .bottom { font-size: 10px; padding: var(--space-3) var(--space-4) var(--space-4); gap: var(--space-2); }
+  .top { padding: var(--space-4) var(--space-4) var(--space-3); align-items: flex-start; }
+  :root { --nav-h: 60px; --footer-h: 64px; }
+}
+@media (max-width: 420px) {
+  .nav { gap: 12px; font-size: 10px; }
+  .bottom { font-size: 9px; gap: var(--space-2); }
+  .bottom .credit { max-width: 14ch; overflow: hidden; text-overflow: ellipsis; }
+  .credit-wrap { gap: var(--space-3); }
 }
 
 /* ================================================================

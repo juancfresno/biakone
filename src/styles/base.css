@@ -1,6 +1,7 @@
 /* ============================================================
    BIAKO — base layout + grain + reduced-motion.
-   Consumed by every page shell.
+   Consumed by every page shell. Nav + footer are fixed
+   overlays (shell.css); main flows underneath.
    ============================================================ */
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -15,32 +16,25 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 150ms ease, color 150ms ease;
-  /* Hard guarantee: page never scrolls horizontally. `clip` is a true
-     clip with no scroll context; `hidden` is a fallback for old engines. */
+  /* Hard guarantee: page never scrolls horizontally. */
   overflow-x: hidden;
   overflow-x: clip;
 }
 
 body {
   min-height: 100svh;
+  min-height: 100dvh;
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
-  display: grid;
-  grid-template-rows: auto 1fr auto;
-  padding: 0 var(--space-6);
   position: relative;
 }
-
-/* Grid items default to `min-width: auto` (= min-content). Clamp so wide
-   flex content (e.g. carousel track) can't stretch the whole body. */
-.top, main, .bottom { min-width: 0; }
 
 /* GRAIN — film noise overlay, behind content, never blocks input. */
 .grain {
   position: fixed;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   pointer-events: none;
   -webkit-user-select: none;
   user-select: none;
@@ -54,7 +48,8 @@ body {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
 }
 
-.top, main, .bottom { position: relative; z-index: 1; }
+/* Content layers */
+main { position: relative; z-index: 2; min-width: 0; }
 
 @media (prefers-reduced-motion: reduce) {
   html, body { transition: none; }
