@@ -1,20 +1,41 @@
 /* ============================================================
-   LAB — placeholder page (Figma 6166:762 is empty in v0).
+   LAB — Figma 6221:4693.
+   Dark page (#141414 / cream) like Stickers: re-point the semantic
+   tokens to their dark values scoped to the page so the shared shell
+   renders cream with no hardcoded hex. Hero = the animated wavy-line
+   "BIAKO" canvas (lab.js), within the site's 24px side margins.
    ============================================================ */
 
-.lab {
-  padding-top: var(--space-16);
-  padding-bottom: var(--space-16);
-  min-height: 40vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+body[data-page="lab"] {
+  --text-primary:           var(--neutral-50);
+  --text-secondary:         var(--neutral-300);
+  --text-tertiary:          var(--neutral-400);
+  --text-inverse-primary:   var(--neutral-950);
+  --bg-page:                var(--neutral-900);
+  --bg-surface:             var(--neutral-950);
+  --bg-home:                var(--neutral-950); /* #141414 */
+  --logo-wordmark:          var(--brand-yellow);
+  --border-default:         var(--neutral-700);
+  --icon-default:           var(--neutral-50);
+  --icon-muted:             var(--neutral-400);
+
+  background: var(--neutral-950);
+  color: var(--neutral-50);
 }
-.lab__placeholder {
-  font-family: var(--font-ui);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  text-align: center;
+
+/* Hero canvas — full content width (inside the .intro 24px padding),
+   starts just below the bio (Figma: y≈144). */
+.lab {
+  margin-top: var(--space-8);
+}
+.lab__wave {
+  display: block;
+  width: 100%;
+  height: min(585px, 42vw);
+  cursor: crosshair;
+}
+
+@media (max-width: 640px) {
+  .lab { margin-top: var(--space-6); }
+  .lab__wave { height: min(440px, 96vw); cursor: default; }
 }

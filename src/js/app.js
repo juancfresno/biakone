@@ -14,8 +14,9 @@ const PAGES = {
   home:     () => import('./home.js'),
   work:     () => import('./work.js'),
   stickers: () => import('./stickers.js'),
+  lab:      () => import('./lab.js'),
   about:    () => import('./about.js'),
-}   // lab + contact are static — no module
+}   // contact is static — no module
 const TITLES = {
   home: 'BIAKO.', work: 'BIAKO. — Work', stickers: 'BIAKO. — Stickers',
   lab: 'BIAKO. — Lab', about: 'BIAKO. — About', contact: 'BIAKO. — Contact',
