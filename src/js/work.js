@@ -13,7 +13,7 @@
 import gsap from 'gsap'
 
 let list, grid, stage, section, drawer, dGallery, dInfo
-let toolbar, gridTip
+let panel, backdrop, toolbar, gridTip
 let projects = [], rows = [], activeIndex = -1
 let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
@@ -400,13 +400,37 @@ function bindOpen () {
   })
 }
 
-// ─── Detail drawer ──────────────────────────────────────────────────────────
+// ─── Detail drawer (Phase 1: gallery + info) ────────────────────────────────
+const EDGE = 0.2   // width fraction of the left/right prev/next image zones
+
+function drawerImages () { return [...dGallery.querySelectorAll('.drawer__slide')] }
+function currentImageIndex () {
+  const slides = drawerImages(); const sl = dGallery.scrollLeft
+  let best = 0, bd = Infinity
+  slides.forEach((s, i) => { const d = Math.abs(s.offsetLeft - sl); if (d < bd) { bd = d; best = i } })
+  return best
+}
+function scrollToImage (i) {
+  const slides = drawerImages()
+  if (!slides.length) return
+  i = Math.max(0, Math.min(slides.length - 1, i))
+  dGallery.scrollTo({ left: slides[i].offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' })
+}
+function nextImage () { scrollToImage(currentImageIndex() + 1) }
+function prevImage () { scrollToImage(currentImageIndex() - 1) }
+
+// PHASE-2 HOOK — clicking a gallery image (not an edge, not a drag) will promote
+// it to a full-height slider (drawer[data-mode="slider"]). Stubbed for now.
+function zoomImage (/* i */) { /* Phase 2 */ }
+
 function fillDrawer (i) {
   const p = projects[i]
   if (!p) return
   drawerIndex = i
-  dGallery.innerHTML = (p.images || [])
-    .map(im => '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async">')
+  const imgs = p.images || []
+  dGallery.innerHTML = imgs
+    .map((im, n) => '<figure class="drawer__slide" data-img-index="' + n + '">' +
+      '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async"></figure>')
     .join('')
   dGallery.scrollLeft = 0
   dGallery.scrollTop = 0
@@ -415,40 +439,67 @@ function fillDrawer (i) {
   dInfo.querySelector('[data-type]').textContent = p.type || ''
   dInfo.querySelector('[data-year]').textContent = p.year || ''
   dInfo.querySelector('[data-desc]').textContent = p.description || ''
+
+  // Details list — from meta.details when present, else a sensible default.
+  const hasPhotos = imgs[0] && !imgs[0].src.includes('_placeholder')
+  const details = Array.isArray(p.details) && p.details.length ? p.details : [
+    { label: 'Scale', value: '1:12' },
+    { label: 'Images', value: hasPhotos ? String(imgs.length) : '—' },
+  ]
+  dInfo.querySelector('[data-details]').innerHTML = details
+    .map(d => '<div><dt>' + d.label + '</dt><dd>' + d.value + '</dd></div>').join('')
 }
+
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
   lastFocused = document.activeElement
   fillDrawer(i)
   drawer.hidden = false
-  requestAnimationFrame(() => drawer.classList.add('is-open'))
   document.body.style.overflow = 'hidden'
+  if (reduceMotion()) {
+    gsap.set(backdrop, { autoAlpha: 1 })
+    gsap.set(panel, { xPercent: 0 })
+  } else {
+    gsap.set(backdrop, { autoAlpha: 0 })
+    gsap.set(panel, { xPercent: 100 })
+    gsap.to(backdrop, { autoAlpha: 1, duration: 0.3, ease: 'power1.out' })
+    gsap.to(panel, { xPercent: 0, duration: 0.45, ease: 'expo.out' })
+  }
   drawer.querySelector('.drawer__close').focus()
 }
 function closeDrawer () {
   if (!drawer || drawer.hidden) return
-  drawer.classList.remove('is-open')
-  const done = () => {
-    drawer.hidden = true
-    dGallery.innerHTML = ''
-    drawer.removeEventListener('transitionend', done)
-  }
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduce) done(); else drawer.addEventListener('transitionend', done)
+  const done = () => { drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery' }
   document.body.style.overflow = ''
+  if (reduceMotion()) { done() }
+  else {
+    gsap.to(backdrop, { autoAlpha: 0, duration: 0.35, ease: 'power1.in' })
+    gsap.to(panel, { xPercent: 100, duration: 0.4, ease: 'expo.in', onComplete: done })
+  }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
 }
 function step (dir) {
   if (!projects.length) return
   fillDrawer((drawerIndex + dir + projects.length) % projects.length)
 }
+
 function bindDrawer () {
   if (!drawer) return
+
+  // Custom directional arrow cursors for the edge zones (encoded here so no
+  // manual escaping). Falls back to w/e-resize via the CSS var default.
+  const chev = (d) => 'url("data:image/svg+xml,' + encodeURIComponent(
+    "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'>" +
+    "<path d='" + d + "' fill='none' stroke='#000' stroke-width='5' stroke-opacity='0.45' stroke-linecap='round' stroke-linejoin='round'/>" +
+    "<path d='" + d + "' fill='none' stroke='#fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
+  ) + '") 18 18, w-resize'
+  dGallery.style.setProperty('--cursor-prev', chev('M23 9 L12 18 L23 27'))
+  dGallery.style.setProperty('--cursor-next', chev('M13 9 L24 18 L13 27').replace('w-resize', 'e-resize'))
+
   drawer.addEventListener('click', (e) => {
     if (e.target.closest('[data-drawer-close]')) { closeDrawer(); return }
     if (e.target.closest('[data-prev]')) { step(-1); return }
     if (e.target.closest('[data-next]')) { step(1); return }
-    if (e.target === dGallery) closeDrawer()
   })
   const onKey = (e) => {
     if (drawer.hidden) return
@@ -459,13 +510,23 @@ function bindDrawer () {
   document.addEventListener('keydown', onKey)
   cleanup.push(() => document.removeEventListener('keydown', onKey))
 
+  const mobileLayout = () => window.matchMedia('(max-width: 767px)').matches
+
+  // Drag to scroll the gallery.
   let down = false, startX = 0, startScroll = 0, moved = 0
   dGallery.addEventListener('pointerdown', (e) => {
-    if (e.pointerType !== 'mouse') return
+    if (e.pointerType !== 'mouse' || mobileLayout()) return
     down = true; moved = 0; startX = e.clientX; startScroll = dGallery.scrollLeft
     dGallery.setPointerCapture(e.pointerId)
   })
   dGallery.addEventListener('pointermove', (e) => {
+    // Edge-zone detection → directional arrow cursor.
+    if (!down && !mobileLayout()) {
+      const r = dGallery.getBoundingClientRect()
+      const rel = (e.clientX - r.left) / r.width
+      dGallery.classList.toggle('is-edge-prev', rel < EDGE)
+      dGallery.classList.toggle('is-edge-next', rel > 1 - EDGE)
+    }
     if (!down) return
     const dx = e.clientX - startX
     if (Math.abs(dx) > 3) dGallery.classList.add('is-dragging')
@@ -479,7 +540,17 @@ function bindDrawer () {
   }
   dGallery.addEventListener('pointerup', end)
   dGallery.addEventListener('pointercancel', end)
-  dGallery.addEventListener('click', (e) => { if (moved > 4) { e.stopPropagation() } }, true)
+  dGallery.addEventListener('mouseleave', () => dGallery.classList.remove('is-edge-prev', 'is-edge-next'))
+
+  // Click: edge zones page prev/next image; the middle is the Phase-2 zoom hook.
+  dGallery.addEventListener('click', (e) => {
+    if (moved > 4 || mobileLayout()) return
+    const r = dGallery.getBoundingClientRect()
+    const rel = (e.clientX - r.left) / r.width
+    if (rel < EDGE) prevImage()
+    else if (rel > 1 - EDGE) nextImage()
+    else zoomImage(currentImageIndex())
+  })
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -490,6 +561,8 @@ export function init () {
   section = document.querySelector('.work')
   toolbar = document.querySelector('.work__toolbar')
   drawer  = document.getElementById('work-drawer')
+  panel   = document.getElementById('drawer-panel')
+  backdrop = drawer && drawer.querySelector('.drawer__backdrop')
   dGallery = document.getElementById('drawer-gallery')
   dInfo   = drawer && drawer.querySelector('#drawer-info')
   if (!list || !grid || !stage || !section) return

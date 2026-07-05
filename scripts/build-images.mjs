@@ -184,6 +184,7 @@ async function buildWork () {
       type: meta.type || '',
       year: meta.year || '',
       description: meta.description || '',
+      details: Array.isArray(meta.details) ? meta.details : null,
       images,
     })
   }

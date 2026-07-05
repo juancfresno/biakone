@@ -325,26 +325,47 @@
 .work__row:first-child .work__row-line--top { top: -1px; bottom: auto; }
 
 /* ============================================================
-   DETAIL DRAWER — Figma 6170:1804.
-   Slide-in full-viewport panel: horizontal full-height image
-   gallery (scroll / drag) + a floating dark info box (bottom-
-   right) with ↘ number, name, scale, date, description and
-   Previous / Next. Close via ✕, Esc, or clicking the gallery
-   background (outside any image or the info box).
+   DETAIL DRAWER — Figma 6170:1804 (Phase 1: gallery + info).
+   A right-sliding panel over a blurred, dimmed backdrop (same
+   look as the Home tag lightbox). Inside: a horizontal full-
+   height image gallery (drag/scroll; edge zones page prev/next
+   image with an arrow cursor) and a dark info bar (↘ number,
+   name, type, year, description, a Details list, and Previous /
+   Next between PROJECTS). Close via ✕, Esc, or the backdrop.
    ============================================================ */
 .drawer[hidden] { display: none; }
 .drawer {
   position: fixed;
   inset: 0;
   z-index: 9995;
-  background: var(--neutral-950);
-  transform: translateX(100%);
-  transition: transform 380ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-.drawer.is-open { transform: none; }
 
-/* Horizontal gallery — full-height images, scroll/drag right. The dark
-   background is the click-to-close surface (see work.js). */
+/* Blurred + dimmed page behind (backdrop-filter). Click to close. */
+.drawer__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(26px) saturate(0.9);
+  -webkit-backdrop-filter: blur(26px) saturate(0.9);
+  cursor: pointer;
+}
+
+/* The sliding panel — full-width on mobile, leaves a backdrop strip on desktop. */
+.drawer__panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--neutral-950);
+  will-change: transform;
+}
+@media (min-width: 768px) {
+  .drawer__panel { width: calc(100% - clamp(48px, 6vw, 96px)); }
+}
+
+/* Horizontal gallery — full-height images, drag/scroll right. */
 .drawer__gallery {
   position: absolute;
   inset: 0;
@@ -361,11 +382,21 @@
 }
 .drawer__gallery::-webkit-scrollbar { display: none; }
 .drawer__gallery.is-dragging { cursor: grabbing; }
-.drawer__gallery img {
+/* Edge zones page between images — cursor turns into a directional arrow
+   (custom SVG set in work.js via --cursor-prev/--cursor-next; w/e-resize fallback). */
+.drawer__gallery.is-edge-prev { cursor: var(--cursor-prev, w-resize); }
+.drawer__gallery.is-edge-next { cursor: var(--cursor-next, e-resize); }
+.drawer__slide {
+  height: 100%;
+  flex: 0 0 auto;
+  display: block;
+  margin: 0;
+}
+.drawer__slide img {
+  display: block;
   height: 100vh;
   height: 100dvh;
   width: auto;
-  flex: 0 0 auto;
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
@@ -373,10 +404,10 @@
 .drawer__gallery.is-dragging img { pointer-events: none; }
 
 .drawer__close {
-  position: fixed;
+  position: absolute;
   top: var(--space-6);
   right: var(--space-6);
-  z-index: 2;
+  z-index: 3;
   appearance: none;
   background: rgba(20, 20, 20, 0.6);
   border: 0;
@@ -391,17 +422,20 @@
 }
 .drawer__close:hover { opacity: 0.7; }
 
-/* Floating info box — dark, bottom-right, over the gallery. */
+/* Dark info bar — full-width across the bottom of the panel (Figma). */
 .drawer__info {
-  position: fixed;
-  right: var(--space-6);
-  bottom: var(--space-6);
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   z-index: 2;
-  width: min(348px, calc(100vw - 2 * var(--space-6)));
   background: var(--neutral-950);
   color: var(--neutral-50);
-  border: 1px solid var(--neutral-800);
-  padding: var(--space-5);
+  border-top: 1px solid var(--neutral-800);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 .drawer__info-head {
   display: flex;
@@ -411,64 +445,77 @@
   font-size: var(--text-ui-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--neutral-800);
 }
 .drawer__title { display: inline-flex; gap: 0.5em; align-items: baseline; }
 .drawer__code { color: var(--neutral-400); }
-.drawer__spec { display: inline-flex; gap: 0.9em; color: var(--neutral-400); white-space: nowrap; }
+.drawer__spec { display: inline-flex; gap: 1em; color: var(--neutral-400); white-space: nowrap; }
+.drawer__info-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
 .drawer__desc {
-  margin: var(--space-4) 0;
+  margin: 0;
+  max-width: 68ch;
   font-family: var(--font-body);
   font-size: var(--text-body-sm);
   line-height: 1.45;
   color: var(--neutral-300);
 }
+/* Details list — inline key/value pairs. */
+.drawer__details {
+  margin: 0;
+  flex-shrink: 0;
+  display: flex;
+  gap: var(--space-6);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.drawer__details div { display: flex; flex-direction: column; gap: 2px; }
+.drawer__details dt { color: var(--neutral-500); }
+.drawer__details dd { margin: 0; color: var(--neutral-300); }
 .drawer__pager {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
   padding-top: var(--space-3);
   border-top: 1px solid var(--neutral-800);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .drawer__pg {
   appearance: none;
   background: none;
   border: 0;
   padding: 0;
-  font-family: var(--font-ui);
-  font-size: var(--text-ui-sm);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font: inherit;
   color: var(--neutral-50);
   cursor: pointer;
   transition: opacity 140ms ease;
 }
 .drawer__pg:hover { opacity: 0.6; }
 
-/* ─── Mobile: full-width vertical stack + full-width info box ─── */
+/* ─── Mobile: full-width panel, vertical image stack, stacked info ─── */
 @media (max-width: 767px) {
   .drawer__gallery {
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
     align-items: stretch;
-    padding-bottom: 168px;   /* clear the fixed info box */
+    padding-bottom: 200px;   /* clear the info bar */
+    cursor: default;
   }
-  .drawer__gallery img {
-    height: auto;
-    width: 100%;
-  }
-  .drawer__info {
-    right: 0;
-    left: 0;
-    bottom: 0;
-    width: auto;
-    border-left: 0;
-    border-right: 0;
-    border-bottom: 0;
-  }
+  .drawer__slide { height: auto; width: 100%; }
+  .drawer__slide img { height: auto; width: 100%; }
+  .drawer__info-body { flex-direction: column; gap: var(--space-3); }
+  .drawer__details { gap: var(--space-4); }
 }
+
 @media (prefers-reduced-motion: reduce) {
-  .drawer { transition: none; }
+  .drawer__panel { transition: none; }
 }

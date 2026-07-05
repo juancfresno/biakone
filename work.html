@@ -46,30 +46,42 @@
       </section>
     </main>
 
-    <!-- Detail drawer — slide-in panel opened when a project is clicked. -->
-    <div class="drawer" id="work-drawer" role="dialog" aria-modal="true" aria-label="Project detail" hidden>
-      <div class="drawer__gallery" id="drawer-gallery" data-drawer-scrim>
-        <!-- full-height images injected per project -->
+    <!-- Detail drawer — slides in from the right over a blurred backdrop. Phase 1:
+         gallery + info. data-mode is the hook Phase 2 flips to "slider". -->
+    <div class="drawer" id="work-drawer" role="dialog" aria-modal="true" aria-label="Project detail" data-mode="gallery" hidden>
+      <div class="drawer__backdrop" data-drawer-close aria-hidden="true"></div>
+      <div class="drawer__panel" id="drawer-panel">
+        <button class="drawer__close" type="button" data-drawer-close aria-label="Close">Close ✕</button>
+
+        <!-- Horizontal gallery: full-height images, drag/scroll; edge zones act as
+             prev/next image (see work.js). Each slide carries data-img-index so
+             Phase 2 can promote one to a full-height slider without a rebuild. -->
+        <div class="drawer__gallery" id="drawer-gallery">
+          <!-- slides injected per project -->
+        </div>
+
+        <aside class="drawer__info" id="drawer-info">
+          <div class="drawer__info-head">
+            <span class="drawer__title">
+              <span class="drawer__arrow" aria-hidden="true">↘</span>
+              <span class="drawer__code" data-code></span>
+              <span class="drawer__name" data-name></span>
+            </span>
+            <span class="drawer__spec">
+              <span data-type></span>
+              <span data-year></span>
+            </span>
+          </div>
+          <div class="drawer__info-body">
+            <p class="drawer__desc" data-desc></p>
+            <dl class="drawer__details" data-details></dl>
+          </div>
+          <div class="drawer__pager">
+            <button class="drawer__pg" type="button" data-prev>Previous</button>
+            <button class="drawer__pg" type="button" data-next>Next</button>
+          </div>
+        </aside>
       </div>
-      <button class="drawer__close" type="button" data-drawer-close aria-label="Close">Close ✕</button>
-      <aside class="drawer__info" id="drawer-info">
-        <div class="drawer__info-head">
-          <span class="drawer__title">
-            <span class="drawer__arrow" aria-hidden="true">↘</span>
-            <span class="drawer__code" data-code></span>
-            <span class="drawer__name" data-name></span>
-          </span>
-          <span class="drawer__spec">
-            <span data-type></span>
-            <span data-year></span>
-          </span>
-        </div>
-        <p class="drawer__desc" data-desc></p>
-        <div class="drawer__pager">
-          <button class="drawer__pg" type="button" data-prev>Previous</button>
-          <button class="drawer__pg" type="button" data-next>Next</button>
-        </div>
-      </aside>
     </div>
   </div>
 
