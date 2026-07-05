@@ -131,7 +131,7 @@ function initEffect (imgs) {
   // fand's shader at 1.0 is tuned for a full-screen immersive demo and buries our
   // photos in noise; ~0.26 keeps the real CRT character while the stickers stay
   // legible. Tune live with biakoStickers.set(v).
-  intensity = isMobile ? 0.16 : 0.26   // mobile lighter
+  intensity = isMobile ? 0.1 : 0.15   // mobile lighter
 
   // init like fand: a global CRT post-effect over everything we add.
   // pixelRatio 1 keeps the scanlines as discrete lines (not a sub-pixel rainbow
