@@ -20,6 +20,7 @@ let drawerIndex = -1, lastFocused = null
 let cleanup = []
 let elasticRafId = 0, scrollRafId = 0
 let tipBound = false
+let currentView = 'list', pageEntered = false, rowsReady = false
 
 // ─── Centre image — single preloaded <img> that VHS-glitches on each change ──
 // The image is set once (project 01) and is NEVER cleared, so there is always a
@@ -129,10 +130,21 @@ function render (items) {
   setActive(0)   // default active = project 01, image visible immediately
   initElasticLines()
 
-  // Restore the session's chosen view (list default).
+  // Hide the animatable items until the entrance plays (avoids a flash of the
+  // full list during the page transition). Reduced-motion keeps them visible.
+  if (!reduceMotion()) {
+    gsap.set(rows, { autoAlpha: 0 })
+    gsap.set(grid.querySelectorAll('.work__cell'), { autoAlpha: 0 })
+  }
+
+  // Restore the session's chosen view (list default) WITHOUT animating yet — the
+  // entrance is triggered by entered() once the page transition finishes.
   let saved = 'list'
   try { saved = sessionStorage.getItem('biako-work-view') || 'list' } catch {}
-  applyView(saved === 'grid' ? 'grid' : 'list')
+  applyView(saved === 'grid' ? 'grid' : 'list', false)
+
+  rowsReady = true
+  maybeEnter()
 }
 
 // ─── Elastic divider lines (port of ElasticLine.tsx) ────────────────────────
@@ -252,15 +264,50 @@ function bindToggle () {
   if (!toolbar) return
   toolbar.addEventListener('click', (e) => {
     const btn = e.target.closest('.work__view-btn')
-    if (btn) applyView(btn.dataset.view)
+    if (btn) applyView(btn.dataset.view, true)   // toggling re-plays the entrance
   })
 }
-function applyView (view) {
+function applyView (view, animate) {
+  currentView = view
   section.setAttribute('data-view', view)
   if (toolbar) toolbar.querySelectorAll('.work__view-btn').forEach(b =>
     b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'))
   try { sessionStorage.setItem('biako-work-view', view) } catch {}
-  if (view === 'grid') requestAnimationFrame(enterGrid)
+  if (animate) requestAnimationFrame(() => runEntrance(view))
+}
+
+// ─── Entrance coordination ──────────────────────────────────────────────────
+// The stagger must run AFTER the page-transition-in finishes (app.js calls
+// entered()), not during it — so we hide the items on render and only play once
+// BOTH the rows are ready and the page has fully entered.
+function maybeEnter () {
+  if (pageEntered && rowsReady) requestAnimationFrame(() => runEntrance(currentView))
+}
+export function entered () { pageEntered = true; maybeEnter() }
+function runEntrance (view) { view === 'grid' ? enterGrid() : enterList() }
+
+// List entrance — staggered fade + short rise, expo-out. Rows rest at 0.5 opacity
+// (1 when active), so each animates to its own resting opacity, then hands styling
+// back to CSS (clearProps) so hover/active dimming keeps working.
+function enterList () {
+  if (!rows.length) return
+  if (reduceMotion()) { list.classList.remove('is-entering'); gsap.set(rows, { clearProps: 'opacity,transform,visibility' }); return }
+  gsap.killTweensOf(rows)
+  // Suppress the row's CSS opacity transition during the entrance — otherwise
+  // gsap.set(opacity:0) would trigger a 0.5→0 CSS fade that fights the stagger.
+  list.classList.add('is-entering')
+  // Hide ALL rows first, so rows still waiting for their per-row delay don't sit
+  // at their resting opacity and flicker when their tween starts.
+  gsap.set(rows, { opacity: 0, y: 20, visibility: 'visible' })
+  const last = rows.length - 1
+  rows.forEach((row, i) => {
+    const rest = row.classList.contains('is-active') ? 1 : 0.5
+    gsap.to(row, {
+      y: 0, opacity: rest, duration: 0.42, ease: 'expo.out', delay: i * 0.06,
+      clearProps: 'opacity,transform,visibility',
+      onComplete: i === last ? () => list.classList.remove('is-entering') : undefined,
+    })
+  })
 }
 
 // ─── Grid (mosaic) entrance — staggered rise + fade (index.js port) ─────────
@@ -268,15 +315,14 @@ function enterGrid () {
   initGridTooltip()
   const cells = grid.querySelectorAll('.work__cell')
   if (!cells.length) return
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    gsap.set(cells, { clearProps: 'all' })
-    return
-  }
+  if (reduceMotion()) { gsap.set(cells, { clearProps: 'all' }); return }
   gsap.killTweensOf(cells)
   gsap.fromTo(cells,
     { yPercent: 100, autoAlpha: 0 },
     { yPercent: 0, autoAlpha: 1, duration: 0.9, ease: 'power4', stagger: 0.05, overwrite: true })
 }
+
+function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }
 
 // ─── Cursor-following tooltip on hover (tooltip.js port) ────────────────────
 function initGridTooltip () {
@@ -477,5 +523,6 @@ export function destroy () {
   stageImg = null; currentSrc = null
   drawerIndex = -1; lastFocused = null
   scrollQueued = false; tipBound = false; toolbar = null
+  pageEntered = false; rowsReady = false; currentView = 'list'
   delete window.biakoWork
 }

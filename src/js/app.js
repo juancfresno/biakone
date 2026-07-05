@@ -22,12 +22,15 @@ const TITLES = {
 }
 
 let current = null
-async function mount (ns) {
+async function mount (ns, andEnter) {
   const load = PAGES[ns]
   if (!load) { current = null; return }
   const mod = await load()
   if (mod.init) mod.init()
   current = mod
+  // On the first (non-transitioned) load there's no barba `after` hook, so let
+  // the page play its entrance immediately.
+  if (andEnter && mod.entered) mod.entered()
 }
 function unmount () {
   if (current && current.destroy) current.destroy()
@@ -36,7 +39,7 @@ function unmount () {
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 initShell()
-mount(document.body.dataset.page)   // first (already-rendered) page
+mount(document.body.dataset.page, true)   // first (already-rendered) page
 
 barba.init({
   debug: false,
@@ -59,3 +62,6 @@ barba.hooks.beforeEnter(({ next }) => {
   window.scrollTo(0, 0)
   mount(ns)
 })
+// Fires after the enter transition completes — play the page's entrance now so
+// it runs AFTER the transition-in, never during it.
+barba.hooks.after(() => { if (current && current.entered) current.entered() })

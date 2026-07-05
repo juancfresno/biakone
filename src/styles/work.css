@@ -160,6 +160,9 @@
   color: var(--text-primary);
 }
 .work__row.is-active .work__row-arrow { opacity: 1; }
+/* During the staggered entrance, GSAP drives opacity — kill the CSS transition
+   so it doesn't fight the animation (rows would otherwise CSS-fade 0.5 → 0). */
+.work__list.is-entering .work__row { transition: none; }
 .work__row-code  { color: var(--text-tertiary); }
 .work__row-name  { color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .work__row-type,
