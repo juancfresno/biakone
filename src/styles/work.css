@@ -11,18 +11,26 @@
    Bg #c9c5bd / dark text = default light theme.
    ============================================================ */
 
+/* Head row — bio (left) + list/grid toggle (right) share the bio's baseline,
+   matching Figma. The list starts just below with no empty gap. */
+.work-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
 .work {
   position: relative;
-  padding-top: var(--space-6);
+  margin-top: var(--space-8);
   padding-bottom: var(--space-6);
 }
 
-/* View toggle (list ↔ grid) — top-right, above the list. */
+/* View toggle (list ↔ grid) — on the bio row, top-right. */
 .work__toolbar {
   display: flex;
   justify-content: flex-end;
   gap: var(--space-4);
-  margin-bottom: var(--space-8);
+  flex-shrink: 0;
 }
 .work__view-btn {
   appearance: none;
@@ -154,8 +162,8 @@
 .work__row.is-active .work__row-arrow { opacity: 1; }
 .work__row-code  { color: var(--text-tertiary); }
 .work__row-name  { color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.work__row-scale,
-.work__row-date  { color: var(--text-tertiary); white-space: nowrap; }
+.work__row-type,
+.work__row-year  { color: var(--text-tertiary); white-space: nowrap; }
 
 /* ─── Two-sided hover indent (ported from the portfolio's 50px hover indent,
    about/AboutContent.module.scss). Exaggerated past 50px and split to BOTH

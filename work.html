@@ -10,12 +10,12 @@
 
   <div data-barba="container" data-barba-namespace="work">
     <main class="intro">
-      <p class="intro__bio">
-        Artist — Designer<br>
-        ↘ Urban culture, graffiti &amp; scale work
-      </p>
+      <header class="work-head">
+        <p class="intro__bio">
+          Visual Artist — Designer<br>
+          ↘ Urban culture, graffiti &amp; scale work
+        </p>
 
-      <section class="work" data-view="list">
         <div class="work__toolbar" role="toolbar" aria-label="Work view">
           <button class="work__view-btn" type="button" data-view="list" aria-pressed="true" aria-label="List view">
             <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -31,7 +31,9 @@
             </svg>
           </button>
         </div>
+      </header>
 
+      <section class="work" data-view="list">
         <!-- Floating centre image (active project) — populated by work.js. -->
         <div class="work__stage" id="work-stage" aria-hidden="true"></div>
 
@@ -58,8 +60,8 @@
             <span class="drawer__name" data-name></span>
           </span>
           <span class="drawer__spec">
-            <span data-scale></span>
-            <span data-date></span>
+            <span data-type></span>
+            <span data-year></span>
           </span>
         </div>
         <p class="drawer__desc" data-desc></p>

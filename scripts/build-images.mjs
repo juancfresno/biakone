@@ -126,9 +126,10 @@ async function buildSection ({ name: folder, manifest }) {
 }
 
 // ─── WORK — project-per-subfolder builder ──────────────────────────────────
-// public/work/<NN-slug>/  →  image(s) + meta.json  →  rich public/work.json:
-//   [{ code, slug, name, scale, date, description, images:[{src}] }]
-// Add a project = drop a subfolder with images + meta.json and rebuild.
+// public/work/NNN/  →  image(s) + meta.json  →  rich public/work.json:
+//   [{ code, slug, name, type, year, description, images:[{src}] }]
+// Add a piece = drop a subfolder (numeric name = its code) with a meta.json and
+// photos, then rebuild. No photo yet → falls back to /work/_placeholder.webp.
 async function buildWork () {
   const workAbs = path.join(ROOT, 'public', 'work')
   let dirs = []
@@ -169,13 +170,19 @@ async function buildWork () {
       images.push({ src: r.src })
       if (r.srcBytes != null) { totalSrc += r.srcBytes; totalOpt += r.optBytes }
     }
+    // No photo yet → fall back to the shared placeholder so the centre image
+    // never breaks. Drop a photo into the folder later and it takes over.
+    if (!images.length) images.push({ src: '/work/_placeholder.webp' })
+
+    // Code = the folder name when it's numeric (001, 002, …), else a running index.
+    const code = /^\d+$/.test(slug) ? slug.padStart(3, '0') : String(idx + 1).padStart(3, '0')
 
     projects.push({
-      code: String(idx + 1).padStart(2, '0'),
+      code,
       slug,
-      name: meta.name || slug.replace(/^\d+-/, '').replace(/[-_]/g, ' ').toUpperCase(),
-      scale: meta.scale || '1:12',
-      date: meta.date || '',
+      name: meta.name || slug.replace(/^\d+[-_]?/, '').replace(/[-_]/g, ' ').toUpperCase(),
+      type: meta.type || '',
+      year: meta.year || '',
       description: meta.description || '',
       images,
     })

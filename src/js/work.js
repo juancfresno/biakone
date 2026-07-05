@@ -85,12 +85,12 @@ function rowHtml (p) {
         'aria-label="' + p.name + '">' +
       '<span class="work__row-left">' +
         '<span class="work__row-arrow" aria-hidden="true">↘</span>' +
-        '<span class="work__row-code">' + p.code + '.</span>' +
+        '<span class="work__row-code">' + p.code + '</span>' +
         '<span class="work__row-name">' + p.name + '</span>' +
       '</span>' +
       '<span class="work__row-right">' +
-        '<span class="work__row-scale">' + (p.scale || '') + '</span>' +
-        '<span class="work__row-date">' + (p.date || '') + '</span>' +
+        '<span class="work__row-type">' + (p.type || '') + '</span>' +
+        '<span class="work__row-year">' + (p.year || '') + '</span>' +
       '</span>' +
     '</li>'
   )
@@ -101,8 +101,8 @@ function cellHtml (p) {
     '<figure class="work__cell" data-index="' + p._i + '">' +
       '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async">' +
       '<figcaption class="work__cell-meta">' +
-        '<span>' + p.code + '. ' + p.name + '</span>' +
-        '<span>' + (p.scale || '') + '</span>' +
+        '<span>' + p.code + ' ' + p.name + '</span>' +
+        '<span>' + (p.type || '') + '</span>' +
       '</figcaption>' +
     '</figure>'
   )
@@ -269,11 +269,11 @@ function fillDrawer (i) {
     .join('')
   dGallery.scrollLeft = 0
   dGallery.scrollTop = 0
-  dInfo.querySelector('[data-code]').textContent  = p.code + '.'
-  dInfo.querySelector('[data-name]').textContent  = p.name
-  dInfo.querySelector('[data-scale]').textContent = p.scale || ''
-  dInfo.querySelector('[data-date]').textContent  = p.date || ''
-  dInfo.querySelector('[data-desc]').textContent  = p.description || ''
+  dInfo.querySelector('[data-code]').textContent = p.code
+  dInfo.querySelector('[data-name]').textContent = p.name
+  dInfo.querySelector('[data-type]').textContent = p.type || ''
+  dInfo.querySelector('[data-year]').textContent = p.year || ''
+  dInfo.querySelector('[data-desc]').textContent = p.description || ''
 }
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
