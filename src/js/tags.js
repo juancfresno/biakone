@@ -47,17 +47,23 @@ export function initTags () {
   if (!lb || !img || !frame) return
 
   const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const MAX_DEG = 22
-  const MAX_TX  = 26
+  const MAX_DEG = 28    // stronger tilt
+  const MAX_TX  = 44    // more parallax drift
+  const MAX_TZ  = 55    // depth — pops toward the viewer near centre
 
   function recenter () {
     frame.style.setProperty('--lb-rx', '0deg')
     frame.style.setProperty('--lb-ry', '0deg')
     frame.style.setProperty('--lb-tx', '0px')
     frame.style.setProperty('--lb-ty', '0px')
+    frame.style.setProperty('--lb-tz', '0px')
+    frame.style.setProperty('--lb-s', '1')
   }
   function open (src) {
     img.src = src
+    // Re-parent to <body> so the page-blur (body.lb-open > *:not(.lightbox))
+    // actually excludes it — otherwise it blurs with the container it lived in.
+    if (lb.parentElement !== document.body) document.body.appendChild(lb)
     lb.hidden = false
     document.body.classList.add('lb-open')
     document.body.style.overflow = 'hidden'
@@ -89,16 +95,24 @@ export function initTags () {
     lb.addEventListener('mousemove', (e) => {
       const nx = (e.clientX / window.innerWidth  - 0.5) * 2
       const ny = (e.clientY / window.innerHeight - 0.5) * 2
+      const dist = Math.min(1, Math.hypot(nx, ny))    // 0 centre → 1 corners
       frame.style.setProperty('--lb-ry', (nx * MAX_DEG).toFixed(2) + 'deg')
       frame.style.setProperty('--lb-rx', (-ny * MAX_DEG).toFixed(2) + 'deg')
       frame.style.setProperty('--lb-tx', (nx * MAX_TX).toFixed(1) + 'px')
       frame.style.setProperty('--lb-ty', (ny * MAX_TX).toFixed(1) + 'px')
+      frame.style.setProperty('--lb-tz', ((1 - dist) * MAX_TZ).toFixed(1) + 'px')
+      frame.style.setProperty('--lb-s', (1.02 + (1 - dist) * 0.05).toFixed(3))
     })
     lb.addEventListener('mouseleave', recenter)
   }
 
-  // Ensure a page leaving mid-lightbox doesn't strip the next page's scroll lock.
-  cleanup.push(() => { document.body.classList.remove('lb-open'); document.body.style.overflow = '' })
+  // Ensure a page leaving mid-lightbox doesn't strip the next page's scroll lock,
+  // and remove the re-parented lightbox so it doesn't outlive its page.
+  cleanup.push(() => {
+    document.body.classList.remove('lb-open')
+    document.body.style.overflow = ''
+    if (lb.parentElement === document.body) lb.remove()
+  })
 }
 
 export function destroyTags () {
