@@ -129,13 +129,15 @@ function initEffect (imgs) {
 
   const isMobile = window.matchMedia('(max-width: 640px)').matches
   // fand's shader at 1.0 is tuned for a full-screen immersive demo and buries our
-  // photos in noise; ~0.32 keeps the real CRT character while the stickers stay
+  // photos in noise; ~0.26 keeps the real CRT character while the stickers stay
   // legible. Tune live with biakoStickers.set(v).
-  intensity = isMobile ? 0.2 : 0.32   // mobile lighter
+  intensity = isMobile ? 0.16 : 0.26   // mobile lighter
 
   // init like fand: a global CRT post-effect over everything we add.
+  // pixelRatio 1 keeps the scanlines as discrete lines (not a sub-pixel rainbow
+  // moiré) and keeps the single WebGL pass cheap → 60fps scroll.
   vfx = VFX.init({
-    pixelRatio: isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5),
+    pixelRatio: 1,
     zIndex: 2,
     postEffect: { shader: CRT_SHADER, uniforms: { uIntensity: () => intensity } },
   })
