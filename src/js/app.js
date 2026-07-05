@@ -18,8 +18,8 @@ const PAGES = {
   about:    () => import('./about.js'),
 }   // contact is static — no module
 const TITLES = {
-  home: 'BIAKO.', work: 'BIAKO. — Work', stickers: 'BIAKO. — Stickers',
-  lab: 'BIAKO. — Lab', about: 'BIAKO. — About', contact: 'BIAKO. — Contact',
+  home: 'BIAKO — Urban objects, 1:12', work: 'BIAKO — Work', stickers: 'BIAKO — Stickers',
+  lab: 'BIAKO — Lab', about: 'BIAKO — About', contact: 'BIAKO — Contact',
 }
 
 let current = null
@@ -59,7 +59,7 @@ barba.hooks.beforeLeave(() => { unmount() })
 barba.hooks.beforeEnter(({ next }) => {
   const ns = next.namespace
   document.body.dataset.page = ns
-  document.title = TITLES[ns] || 'BIAKO.'
+  document.title = TITLES[ns] || 'BIAKO'
   window.scrollTo(0, 0)
   mount(ns)
 })
