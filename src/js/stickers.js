@@ -1,85 +1,112 @@
-// Stickers — folder-driven full-bleed photo stack (/stickers.json) with an
-// optional WebGL VHS/CRT + fisheye effect powered by VFX-JS (@vfx-js/core).
+// Stickers — folder-driven full-bleed photo stack (/stickers.json) rendered
+// through a real CRT effect from VFX-JS (@vfx-js/core).
 //
-// Progressive enhancement: the markup is plain <img>. The effect is only
-// layered on when WebGL is available AND the user hasn't asked for reduced
-// motion. If anything fails, the untouched photos remain visible.
+// The CRT shader is fand's (Yusuke Nakaya, the author of VFX-JS), taken verbatim
+// from his MIT-licensed repo — github.com/fand/vfx-js,
+// packages/examples/works/crt.html — and applied exactly the way he does there:
+// as a VFX `postEffect` over the added elements. This is the library's real CRT,
+// NOT a reimplementation. The only addition is a single `uIntensity` uniform so
+// the effect can be softened for mobile / tuned live (mix toward passthrough).
 //
-// Tuning: every knob lives in TUNE below and reaches the shader as a uniform
-// FUNCTION (VFX-JS re-reads it each frame), so it's tunable live from the
-// console with no rebuild:  biakoStickers.set({ rgb: 5, glitch: 1.4 })
+// Progressive enhancement: the markup is plain <img>. The effect only layers on
+// when WebGL is available AND reduced-motion is off; otherwise the untouched
+// photos remain visible. Live tuning from the console:
+//   biakoStickers.set(0.6)      // 0 = off … 1 = full fand … up to 2
+//   biakoStickers.intensity
 
 import { VFX } from '@vfx-js/core'
 
-// ─── Tunable parameters ───────────────────────────────────────────────────
-const TUNE = {
-  intensity: 1.0,   // master multiplier for every effect
-  fisheye:   0.14,  // barrel / CRT bulge (0 = flat)
-  rgb:       3.2,   // chromatic aberration, in source pixels
-  scan:      0.20,  // scanline darkening strength
-  scanCount: 240.0, // number of scanlines across a cell
-  glitch:    1.0,   // horizontal tear / tracking-noise amount
-  vignette:  0.35,  // corner darkening
-}
-// Mobile is lighter — softer effect + cheaper fragment → keeps 60fps scroll.
-const MOBILE = { intensity: 0.55, fisheye: 0.10, rgb: 2.0, glitch: 0.45, vignette: 0.28 }
-
-// ─── VHS / CRT + fisheye fragment shader (GLSL ES 3.00, VFX-JS convention) ──
-const SHADER = /* glsl */ `
+// ─── fand's CRT post-effect shader (MIT, github.com/fand/vfx-js) ────────────
+// Verbatim from his crt.html, with a `uIntensity` knob mixed through the terms
+// (uIntensity = 1 → exactly fand's look; 0 → passthrough).
+const CRT_SHADER = /* glsl */ `
 precision highp float;
-uniform vec2 resolution;
-uniform vec2 offset;
-uniform float time;
 uniform sampler2D src;
-uniform float uIntensity, uFisheye, uRGB, uScan, uScanCount, uGlitch, uVignette;
+uniform vec2 offset;
+uniform vec2 resolution;
+uniform float time;
+uniform float uIntensity;
 out vec4 outColor;
 
-float hash(float n){ return fract(sin(n) * 43758.5453123); }
-float vnoise(float x){
-  float i = floor(x), f = fract(x);
-  return mix(hash(i), hash(i + 1.0), smoothstep(0.0, 1.0, f));
+vec4 readTex(vec2 uv) {
+  vec4 c = texture(src, uv);
+  c.a *= smoothstep(.5, .499, abs(uv.x - .5)) * smoothstep(.5, .499, abs(uv.y - .5));
+  return c;
 }
-// The bulge pulls edges inward so we never read outside the image; clamping
-// keeps glitch / aberration offsets from tearing transparent gaps.
-vec4 samp(vec2 uv){ return texture(src, clamp(uv, 0.0, 1.0)); }
+vec2 zoom(vec2 uv, float t) { return (uv - .5) * t + .5; }
+float rand(vec2 p) { return fract(sin(dot(p, vec2(829., 483.))) * 394.); }
+float rand(vec3 p) { return fract(sin(dot(p, vec3(829., 4839., 432.))) * 39428.); }
 
-void main(){
+void main() {
   vec2 uv = (gl_FragCoord.xy - offset) / resolution;
-  float I = uIntensity;
+  float I = clamp(uIntensity, 0.0, 2.0);
 
-  // Fisheye / barrel bulge: magnify centre, compress edges (CRT glass).
-  vec2 c = uv - 0.5;
-  float r2 = dot(c, c);
-  c *= 1.0 - (uFisheye * I) * r2;
-  vec2 fuv = c + 0.5;
+  vec2 p = uv * 2. - 1.;
+  p.x *= resolution.x / resolution.y;
+  float l = length(p);
 
-  // VHS horizontal wobble + intermittent tracking bursts.
-  float t = time;
-  float wob = (vnoise(fuv.y * 8.0 + t * 2.0) - 0.5) * 2.0;
-  float burst = step(0.965, vnoise(floor(t * 3.0) + floor(fuv.y * 14.0)));
-  fuv.x += wob * (uGlitch * 0.0035) * I
-         + burst * (hash(floor(fuv.y * 30.0) + floor(t * 3.0)) - 0.5) * uGlitch * 0.06 * I;
+  // barrel distort (curvature dialled by intensity: I=0 → flat, I=1 → fand)
+  float dist = pow(l, 2.) * .3;
+  dist = smoothstep(0., 1., dist);
+  uv = zoom(uv, mix(1.0, 0.5 + dist, I));
 
-  // RGB shift / chromatic aberration (stronger toward the edges).
-  float ca = (uRGB / resolution.x) * I * (1.0 + 2.0 * burst) * (0.6 + 1.4 * abs(c.x));
-  vec4 cr = samp(fuv + vec2(ca, 0.0));
-  vec4 cg = samp(fuv);
-  vec4 cb = samp(fuv - vec2(ca, 0.0));
-  vec3 col = vec3(cr.r, cg.g, cb.b);
-  float a = max(max(cr.a, cg.a), cb.a);
+  // radial blur
+  float a = atan(p.y, p.x);
+  float rd = rand(vec3(a, time, 0));
+  uv = (uv - .5) * (1.0 + rd * pow(l * 0.7, 3.) * 0.3 * I) + .5;
 
-  // Scanlines.
-  float sl = sin(fuv.y * uScanCount * 3.14159265);
-  col *= 1.0 - (uScan * I) * (0.5 - 0.5 * sl);
+  vec2 uvr = uv;
+  vec2 uvg = uv;
+  vec2 uvb = uv;
 
-  // Slow moving tracking band + subtle brightness flicker.
-  col += smoothstep(0.06, 0.0, abs(fract(fuv.y - t * 0.15) - 0.5)) * 0.035 * I;
-  col *= 1.0 + (vnoise(t * 12.0) - 0.5) * 0.04 * I;
+  // aberration
+  float d = (1. + sin(uv.y * 20. + time * 3.) * 0.1) * 0.05 * I;
+  uvr.x += 0.0015 * I;
+  uvb.x -= 0.0015 * I;
+  uvr = zoom(uvr, 1. + d * l * l);
+  uvb = zoom(uvb, 1. - d * l * l);
 
-  // Vignette.
-  col *= mix(1.0, smoothstep(0.9, 0.15, r2 * 2.0), uVignette * I);
+  // glitch bands
+  float gr = rand(vec2(floor(time * 43.), 1.));
+  if (gr > 0.8) {
+    float y = sin(floor(uv.y / 0.07)) + sin(floor(uv.y / 0.003 + time));
+    float f = rand(vec2(y, floor(time * 5.0))) * 2. - 1.;
+    uvr.x += f * 0.05 * I;
+    uvg.x += f * 0.1 * I;
+    uvb.x += f * 0.15 * I;
+  }
+  float gr2 = rand(vec2(floor(time * 37.), 10.));
+  if (gr2 > 0.9) {
+    uvr.x += sin(uv.y * 7. + time + 1.) * 0.015 * I;
+    uvg.x += sin(uv.y * 5. + time + 2.) * 0.015 * I;
+    uvb.x += sin(uv.y * 3. + time + 3.) * 0.015 * I;
+  }
 
-  outColor = vec4(col, a);
+  vec4 cr = readTex(uvr);
+  vec4 cg = readTex(uvg);
+  vec4 cb = readTex(uvb);
+
+  outColor = vec4(cr.r, cg.g, cb.b, (cr.a + cg.a + cb.a) / 1.);
+
+  vec4 deco = vec4(0.);
+
+  // scanline
+  float res = resolution.y;
+  deco += (
+    sin(uv.y * res * .7 + time * 100.) *
+    sin(uv.y * res * .3 - time * 130.)
+  ) * 0.05;
+
+  // grid
+  deco += smoothstep(.01, .0, min(fract(uv.x * 20.), fract(uv.y * 20.))) * 0.1;
+
+  outColor += deco * smoothstep(2., 0., l) * I;
+
+  // vignette
+  outColor *= mix(1.0, 1.8 - l * l, I);
+
+  // dither
+  outColor += rand(vec3(p, time)) * 0.1 * I;
 }
 `
 
@@ -94,46 +121,41 @@ function cellHtml (item) {
 
 // Per-mount VFX instance so we can tear it down on leave (WebGL / rAF cleanup).
 let vfx = null
+let intensity = 1.0
 
 function initEffect (imgs) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (reduce || !imgs.length) return
 
   const isMobile = window.matchMedia('(max-width: 640px)').matches
-  const cfg = { ...TUNE, ...(isMobile ? MOBILE : {}) }
+  // fand's shader at 1.0 is tuned for a full-screen immersive demo and buries our
+  // photos in noise; ~0.32 keeps the real CRT character while the stickers stay
+  // legible. Tune live with biakoStickers.set(v).
+  intensity = isMobile ? 0.2 : 0.32   // mobile lighter
 
-  try {
-    vfx = VFX.init({ pixelRatio: isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 2), zIndex: 2 })
-  } catch { vfx = null }
+  // init like fand: a global CRT post-effect over everything we add.
+  vfx = VFX.init({
+    pixelRatio: isMobile ? 1 : Math.min(window.devicePixelRatio || 1, 1.5),
+    zIndex: 2,
+    postEffect: { shader: CRT_SHADER, uniforms: { uIntensity: () => intensity } },
+  })
   if (!vfx) return  // no WebGL → plain photos stay visible
 
-  // Uniform FUNCTIONS: VFX-JS calls them every frame, so mutating `cfg`
-  // live (via biakoStickers.set) takes effect immediately.
-  const uniforms = {
-    uIntensity: () => cfg.intensity,
-    uFisheye:   () => cfg.fisheye,
-    uRGB:       () => cfg.rgb,
-    uScan:      () => cfg.scan,
-    uScanCount: () => cfg.scanCount,
-    uGlitch:    () => cfg.glitch,
-    uVignette:  () => cfg.vignette,
-  }
-
+  // Each sticker is added with a passthrough shader; the CRT post-effect then
+  // processes the composited viewport (fand's approach). `release` keeps cells
+  // rendering a moment after they leave the viewport so scroll stays seamless.
   const addOne = (img) => {
-    const go = () => vfx && vfx.add(img, {
-      shader: SHADER,
-      uniforms,
-      release: 400,     // keep rendering briefly after leaving the viewport
-    }).catch(() => { img.style.opacity = '' })  // restore the photo on failure
+    const go = () => vfx && vfx.add(img, { shader: 'none', release: 600 })
+      .catch(() => { img.style.opacity = '' })
     if (img.complete && img.naturalWidth) go()
     else img.addEventListener('load', go, { once: true })
   }
   imgs.forEach(addOne)
 
-  // Live tuning handle: biakoStickers.set({ glitch: 1.5, rgb: 6 })
+  // Live tuning handle: biakoStickers.set(0.6)
   window.biakoStickers = {
-    tune: cfg,
-    set (patch) { Object.assign(cfg, patch) },
+    get intensity () { return intensity },
+    set (v) { intensity = Math.max(0, Math.min(2, Number(v) || 0)) },
     vfx,
   }
 }
