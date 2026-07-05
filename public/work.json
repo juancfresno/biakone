@@ -105,7 +105,13 @@
     "details": null,
     "images": [
       {
-        "src": "/work/_placeholder.webp"
+        "src": "/work/007/_opt/01.webp"
+      },
+      {
+        "src": "/work/007/_opt/02.webp"
+      },
+      {
+        "src": "/work/007/_opt/03.webp"
       }
     ]
   },
