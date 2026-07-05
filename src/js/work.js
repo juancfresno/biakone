@@ -4,13 +4,22 @@
 //
 // SPA-safe: every window/document listener and rAF loop is tracked and torn
 // down in destroy() so nothing leaks or double-runs across barba transitions.
+//
+// The grid (mosaic) view is a port of crnacura/PlayersClub: the tight
+// grid-template-columns mosaic (ArtistGrid.astro), the staggered rise+fade
+// entrance (scripts/index.js) and the cursor-following tooltip (scripts/
+// tooltip.js) — adapted to vanilla + Biako tokens.
+
+import gsap from 'gsap'
 
 let list, grid, stage, section, drawer, dGallery, dInfo
+let toolbar, gridTip
 let projects = [], rows = [], activeIndex = -1
 let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
 let cleanup = []
 let elasticRafId = 0, scrollRafId = 0
+let tipBound = false
 
 // ─── Centre image — single preloaded <img> that VHS-glitches on each change ──
 // The image is set once (project 01) and is NEVER cleared, so there is always a
@@ -96,15 +105,13 @@ function rowHtml (p) {
   )
 }
 function cellHtml (p) {
-  const cover = p.images && p.images[0] ? p.images[0].src : ''
+  const cover = p.images && p.images[0] ? p.images[0].src : '/work/_placeholder.webp'
   return (
-    '<figure class="work__cell" data-index="' + p._i + '">' +
-      '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async">' +
-      '<figcaption class="work__cell-meta">' +
-        '<span>' + p.code + ' ' + p.name + '</span>' +
-        '<span>' + (p.type || '') + '</span>' +
-      '</figcaption>' +
-    '</figure>'
+    '<button class="work__cell" type="button" data-index="' + p._i + '" ' +
+        'aria-label="' + p.code + ' ' + p.name + '">' +
+      '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async" draggable="false">' +
+      '<span class="work__cell-label"><span class="work__cell-num">' + p.code + '</span> ' + p.name + '</span>' +
+    '</button>'
   )
 }
 
@@ -121,6 +128,11 @@ function render (items) {
   buildStage()
   setActive(0)   // default active = project 01, image visible immediately
   initElasticLines()
+
+  // Restore the session's chosen view (list default).
+  let saved = 'list'
+  try { saved = sessionStorage.getItem('biako-work-view') || 'list' } catch {}
+  applyView(saved === 'grid' ? 'grid' : 'list')
 }
 
 // ─── Elastic divider lines (port of ElasticLine.tsx) ────────────────────────
@@ -234,13 +246,96 @@ function onScroll () {
 }
 
 // ─── View toggle ────────────────────────────────────────────────────────────
+// The toolbar lives in .work-head (a sibling of .work), so listen there and
+// flip data-view on .work. The choice is remembered for the session.
 function bindToggle () {
-  section.addEventListener('click', (e) => {
+  if (!toolbar) return
+  toolbar.addEventListener('click', (e) => {
     const btn = e.target.closest('.work__view-btn')
-    if (!btn) return
-    section.setAttribute('data-view', btn.dataset.view)
-    section.querySelectorAll('.work__view-btn').forEach(b =>
-      b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'))
+    if (btn) applyView(btn.dataset.view)
+  })
+}
+function applyView (view) {
+  section.setAttribute('data-view', view)
+  if (toolbar) toolbar.querySelectorAll('.work__view-btn').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'))
+  try { sessionStorage.setItem('biako-work-view', view) } catch {}
+  if (view === 'grid') requestAnimationFrame(enterGrid)
+}
+
+// ─── Grid (mosaic) entrance — staggered rise + fade (index.js port) ─────────
+function enterGrid () {
+  initGridTooltip()
+  const cells = grid.querySelectorAll('.work__cell')
+  if (!cells.length) return
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    gsap.set(cells, { clearProps: 'all' })
+    return
+  }
+  gsap.killTweensOf(cells)
+  gsap.fromTo(cells,
+    { yPercent: 100, autoAlpha: 0 },
+    { yPercent: 0, autoAlpha: 1, duration: 0.9, ease: 'power4', stagger: 0.05, overwrite: true })
+}
+
+// ─── Cursor-following tooltip on hover (tooltip.js port) ────────────────────
+function initGridTooltip () {
+  if (tipBound || !grid) return
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+  // Cursor-following tooltip is a motion flourish — skip it under reduced-motion
+  // (the card labels + drawer still carry the number/name/type).
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  tipBound = true
+
+  gridTip = document.createElement('div')
+  gridTip.className = 'work__tip'
+  gridTip.setAttribute('aria-hidden', 'true')
+  gridTip.innerHTML = '<span class="work__tip-name"></span><span class="work__tip-type"></span>'
+  section.appendChild(gridTip)
+  gsap.set(gridTip, { scale: 0, autoAlpha: 0, transformOrigin: '0% 100%' })
+
+  const xTo = gsap.quickTo(gridTip, 'x', { duration: 0.55, ease: 'expo' })
+  const yTo = gsap.quickTo(gridTip, 'y', { duration: 0.55, ease: 'expo' })
+  let visible = false
+
+  const place = (e) => {
+    const w = gridTip.offsetWidth
+    let x = e.clientX + 20
+    if (x + w > window.innerWidth) x = e.clientX - 20 - w
+    return { x, y: e.clientY + 4 }
+  }
+
+  const onMove = (e) => {
+    if (!visible) return
+    const { x, y } = place(e)
+    xTo(x); yTo(y)
+  }
+  const onOver = (e) => {
+    const cell = e.target.closest('.work__cell')
+    if (!cell) return
+    const p = projects[Number(cell.dataset.index)]
+    if (!p) return
+    gridTip.querySelector('.work__tip-name').textContent = p.code + ' ' + p.name
+    gridTip.querySelector('.work__tip-type').textContent = [p.type, p.year].filter(Boolean).join(' · ')
+    const { x, y } = place(e)
+    if (!visible) {
+      visible = true
+      gsap.set(gridTip, { x, y })
+      gsap.fromTo(gridTip, { scale: 0, autoAlpha: 0 }, { scale: 1, autoAlpha: 1, duration: 0.55, ease: 'power4.inOut' })
+    }
+  }
+  const onLeave = () => {
+    visible = false
+    gsap.to(gridTip, { scale: 0, autoAlpha: 0, duration: 0.4, ease: 'power4.inOut' })
+  }
+
+  grid.addEventListener('pointermove', onMove, { passive: true })
+  grid.addEventListener('pointerover', onOver)
+  grid.addEventListener('mouseleave', onLeave)
+  cleanup.push(() => {
+    grid.removeEventListener('pointermove', onMove)
+    grid.removeEventListener('pointerover', onOver)
+    grid.removeEventListener('mouseleave', onLeave)
   })
 }
 
@@ -347,6 +442,7 @@ export function init () {
   grid    = document.getElementById('work-grid')
   stage   = document.getElementById('work-stage')
   section = document.querySelector('.work')
+  toolbar = document.querySelector('.work__toolbar')
   drawer  = document.getElementById('work-drawer')
   dGallery = document.getElementById('drawer-gallery')
   dInfo   = drawer && drawer.querySelector('#drawer-info')
@@ -375,10 +471,11 @@ export function destroy () {
   cleanup.forEach(fn => fn()); cleanup = []
   cancelAnimationFrame(elasticRafId); elasticRafId = 0
   cancelAnimationFrame(scrollRafId); scrollRafId = 0
+  if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }
   document.body.style.overflow = ''
   projects = []; rows = []; activeIndex = -1
   stageImg = null; currentSrc = null
   drawerIndex = -1; lastFocused = null
-  scrollQueued = false
+  scrollQueued = false; tipBound = false; toolbar = null
   delete window.biakoWork
 }

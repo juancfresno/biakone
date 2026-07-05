@@ -183,17 +183,32 @@
   .work__row:hover .work__row-right { transform: translateX(calc(-1 * var(--indent))); }
 }
 
-/* ─── GRID VIEW (simple fallback) ─── */
+/* ─── GRID (mosaic) view — ported from crnacura/PlayersClub ─────
+   Tight edge-to-edge mosaic (grid-template-columns of equal fractions,
+   no gaps) with cover images and an aspect-ratio close to the source's
+   0.8. Columns step 2 → 4 → 7 (14 pieces = 7×2 on desktop). The grid
+   clips its own overflow so the staggered rise entrance reads cleanly. */
 .work__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: var(--space-4);
-}
-.work__cell {
-  aspect-ratio: 9 / 16;
-  background: var(--neutral-400);
-  overflow: hidden;
   position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  overflow: hidden;
+}
+@media (min-width: 40em)  { .work__grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 64em)  { .work__grid { grid-template-columns: repeat(7, 1fr); } }
+
+.work__cell {
+  appearance: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  text-align: left;
+  position: relative;
+  display: block;
+  aspect-ratio: 0.8;
+  overflow: hidden;
+  background: var(--neutral-400);
   cursor: pointer;
 }
 .work__cell img {
@@ -201,31 +216,57 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition: transform 550ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 300ms ease;
+  will-change: transform;
 }
-.work__cell:hover img { transform: scale(1.04); }
-.work__cell-meta {
+@media (hover: hover) and (pointer: fine) {
+  .work__cell:hover img { transform: scale(1.06); }
+  /* Focus the hovered card — gently dim the rest of the mosaic. */
+  .work__grid:hover .work__cell:not(:hover) img { filter: brightness(0.68); }
+}
+.work__cell-label {
   position: absolute;
-  bottom: var(--space-2);
-  left: var(--space-2);
-  right: var(--space-2);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: var(--space-6) var(--space-2) var(--space-2);
   font-family: var(--font-ui);
   font-size: 10px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-inverse-primary);
-}
-.work__cell-meta span {
-  max-width: 100%;
-  background: rgba(0, 0, 0, 0.55);
-  padding: 2px 6px;
+  color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0) 90%);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  pointer-events: none;
+}
+.work__cell-num { color: rgba(255, 255, 255, 0.55); margin-right: 0.35em; }
+
+/* Cursor-following tooltip (port of PlayersClub tooltip.js). */
+.work__tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  pointer-events: none;
+  padding: var(--space-3) var(--space-4);
+  min-width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--neutral-950);
+  color: var(--neutral-50);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  will-change: transform;
+}
+.work__tip-type { color: var(--neutral-400); }
+
+@media (prefers-reduced-motion: reduce) {
+  .work__cell img { transition: none; }
 }
 
 .work[data-view="list"] .work__grid  { display: none; }
