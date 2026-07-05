@@ -55,6 +55,7 @@
   pointer-events: none;
   overflow: hidden;
 }
+.work__stage-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .work__stage-img {
   position: absolute;
   inset: 0;
@@ -62,10 +63,49 @@
   height: 100%;
   object-fit: cover;
   opacity: 0;
-  transition: opacity 420ms ease;
-  will-change: opacity;
+  transition: opacity 300ms ease;   /* used as the reduced-motion fallback */
+  will-change: opacity, transform, clip-path, filter;
 }
 .work__stage-img.is-shown { opacity: 1; }
+
+/* Scanline sheet, flashed during the glitch. */
+.work__stage-scan {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  background: repeating-linear-gradient(0deg,
+    rgba(0, 0, 0, 0.28) 0, rgba(0, 0, 0, 0.28) 1px, transparent 1px, transparent 3px);
+}
+
+/* ─── VHS glitch-in — one-shot each time the active image changes ───
+   Horizontal scanline tearing (clip-path bands) + RGB split (feOffset
+   filter) + signal jitter (translate) + a brightness flash, settling to a
+   clean frame. GPU-friendly: transform/opacity + a brief one-image filter. */
+.work__stage.is-glitch .work__stage-img { animation: work-glitch-in 0.52s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.work__stage.is-glitch .work__stage-scan { animation: work-scan-flash 0.52s ease-out both; }
+
+@keyframes work-glitch-in {
+  0%   { opacity: 0; transform: translate3d(-12px, 0, 0) scale(1.07); clip-path: inset(46% 0 46% 0); filter: url(#work-rgb) brightness(1.6); }
+  10%  { opacity: 1; transform: translate3d(9px, 0, 0) scale(1.06);   clip-path: inset(0 0 58% 0);   filter: url(#work-rgb); }
+  22%  { transform: translate3d(-7px, 0, 0) scale(1.05); clip-path: inset(60% 0 4% 0);  filter: url(#work-rgb) brightness(1.18); }
+  34%  { transform: translate3d(6px, 0, 0) scale(1.05);  clip-path: inset(14% 0 34% 0); filter: none; }
+  46%  { transform: translate3d(-4px, 0, 0) scale(1.04); clip-path: inset(0 0 0 0);     filter: url(#work-rgb); }
+  60%  { transform: translate3d(3px, 0, 0) scale(1.03);  filter: none; }
+  74%  { transform: translate3d(-2px, 0, 0) scale(1.02); filter: url(#work-rgb); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); clip-path: inset(0 0 0 0); filter: none; }
+}
+@keyframes work-scan-flash {
+  0%   { opacity: 0.75; }
+  65%  { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .work__stage.is-glitch .work__stage-img,
+  .work__stage.is-glitch .work__stage-scan { animation: none; }
+}
 
 /* ─── LIST VIEW ─── */
 .work__list {

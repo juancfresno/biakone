@@ -7,28 +7,67 @@
 
 let list, grid, stage, section, drawer, dGallery, dInfo
 let projects = [], rows = [], activeIndex = -1
-let front = null, back = null, currentSrc = null
+let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
 let cleanup = []
 let elasticRafId = 0, scrollRafId = 0
 
-// ─── Crossfade double-buffer for the centre image ───────────────────────────
+// ─── Centre image — single preloaded <img> that VHS-glitches on each change ──
+// The image is set once (project 01) and is NEVER cleared, so there is always a
+// visible active project even when the cursor is off the list.
 function buildStage () {
-  front = document.createElement('img'); front.className = 'work__stage-img'
-  back  = document.createElement('img'); back.className  = 'work__stage-img'
-  front.alt = ''; back.alt = ''
-  front.decoding = 'async'; back.decoding = 'async'
-  stage.append(front, back)
+  stage.innerHTML = ''
+  const SVGNS = 'http://www.w3.org/2000/svg'
+
+  // Reusable RGB-split filter (VHS chromatic aberration), toggled by the glitch
+  // keyframes. Lives inside the (swapped) stage so it's SPA-clean.
+  const defs = document.createElementNS(SVGNS, 'svg')
+  defs.setAttribute('class', 'work__stage-defs')
+  defs.setAttribute('aria-hidden', 'true')
+  defs.innerHTML =
+    '<filter id="work-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
+      '<feOffset in="r" dx="6" result="ro"/>' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>' +
+      '<feOffset in="b" dx="-6" result="bo"/>' +
+      '<feBlend in="ro" in2="g" mode="screen" result="rg"/>' +
+      '<feBlend in="rg" in2="bo" mode="screen"/>' +
+    '</filter>'
+
+  stageImg = document.createElement('img')
+  stageImg.className = 'work__stage-img'
+  stageImg.alt = ''
+  stageImg.decoding = 'async'
+
+  const scan = document.createElement('div')
+  scan.className = 'work__stage-scan'
+  scan.setAttribute('aria-hidden', 'true')
+
+  stage.append(defs, stageImg, scan)
 }
+
 function showImage (src) {
-  if (!src || src === currentSrc) return
+  if (!src || src === currentSrc || !stageImg) return
   currentSrc = src
-  back.onload = () => {
-    back.classList.add('is-shown')
-    front.classList.remove('is-shown')
-    const t = front; front = back; back = t
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  const apply = () => {
+    if (currentSrc !== src) return   // superseded by a faster hover
+    stageImg.src = src
+    stageImg.classList.add('is-shown')
+    if (reduce) return               // plain fade via .is-shown, no glitch
+    // Restart the one-shot glitch animation.
+    stage.classList.remove('is-glitch')
+    void stage.offsetWidth
+    stage.classList.add('is-glitch')
   }
-  back.src = src
+
+  // Decode first so the swap is instant (no flash) on cached or fresh images.
+  const pre = new Image()
+  pre.src = src
+  if (pre.decode) pre.decode().then(apply).catch(apply)
+  else { pre.onload = apply; pre.onerror = apply }
 }
 
 function setActive (i) {
@@ -80,8 +119,7 @@ function render (items) {
   grid.innerHTML = projects.map(cellHtml).join('')
   rows = [...list.querySelectorAll('.work__row')]
   buildStage()
-  setActive(0)
-  syncToScroll()
+  setActive(0)   // default active = project 01, image visible immediately
   initElasticLines()
 }
 
@@ -339,7 +377,7 @@ export function destroy () {
   cancelAnimationFrame(scrollRafId); scrollRafId = 0
   document.body.style.overflow = ''
   projects = []; rows = []; activeIndex = -1
-  front = back = null; currentSrc = null
+  stageImg = null; currentSrc = null
   drawerIndex = -1; lastFocused = null
   scrollQueued = false
   delete window.biakoWork
