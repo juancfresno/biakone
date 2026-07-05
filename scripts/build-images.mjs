@@ -163,6 +163,10 @@ async function buildWork () {
     let meta = {}
     try { meta = JSON.parse(await fs.readFile(path.join(dirAbs, 'meta.json'), 'utf8')) } catch { /* optional */ }
 
+    // Draft pieces stay on disk (folder + meta) but are excluded from the listing
+    // entirely — set "draft": true in meta.json to hide; remove it to re-add.
+    if (meta.draft === true) { console.log(`  work/${slug}: draft — excluded from listing`); continue }
+
     if (imgFiles.length) await fs.mkdir(path.join(dirAbs, '_opt'), { recursive: true })
     const images = []
     for (const name of imgFiles) {

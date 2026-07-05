@@ -1,6 +1,1 @@
-{
-  "name": "Storage Door 02",
-  "type": "Wall Piece",
-  "year": "2026",
-  "description": ""
-}
+{ "name": "Storage Door 02", "type": "Wall Piece", "year": "2026", "description": "", "draft": true }

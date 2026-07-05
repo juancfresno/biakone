@@ -1,6 +1,1 @@
-{
-  "name": "Rusty Door",
-  "type": "Wall Piece",
-  "year": "2026",
-  "description": ""
-}
+{ "name": "Rusty Door", "type": "Wall Piece", "year": "2026", "description": "", "draft": true }
