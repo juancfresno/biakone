@@ -450,30 +450,53 @@ function fillDrawer (i) {
     .map(d => '<div><dt>' + d.label + '</dt><dd>' + d.value + '</dd></div>').join('')
 }
 
+function glitchPanel () {
+  if (reduceMotion() || !panel) return
+  panel.classList.remove('is-glitch')
+  void panel.offsetWidth                 // reflow so the animation can restart
+  panel.classList.add('is-glitch')
+}
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
   lastFocused = document.activeElement
   fillDrawer(i)
+  // Re-parent the drawer to <body> so it paints ABOVE the fixed nav/footer and,
+  // being the one <body> child excluded from the page blur, stays sharp.
+  if (drawer.parentElement !== document.body) document.body.appendChild(drawer)
   drawer.hidden = false
+  document.body.classList.add('drawer-open')   // → blurs the page (work.css)
   document.body.style.overflow = 'hidden'
+
+  const content = panel.querySelectorAll('.drawer__info-head, .drawer__info-body, .drawer__pager')
+  gsap.killTweensOf([panel, backdrop, dGallery, ...content])
   if (reduceMotion()) {
     gsap.set(backdrop, { autoAlpha: 1 })
     gsap.set(panel, { xPercent: 0 })
+    gsap.set([dGallery, ...content], { clearProps: 'all' })
   } else {
-    gsap.set(backdrop, { autoAlpha: 0 })
-    gsap.set(panel, { xPercent: 100 })
-    gsap.to(backdrop, { autoAlpha: 1, duration: 0.3, ease: 'power1.out' })
-    gsap.to(panel, { xPercent: 0, duration: 0.45, ease: 'expo.out' })
+    gsap.timeline()
+      .set(backdrop, { autoAlpha: 0 })
+      .set(panel, { xPercent: 100 })
+      .set(dGallery, { autoAlpha: 0 })
+      .set(content, { autoAlpha: 0, y: 16 })
+      .to(backdrop, { autoAlpha: 1, duration: 0.35, ease: 'power1.out' }, 0)
+      .to(panel, { xPercent: 0, duration: 0.55, ease: 'expo.out' }, 0)
+      // content reveals with a subtle stagger as the panel lands
+      .to(dGallery, { autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, 0.18)
+      .to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'expo.out', stagger: 0.07, clearProps: 'transform,opacity' }, 0.26)
+      .add(glitchPanel, 0.42)            // light VHS accent on landing
   }
   drawer.querySelector('.drawer__close').focus()
 }
 function closeDrawer () {
   if (!drawer || drawer.hidden) return
   const done = () => { drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery' }
+  document.body.classList.remove('drawer-open')   // → un-blurs the page
   document.body.style.overflow = ''
   if (reduceMotion()) { done() }
   else {
-    gsap.to(backdrop, { autoAlpha: 0, duration: 0.35, ease: 'power1.in' })
+    gsap.killTweensOf([panel, backdrop])
+    gsap.to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' })
     gsap.to(panel, { xPercent: 100, duration: 0.4, ease: 'expo.in', onComplete: done })
   }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
@@ -592,6 +615,10 @@ export function destroy () {
   cancelAnimationFrame(scrollRafId); scrollRafId = 0
   if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }
   document.body.style.overflow = ''
+  document.body.classList.remove('drawer-open')          // drop the page blur
+  // The drawer was re-parented to <body>; remove it so it doesn't outlive the page.
+  if (drawer && drawer.parentElement === document.body) drawer.remove()
+  drawer = panel = backdrop = dGallery = dInfo = null
   projects = []; rows = []; activeIndex = -1
   stageImg = null; currentSrc = null
   drawerIndex = -1; lastFocused = null

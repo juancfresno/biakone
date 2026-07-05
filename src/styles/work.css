@@ -340,17 +340,25 @@
   z-index: 9995;
 }
 
-/* Blurred + dimmed page behind (backdrop-filter). Click to close. */
+/* The page behind is blurred by filtering the page wrapper (body.drawer-open,
+   below) — NOT backdrop-filter, which failed against the fixed nav/footer's
+   stacking contexts. The backdrop here only supplies the dim + close target. */
 .drawer__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  backdrop-filter: blur(26px) saturate(0.9);
-  -webkit-backdrop-filter: blur(26px) saturate(0.9);
+  background: rgba(0, 0, 0, 0.42);
   cursor: pointer;
 }
 
-/* The sliding panel — full-width on mobile, leaves a backdrop strip on desktop. */
+/* When open, blur + dim the whole page (nav, footer, content, grain) — every
+   direct child of <body> EXCEPT the drawer, which work.js re-parents to <body>
+   so it sits above the fixed shell and outside the filtered layer (stays sharp). */
+body.drawer-open > *:not(#work-drawer):not(script) {
+  filter: blur(18px);
+  transition: filter 360ms ease;
+}
+
+/* The sliding panel — full-width on mobile, exactly the right 50% on desktop. */
 .drawer__panel {
   position: absolute;
   top: 0;
@@ -362,7 +370,17 @@
   will-change: transform;
 }
 @media (min-width: 768px) {
-  .drawer__panel { width: calc(100% - clamp(48px, 6vw, 96px)); }
+  .drawer__panel { width: 50%; }
+}
+
+/* Light VHS glitch accent as the panel lands (one-shot, toggled in work.js). */
+.drawer__panel.is-glitch { animation: drawer-glitch 0.34s steps(2, end) 1; }
+@keyframes drawer-glitch {
+  0%   { transform: translate3d(0, 0, 0); filter: none; }
+  20%  { transform: translate3d(-2px, 0, 0); filter: brightness(1.25) contrast(1.1); }
+  40%  { transform: translate3d(3px, 0, 0); filter: brightness(0.9); }
+  60%  { transform: translate3d(-1px, 0, 0); filter: brightness(1.15); }
+  100% { transform: translate3d(0, 0, 0); filter: none; }
 }
 
 /* Horizontal gallery — full-height images, drag/scroll right. */
@@ -518,4 +536,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .drawer__panel { transition: none; }
+  .drawer__panel.is-glitch { animation: none; }
+  body.drawer-open > *:not(#work-drawer):not(script) { transition: none; }
 }
