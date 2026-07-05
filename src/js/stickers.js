@@ -17,7 +17,7 @@ import { VFX } from '@vfx-js/core'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
 const TUNE = {
-  fisheye:    0.4,    // barrel / lens bulge (× BARREL_MAX in-shader) — strong CRT curve
+  fisheye:    0.55,   // barrel / lens bulge (× BARREL_MAX in-shader) — strong convex CRT curve
   aberration: 0.06,   // RGB shift / chromatic — subtle
   glitch:     0.05,   // glitch bands + radial jitter — subtle
   scan:       0.5,    // horizontal TV scanline strength — pronounced
@@ -26,7 +26,7 @@ const TUNE = {
   dither:     0.05,   // fine grain
 }
 // Mobile is lighter (softer bulge/scan, cheaper) to hold 60fps.
-const MOBILE = { fisheye: 0.3, aberration: 0.04, glitch: 0.03, scan: 0.38, scanCount: 150.0, vignette: 0.16, dither: 0.03 }
+const MOBILE = { fisheye: 0.4, aberration: 0.04, glitch: 0.03, scan: 0.38, scanCount: 150.0, vignette: 0.16, dither: 0.03 }
 
 // ─── CRT post-effect shader — fand's (MIT, github.com/fand/vfx-js), retuned ──
 // fand's barrel + readTex + chromatic aberration + glitch bands are kept; each
@@ -43,7 +43,7 @@ out vec4 outColor;
 
 // Internal barrel ceiling — the bulge strength = uFisheye * BARREL_MAX.
 // Raise this for an even stronger possible curve (default fisheye is set in JS).
-const float BARREL_MAX = 3.0;
+const float BARREL_MAX = 1.6;
 
 vec4 readTex(vec2 uv) {
   vec4 c = texture(src, uv);
@@ -62,13 +62,14 @@ void main() {
   p.x *= resolution.x / resolution.y;
   float l = length(p);
 
-  // barrel / fisheye bulge (whole viewport) — convex CRT lens.
-  // f = 1 / (1 + k·r²): smooth, never flips, and scales cleanly with uFisheye
-  // (no dampening cap), so higher biakoStickers.set({fisheye}) really curves more.
+  // barrel / fisheye bulge (whole viewport) — CONVEX CRT tube.
+  // Push the SAMPLE coordinate OUTWARD with radius (× (1 + k·r²)) so the picture
+  // bulges toward the viewer and the edges curve away — a real fisheye/CRT face,
+  // not a funnel. Scales cleanly with uFisheye (no clamp).
   vec2 bc = uv - 0.5;
   bc.x *= resolution.x / resolution.y;
   float br2 = dot(bc, bc);
-  uv = 0.5 + (uv - 0.5) / (1.0 + uFisheye * BARREL_MAX * br2);
+  uv = 0.5 + (uv - 0.5) * (1.0 + uFisheye * BARREL_MAX * br2);
 
   // gentle radial jitter (part of the glitch)
   float a = atan(p.y, p.x);
