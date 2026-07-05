@@ -5,10 +5,12 @@
   "description": "Biako — public website (v0).",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/build-images.mjs",
     "dev": "vite",
     "prebuild": "node scripts/build-images.mjs",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "images": "node scripts/build-images.mjs"
   },
   "devDependencies": {
     "sharp": "^0.33.5",
