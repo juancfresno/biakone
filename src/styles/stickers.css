@@ -55,16 +55,22 @@ body[data-page="stickers"] .intro {
 .stickers__cell {
   position: relative;
   width: 100%;
-  /* Figma: 1440 × 800 → ~55.5vw, clamped so ultrawide/mobile stay sane. */
-  height: clamp(320px, 55.5vw, 820px);
-  overflow: hidden;
-  background: var(--neutral-900);
+  min-height: 100vh;          /* one sticker per screen-ish */
+  display: flex;
+  align-items: center;
+  justify-content: center;    /* centre horizontally — dark sides fall to bg */
+  padding: var(--space-6) 0;
+  background: var(--neutral-950);
 }
 .stickers__cell img {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+  /* Native aspect ratio, never stretched: bounded by height on wide screens
+     (narrow, centred, dark sides) and by width on mobile (fills the screen). */
+  width: auto;
+  height: auto;
+  max-height: 86vh;
+  max-width: 100%;
+  object-fit: contain;
   /* VFX-JS sets opacity:0 on the source once the shader is live; until
      then (and as the no-WebGL fallback) the plain photo shows. */
 }
@@ -85,7 +91,8 @@ body[data-page="stickers"] > canvas {
   text-align: center;
 }
 
-/* ─── Mobile ───────────────────────────────────────────────── */
+/* ─── Mobile: photos naturally fill the width, stacked ──────── */
 @media (max-width: 640px) {
-  .stickers__cell { height: clamp(280px, 70vw, 460px); }
+  .stickers__cell { min-height: auto; padding: 0; }
+  .stickers__cell img { max-height: none; max-width: 100%; }
 }

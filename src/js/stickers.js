@@ -112,9 +112,12 @@ void main() {
 
 // ─── Render the folder-driven stack ────────────────────────────────────────
 function cellHtml (item) {
+  // Native intrinsic size → the browser (and VFX-JS, which maps the texture to
+  // the element rect) keeps the real aspect ratio, so photos never warp.
+  const dim = (item.w && item.h) ? ' width="' + item.w + '" height="' + item.h + '"' : ''
   return (
     '<figure class="stickers__cell">' +
-      '<img src="' + item.src + '" alt="" loading="lazy" decoding="async">' +
+      '<img src="' + item.src + '"' + dim + ' alt="" loading="lazy" decoding="async">' +
     '</figure>'
   )
 }
