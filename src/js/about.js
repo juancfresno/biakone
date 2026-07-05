@@ -1,14 +1,23 @@
-// About page module — folder-driven horizontal photo strip (/about.json) with
-// click-drag panning, plus the shared tag marquee + lightbox at the bottom.
-// All strip listeners live on the swapped element (GC'd on leave); the tags
-// component cleans up its own document listeners via destroyTags().
+// About page module — folder-driven horizontal photo strip (/about.json) with:
+//  • the body copy typing itself in (terminal-style) once the page has entered,
+//  • a VHS glitch-reveal entrance on the photos (staggered left→right),
+//  • a BIAKO-wordmark custom cursor (difference-blended) over the strip,
+// plus the existing click-drag pan and the shared tag marquee + lightbox.
+// Everything cleans up on leave (SPA-safe).
 import { initTags, destroyTags } from './tags.js'
 
-function cellHtml (item) {
-  // --ar = crop aspect (w/h); cells flex-grow by it so the strip fills 100%.
+let strip, cursorEl, rgbSvg
+let pageEntered = false, cellsReady = false, typed = false
+let typeRaf = 0, cursorRaf = 0
+let cleanupFns = []
+
+function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }
+
+function cellHtml (item, i) {
+  // --ar = crop aspect (w/h); --i = index → staggered glitch-reveal delay.
   const ar = item.w && item.h ? (item.w / item.h).toFixed(4) : '0.5625'
   return (
-    '<figure class="about-gallery__cell" style="--ar:' + ar + '">' +
+    '<figure class="about-gallery__cell" style="--ar:' + ar + ';--i:' + i + '">' +
       '<img src="' + item.src + '" alt="" loading="lazy" decoding="async" draggable="false">' +
     '</figure>'
   )
@@ -41,22 +50,133 @@ function enableDrag (el) {
   el.addEventListener('click', (e) => { if (moved > 4) { e.preventDefault(); e.stopPropagation() } }, true)
 }
 
+// ─── RGB-split filter for the glitch reveal (same as the Work drawer's) ──────
+function ensureRgbFilter () {
+  if (document.getElementById('about-rgb')) return
+  rgbSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  rgbSvg.setAttribute('class', 'about-defs')
+  rgbSvg.setAttribute('aria-hidden', 'true')
+  rgbSvg.innerHTML =
+    '<filter id="about-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
+      '<feOffset in="r" dx="6" result="ro"/>' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>' +
+      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>' +
+      '<feOffset in="b" dx="-6" result="bo"/>' +
+      '<feBlend in="ro" in2="g" mode="screen" result="rg"/>' +
+      '<feBlend in="rg" in2="bo" mode="screen"/>' +
+    '</filter>'
+  document.body.appendChild(rgbSvg)
+}
+
+// Reveal fires once BOTH the page has entered (post-transition) and the cells
+// exist — CSS handles the staggered glitch (or a plain fade under reduced-motion).
+function maybeReveal () {
+  if (pageEntered && cellsReady && strip) strip.classList.add('is-in')
+}
+
+// ─── Terminal-style typewriter for the body copy ────────────────────────────
+function typewriter () {
+  if (typed) return
+  const body = document.querySelector('.about__body')
+  if (!body) return
+  const ps = [...body.querySelectorAll('p')]
+  if (!ps.length) return
+  typed = true
+  if (reduceMotion()) return          // full text stays instantly
+
+  const texts = ps.map(p => p.textContent)
+  const total = texts.reduce((a, t) => a + t.length, 0)
+  if (!total) return
+  body.style.minHeight = body.offsetHeight + 'px'   // reserve height → no reflow jump
+  ps.forEach(p => { p.textContent = '' })
+
+  const caret = document.createElement('span')
+  caret.className = 'about__caret'
+  caret.setAttribute('aria-hidden', 'true')
+  caret.textContent = '▍'
+
+  const CPS = 260                      // characters/sec — fast, terminal-style
+  const t0 = performance.now()
+  const step = (now) => {
+    const show = Math.floor((now - t0) / 1000 * CPS)
+    let rem = show, placed = false
+    for (let i = 0; i < ps.length; i++) {
+      const t = texts[i]
+      const n = Math.max(0, Math.min(t.length, rem))
+      ps[i].textContent = t.slice(0, n)
+      if (!placed && n < t.length) { ps[i].appendChild(caret); placed = true }
+      rem -= t.length
+    }
+    if (!placed) ps[ps.length - 1].appendChild(caret)
+    if (show < total) { typeRaf = requestAnimationFrame(step) }
+    else { caret.remove(); body.style.minHeight = '' }
+  }
+  typeRaf = requestAnimationFrame(step)
+}
+
+// ─── Custom cursor: BIAKO wordmark over the strip (fine-pointer only) ────────
+function initCursor () {
+  if (!strip) return
+  if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
+
+  cursorEl = document.createElement('div')
+  cursorEl.className = 'about-cursor'
+  cursorEl.setAttribute('aria-hidden', 'true')
+  cursorEl.innerHTML = '<img src="/biako-wordmark.svg" alt="">'
+  document.body.appendChild(cursorEl)
+
+  let x = 0, y = 0
+  const apply = () => { cursorRaf = 0; if (cursorEl) cursorEl.style.transform = 'translate(-50%,-50%) translate(' + x + 'px,' + y + 'px)' }
+  const move = (e) => { x = e.clientX; y = e.clientY; if (!cursorRaf) cursorRaf = requestAnimationFrame(apply) }
+  const enter = () => { if (cursorEl) cursorEl.classList.add('is-visible'); strip.classList.add('cursor-logo') }
+  const leave = () => { if (cursorEl) cursorEl.classList.remove('is-visible'); strip.classList.remove('cursor-logo') }
+
+  strip.addEventListener('pointerenter', enter)
+  strip.addEventListener('pointerleave', leave)
+  strip.addEventListener('pointermove', move)
+  cleanupFns.push(() => {
+    strip.removeEventListener('pointerenter', enter)
+    strip.removeEventListener('pointerleave', leave)
+    strip.removeEventListener('pointermove', move)
+    if (cursorRaf) cancelAnimationFrame(cursorRaf)
+    if (cursorEl) { cursorEl.remove(); cursorEl = null }
+  })
+}
+
 export function init () {
-  const strip = document.getElementById('about-gallery')
+  strip = document.getElementById('about-gallery')
   if (strip) {
     enableDrag(strip)
+    ensureRgbFilter()
     fetch('/about.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : [])
       .then(items => {
         strip.innerHTML = items.length
           ? items.map(cellHtml).join('')
           : '<p class="about-gallery__empty">No photos yet — drop images in /public/about</p>'
+        cellsReady = true
+        maybeReveal()
       })
       .catch(() => {})
+    initCursor()
   }
   initTags()
 }
 
+// Fires after the page-transition-in completes (app.js barba.hooks.after / first load).
+export function entered () {
+  pageEntered = true
+  maybeReveal()
+  typewriter()
+}
+
 export function destroy () {
+  cancelAnimationFrame(typeRaf); typeRaf = 0
+  cancelAnimationFrame(cursorRaf); cursorRaf = 0
+  cleanupFns.forEach(fn => fn()); cleanupFns = []
+  if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
+  pageEntered = false; cellsReady = false; typed = false
+  strip = null
   destroyTags()
 }
