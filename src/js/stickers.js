@@ -1,31 +1,44 @@
-// Stickers — folder-driven full-bleed photo stack (/stickers.json) rendered
-// through a real CRT effect from VFX-JS (@vfx-js/core).
+// Stickers — folder-driven photo stack (/stickers.json) rendered through a CRT
+// effect from VFX-JS (@vfx-js/core).
 //
-// The CRT shader is fand's (Yusuke Nakaya, the author of VFX-JS), taken verbatim
-// from his MIT-licensed repo — github.com/fand/vfx-js,
-// packages/examples/works/crt.html — and applied exactly the way he does there:
-// as a VFX `postEffect` over the added elements. This is the library's real CRT,
-// NOT a reimplementation. The only addition is a single `uIntensity` uniform so
-// the effect can be softened for mobile / tuned live (mix toward passthrough).
+// The CRT is fand's (Yusuke Nakaya, the author of VFX-JS) — his shader from the
+// MIT-licensed repo github.com/fand/vfx-js (packages/examples/works/crt.html),
+// applied as a VFX `postEffect` exactly as he does. This is the library's real
+// CRT, NOT a reimplementation. Retuned for Biako via uniforms (subtler glitch,
+// moderate barrel, stronger scanlines); every knob is a live-tunable uniform.
 //
-// Progressive enhancement: the markup is plain <img>. The effect only layers on
-// when WebGL is available AND reduced-motion is off; otherwise the untouched
-// photos remain visible. Live tuning from the console:
-//   biakoStickers.set(0.6)      // 0 = off … 1 = full fand … up to 2
-//   biakoStickers.intensity
+// Progressive enhancement: markup is plain <img>. The effect only layers on when
+// WebGL is available AND reduced-motion is off; otherwise the untouched photos
+// remain visible. Live tuning from the console:
+//   biakoStickers.set({ scan: 0.7, fisheye: 0.5, aberration: 0.1 })
+//   biakoStickers.tune
 
 import { VFX } from '@vfx-js/core'
 
-// ─── fand's CRT post-effect shader (MIT, github.com/fand/vfx-js) ────────────
-// Verbatim from his crt.html, with a `uIntensity` knob mixed through the terms
-// (uIntensity = 1 → exactly fand's look; 0 → passthrough).
+// ─── Tunable parameters (master → uniforms below) ──────────────────────────
+const TUNE = {
+  fisheye:    0.34,   // barrel / lens bulge across the whole CRT screen
+  aberration: 0.06,   // RGB shift / chromatic — subtle
+  glitch:     0.05,   // glitch bands + radial jitter — subtle
+  scan:       0.5,    // horizontal TV scanline strength — pronounced
+  scanCount:  240.0,  // scanline density (lines across the viewport)
+  vignette:   0.22,   // corner darkening / CRT bloom
+  dither:     0.05,   // fine grain
+}
+// Mobile is lighter (softer bulge/scan, cheaper) to hold 60fps.
+const MOBILE = { fisheye: 0.22, aberration: 0.04, glitch: 0.03, scan: 0.38, scanCount: 150.0, vignette: 0.16, dither: 0.03 }
+
+// ─── CRT post-effect shader — fand's (MIT, github.com/fand/vfx-js), retuned ──
+// fand's barrel + readTex + chromatic aberration + glitch bands are kept; each
+// term is driven by its own uniform, and his interference "deco" is replaced by
+// a clean, pronounced horizontal scanline (screen-space) per the design.
 const CRT_SHADER = /* glsl */ `
 precision highp float;
 uniform sampler2D src;
 uniform vec2 offset;
 uniform vec2 resolution;
 uniform float time;
-uniform float uIntensity;
+uniform float uFisheye, uAberration, uGlitch, uScan, uScanCount, uVignette, uDither;
 out vec4 outColor;
 
 vec4 readTex(vec2 uv) {
@@ -39,74 +52,66 @@ float rand(vec3 p) { return fract(sin(dot(p, vec3(829., 4839., 432.))) * 39428.)
 
 void main() {
   vec2 uv = (gl_FragCoord.xy - offset) / resolution;
-  float I = clamp(uIntensity, 0.0, 2.0);
+  vec2 screenUV = uv;                 // pre-distortion — for flat scanlines
 
   vec2 p = uv * 2. - 1.;
   p.x *= resolution.x / resolution.y;
   float l = length(p);
 
-  // barrel distort (curvature dialled by intensity: I=0 → flat, I=1 → fand)
-  float dist = pow(l, 2.) * .3;
-  dist = smoothstep(0., 1., dist);
-  uv = zoom(uv, mix(1.0, 0.5 + dist, I));
+  // barrel / fisheye bulge (whole viewport)
+  float dist = smoothstep(0., 1., pow(l, 2.) * .3);
+  uv = zoom(uv, mix(1.0, 0.5 + dist, uFisheye));
 
-  // radial blur
+  // gentle radial jitter (part of the glitch)
   float a = atan(p.y, p.x);
   float rd = rand(vec3(a, time, 0));
-  uv = (uv - .5) * (1.0 + rd * pow(l * 0.7, 3.) * 0.3 * I) + .5;
+  uv = (uv - .5) * (1.0 + rd * pow(l * 0.7, 3.) * 0.3 * uGlitch) + .5;
 
-  vec2 uvr = uv;
-  vec2 uvg = uv;
-  vec2 uvb = uv;
+  vec2 uvr = uv, uvg = uv, uvb = uv;
 
-  // aberration
-  float d = (1. + sin(uv.y * 20. + time * 3.) * 0.1) * 0.05 * I;
-  uvr.x += 0.0015 * I;
-  uvb.x -= 0.0015 * I;
+  // chromatic aberration (subtle)
+  float d = (1. + sin(uv.y * 20. + time * 3.) * 0.1) * 0.05 * uAberration;
+  uvr.x += 0.0015 * uAberration;
+  uvb.x -= 0.0015 * uAberration;
   uvr = zoom(uvr, 1. + d * l * l);
   uvb = zoom(uvb, 1. - d * l * l);
 
-  // glitch bands
+  // glitch bands (subtle)
   float gr = rand(vec2(floor(time * 43.), 1.));
   if (gr > 0.8) {
     float y = sin(floor(uv.y / 0.07)) + sin(floor(uv.y / 0.003 + time));
     float f = rand(vec2(y, floor(time * 5.0))) * 2. - 1.;
-    uvr.x += f * 0.05 * I;
-    uvg.x += f * 0.1 * I;
-    uvb.x += f * 0.15 * I;
+    uvr.x += f * 0.05 * uGlitch;
+    uvg.x += f * 0.1 * uGlitch;
+    uvb.x += f * 0.15 * uGlitch;
   }
   float gr2 = rand(vec2(floor(time * 37.), 10.));
   if (gr2 > 0.9) {
-    uvr.x += sin(uv.y * 7. + time + 1.) * 0.015 * I;
-    uvg.x += sin(uv.y * 5. + time + 2.) * 0.015 * I;
-    uvb.x += sin(uv.y * 3. + time + 3.) * 0.015 * I;
+    uvr.x += sin(uv.y * 7. + time + 1.) * 0.015 * uGlitch;
+    uvg.x += sin(uv.y * 5. + time + 2.) * 0.015 * uGlitch;
+    uvb.x += sin(uv.y * 3. + time + 3.) * 0.015 * uGlitch;
   }
 
   vec4 cr = readTex(uvr);
   vec4 cg = readTex(uvg);
   vec4 cb = readTex(uvb);
+  outColor = vec4(cr.r, cg.g, cb.b, (cr.a + cg.a + cb.a));
 
-  outColor = vec4(cr.r, cg.g, cb.b, (cr.a + cg.a + cb.a) / 1.);
+  // pronounced horizontal TV scanlines (flat, screen-space)
+  float scan = 0.5 - 0.5 * cos(screenUV.y * uScanCount * 6.28318);
+  outColor.rgb *= 1.0 - uScan * scan;
 
-  vec4 deco = vec4(0.);
+  // faint CRT ambient across the WHOLE viewport (incl. the dark surround) so the
+  // barrel curvature + scanlines read edge-to-edge, not only on the photo.
+  float amb = 0.022 * smoothstep(1.85, 0.1, l) * (1.0 - uScan * scan);
+  outColor.rgb += amb * (1.0 - outColor.a);
+  outColor.a = max(outColor.a, amb * 2.2);
 
-  // scanline
-  float res = resolution.y;
-  deco += (
-    sin(uv.y * res * .7 + time * 100.) *
-    sin(uv.y * res * .3 - time * 130.)
-  ) * 0.05;
-
-  // grid
-  deco += smoothstep(.01, .0, min(fract(uv.x * 20.), fract(uv.y * 20.))) * 0.1;
-
-  outColor += deco * smoothstep(2., 0., l) * I;
-
-  // vignette
-  outColor *= mix(1.0, 1.8 - l * l, I);
+  // vignette / bloom
+  outColor *= mix(1.0, 1.8 - l * l, uVignette);
 
   // dither
-  outColor += rand(vec3(p, time)) * 0.1 * I;
+  outColor += rand(vec3(p, time)) * uDither;
 }
 `
 
@@ -124,25 +129,31 @@ function cellHtml (item) {
 
 // Per-mount VFX instance so we can tear it down on leave (WebGL / rAF cleanup).
 let vfx = null
-let intensity = 1.0
+let cfg = { ...TUNE }
 
 function initEffect (imgs) {
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (reduce || !imgs.length) return
 
   const isMobile = window.matchMedia('(max-width: 640px)').matches
-  // fand's shader at 1.0 is tuned for a full-screen immersive demo and buries our
-  // photos in noise; ~0.26 keeps the real CRT character while the stickers stay
-  // legible. Tune live with biakoStickers.set(v).
-  intensity = isMobile ? 0.1 : 0.15   // mobile lighter
+  cfg = { ...TUNE, ...(isMobile ? MOBILE : {}) }
 
   // init like fand: a global CRT post-effect over everything we add.
-  // pixelRatio 1 keeps the scanlines as discrete lines (not a sub-pixel rainbow
-  // moiré) and keeps the single WebGL pass cheap → 60fps scroll.
+  // pixelRatio 1 keeps the scanlines as discrete lines (not a sub-pixel moiré)
+  // and keeps the single WebGL pass cheap → 60fps scroll.
+  const uniforms = {
+    uFisheye:    () => cfg.fisheye,
+    uAberration: () => cfg.aberration,
+    uGlitch:     () => cfg.glitch,
+    uScan:       () => cfg.scan,
+    uScanCount:  () => cfg.scanCount,
+    uVignette:   () => cfg.vignette,
+    uDither:     () => cfg.dither,
+  }
   vfx = VFX.init({
     pixelRatio: 1,
     zIndex: 2,
-    postEffect: { shader: CRT_SHADER, uniforms: { uIntensity: () => intensity } },
+    postEffect: { shader: CRT_SHADER, uniforms },
   })
   if (!vfx) return  // no WebGL → plain photos stay visible
 
@@ -157,10 +168,10 @@ function initEffect (imgs) {
   }
   imgs.forEach(addOne)
 
-  // Live tuning handle: biakoStickers.set(0.6)
+  // Live tuning handle: biakoStickers.set({ scan: 0.7, fisheye: 0.5 })
   window.biakoStickers = {
-    get intensity () { return intensity },
-    set (v) { intensity = Math.max(0, Math.min(2, Number(v) || 0)) },
+    tune: cfg,
+    set (patch) { if (patch && typeof patch === 'object') Object.assign(cfg, patch) },
     vfx,
   }
 }
