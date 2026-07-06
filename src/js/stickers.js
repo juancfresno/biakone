@@ -1,133 +1,101 @@
-// Stickers — folder-driven photo stack (/stickers.json) rendered through a CRT
-// effect from VFX-JS (@vfx-js/core).
+// Stickers — folder-driven photo stack (/stickers.json) with a per-image CRT +
+// wide-angle FISHEYE, built on VFX-JS (@vfx-js/core).
 //
-// The CRT is fand's (Yusuke Nakaya, the author of VFX-JS) — his shader from the
-// MIT-licensed repo github.com/fand/vfx-js (packages/examples/works/crt.html),
-// applied as a VFX `postEffect` exactly as he does. This is the library's real
-// CRT, NOT a reimplementation. Retuned for Biako via uniforms (subtler glitch,
-// moderate barrel, stronger scanlines); every knob is a live-tunable uniform.
+// The effect is applied as a PER-ELEMENT shader (vfx.add(img, { shader })) — NOT
+// a viewport post-effect. That's the whole point: the barrel/fisheye is computed
+// in each image's own space (uv = (gl_FragCoord - offset) / resolution, VFX-JS's
+// per-element convention), so the lens curve BELONGS to each sticker and is
+// identical for every one, regardless of scroll. (The old post-effect distorted
+// the fixed viewport, so images looked flat and a curved layer floated on top.)
 //
 // Progressive enhancement: markup is plain <img>. The effect only layers on when
 // WebGL is available AND reduced-motion is off; otherwise the untouched photos
 // remain visible. Live tuning from the console:
-//   biakoStickers.set({ scan: 0.7, fisheye: 0.5, aberration: 0.1 })
-//   biakoStickers.tune
+//   biakoStickers.set({ fisheye: 1.4, overscan: 0.1, scan: 0.5 })
 
 import { VFX } from '@vfx-js/core'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
+// fisheye is the headline knob: barrel strength = fisheye × BARREL_MAX (in-shader).
 const TUNE = {
-  fisheye:    0.55,   // barrel / lens bulge (× BARREL_MAX in-shader) — strong convex CRT curve
-  aberration: 0.06,   // RGB shift / chromatic — subtle
-  glitch:     0.05,   // glitch bands + radial jitter — subtle
-  scan:       0.5,    // horizontal TV scanline strength — pronounced
-  scanCount:  240.0,  // scanline density (lines across the viewport)
-  vignette:   0.22,   // corner darkening / CRT bloom
-  dither:     0.05,   // fine grain
+  fisheye:    0.55,   // desktop — a clear, intact CRT curve (kept moderate)
+  overscan:   0.14,   // zoom that lets the bulge FILL the frame; corners stay black
+  aberration: 0.6,    // RGB fringing, grows toward the edge (lens)
+  scan:       0.5,    // horizontal CRT scanline strength
+  scanCount:  240.0,  // scanline density per image
+  vignette:   0.5,    // corner darkening → lens vignette
+  dither:     0.04,   // fine grain
 }
-// Mobile is lighter (softer bulge/scan, cheaper) to hold 60fps.
-const MOBILE = { fisheye: 0.4, aberration: 0.04, glitch: 0.03, scan: 0.38, scanCount: 150.0, vignette: 0.16, dither: 0.03 }
+// MOBILE goes HARD — an aggressive GoPro/VX1000 wide-angle: heavy edge curve,
+// centre bulges toward the viewer, corners drop into black. Lighter scan/count
+// than desktop to hold 60fps at pixelRatio 1.
+const MOBILE = { fisheye: 1.15, overscan: 0.11, aberration: 0.5, scan: 0.42, scanCount: 150.0, vignette: 0.72, dither: 0.035 }
 
-// ─── CRT post-effect shader — fand's (MIT, github.com/fand/vfx-js), retuned ──
-// fand's barrel + readTex + chromatic aberration + glitch bands are kept; each
-// term is driven by its own uniform, and his interference "deco" is replaced by
-// a clean, pronounced horizontal scanline (screen-space) per the design.
+// ─── Per-image CRT + fisheye shader (GLSL3 / WebGL2, VFX-JS per-element) ──────
+// uv is element-local [0,1]. Barrel is CONVEX (outward): the sample coordinate is
+// pushed away from centre with radius² so the centre magnifies (bulges toward the
+// viewer) and the edges/corners curve away past the texture → black. `overscan`
+// zooms back in so the bulge fills the frame while the corners still fall to black.
 const CRT_SHADER = /* glsl */ `
 precision highp float;
-uniform sampler2D src;
 uniform vec2 offset;
 uniform vec2 resolution;
+uniform sampler2D src;
 uniform float time;
-uniform float uFisheye, uAberration, uGlitch, uScan, uScanCount, uVignette, uDither;
+uniform float uFisheye, uOverscan, uAberration, uScan, uScanCount, uVignette, uDither;
 out vec4 outColor;
 
-// Internal barrel ceiling — the bulge strength = uFisheye * BARREL_MAX.
-// Raise this for an even stronger possible curve (default fisheye is set in JS).
-const float BARREL_MAX = 1.6;
+// Internal ceiling — visible barrel strength = uFisheye * BARREL_MAX.
+const float BARREL_MAX = 1.9;
 
-vec4 readTex(vec2 uv) {
-  vec4 c = texture(src, uv);
-  c.a *= smoothstep(.5, .499, abs(uv.x - .5)) * smoothstep(.5, .499, abs(uv.y - .5));
-  return c;
+// Sample the image, transparent outside its bounds so the lens edges fall to the
+// dark page behind (the cell bg is #141414).
+vec4 tex(vec2 uv) {
+  if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) return vec4(0.0);
+  return texture(src, uv);
 }
-vec2 zoom(vec2 uv, float t) { return (uv - .5) * t + .5; }
-float rand(vec2 p) { return fract(sin(dot(p, vec2(829., 483.))) * 394.); }
-float rand(vec3 p) { return fract(sin(dot(p, vec3(829., 4839., 432.))) * 39428.); }
+float rand(vec2 p) { return fract(sin(dot(p, vec2(829.3, 483.7))) * 39428.0); }
 
 void main() {
-  vec2 uv = (gl_FragCoord.xy - offset) / resolution;
-  vec2 screenUV = uv;                 // pre-distortion — for flat scanlines
+  vec2 uv = (gl_FragCoord.xy - offset) / resolution;   // element-local [0,1]
+  float scanY = uv.y;                                  // flat scanlines (pre-distortion)
 
-  vec2 p = uv * 2. - 1.;
-  p.x *= resolution.x / resolution.y;
-  float l = length(p);
+  // Aspect-corrected radius so the lens is circular, not oval.
+  vec2 c = uv - 0.5;
+  c.x *= resolution.x / resolution.y;
+  float r2 = dot(c, c);
+  float k  = uFisheye * BARREL_MAX;
 
-  // barrel / fisheye bulge (whole viewport) — CONVEX CRT tube.
-  // Push the SAMPLE coordinate OUTWARD with radius (× (1 + k·r²)) so the picture
-  // bulges toward the viewer and the edges curve away — a real fisheye/CRT face,
-  // not a funnel. Scales cleanly with uFisheye (no clamp).
-  vec2 bc = uv - 0.5;
-  bc.x *= resolution.x / resolution.y;
-  float br2 = dot(bc, bc);
-  uv = 0.5 + (uv - 0.5) * (1.0 + uFisheye * BARREL_MAX * br2);
+  // CONVEX barrel: push the sample outward with r² (centre magnifies, edges curve
+  // away). Then overscan (zoom in) so the picture fills the frame; corners spill.
+  vec2 duv = 0.5 + (uv - 0.5) * (1.0 + k * r2);
+  duv = 0.5 + (duv - 0.5) / (1.0 + k * uOverscan);
 
-  // gentle radial jitter (part of the glitch)
-  float a = atan(p.y, p.x);
-  float rd = rand(vec3(a, time, 0));
-  uv = (uv - .5) * (1.0 + rd * pow(l * 0.7, 3.) * 0.3 * uGlitch) + .5;
+  // Chromatic aberration that intensifies toward the edge — a lens tell.
+  vec2 dir = duv - 0.5;
+  float ab = uAberration * (0.004 + 0.03 * r2);
+  vec4 cr = tex(duv + dir * ab);
+  vec4 cg = tex(duv);
+  vec4 cb = tex(duv - dir * ab);
+  outColor = vec4(cr.r, cg.g, cb.b, max(cr.a, max(cg.a, cb.a)));
 
-  vec2 uvr = uv, uvg = uv, uvb = uv;
-
-  // chromatic aberration (subtle)
-  float d = (1. + sin(uv.y * 20. + time * 3.) * 0.1) * 0.05 * uAberration;
-  uvr.x += 0.0015 * uAberration;
-  uvb.x -= 0.0015 * uAberration;
-  uvr = zoom(uvr, 1. + d * l * l);
-  uvb = zoom(uvb, 1. - d * l * l);
-
-  // glitch bands (subtle)
-  float gr = rand(vec2(floor(time * 43.), 1.));
-  if (gr > 0.8) {
-    float y = sin(floor(uv.y / 0.07)) + sin(floor(uv.y / 0.003 + time));
-    float f = rand(vec2(y, floor(time * 5.0))) * 2. - 1.;
-    uvr.x += f * 0.05 * uGlitch;
-    uvg.x += f * 0.1 * uGlitch;
-    uvb.x += f * 0.15 * uGlitch;
-  }
-  float gr2 = rand(vec2(floor(time * 37.), 10.));
-  if (gr2 > 0.9) {
-    uvr.x += sin(uv.y * 7. + time + 1.) * 0.015 * uGlitch;
-    uvg.x += sin(uv.y * 5. + time + 2.) * 0.015 * uGlitch;
-    uvb.x += sin(uv.y * 3. + time + 3.) * 0.015 * uGlitch;
-  }
-
-  vec4 cr = readTex(uvr);
-  vec4 cg = readTex(uvg);
-  vec4 cb = readTex(uvb);
-  outColor = vec4(cr.r, cg.g, cb.b, (cr.a + cg.a + cb.a));
-
-  // pronounced horizontal TV scanlines (flat, screen-space)
-  float scan = 0.5 - 0.5 * cos(screenUV.y * uScanCount * 6.28318);
+  // Pronounced CRT scanlines (per image).
+  float scan = 0.5 - 0.5 * cos(scanY * uScanCount * 6.28318);
   outColor.rgb *= 1.0 - uScan * scan;
 
-  // faint CRT ambient across the WHOLE viewport (incl. the dark surround) so the
-  // barrel curvature + scanlines read edge-to-edge, not only on the photo.
-  float amb = 0.022 * smoothstep(1.85, 0.1, l) * (1.0 - uScan * scan);
-  outColor.rgb += amb * (1.0 - outColor.a);
-  outColor.a = max(outColor.a, amb * 2.2);
+  // Lens vignette — corners fall into black.
+  float vig = smoothstep(1.2, 0.15, length(c) * 2.0);
+  outColor.rgb *= mix(1.0, vig, uVignette);
 
-  // vignette / bloom
-  outColor *= mix(1.0, 1.8 - l * l, uVignette);
-
-  // dither
-  outColor += rand(vec3(p, time)) * uDither;
+  // Fine grain.
+  outColor.rgb += (rand(gl_FragCoord.xy + fract(time)) - 0.5) * uDither;
 }
 `
 
 // ─── Render the folder-driven stack ────────────────────────────────────────
 function cellHtml (item) {
-  // Native intrinsic size → the browser (and VFX-JS, which maps the texture to
-  // the element rect) keeps the real aspect ratio, so photos never warp.
+  // Native intrinsic size → VFX-JS maps the texture to the element rect, keeping
+  // the real aspect ratio (verticals tall, horizontals short) so nothing warps.
   const dim = (item.w && item.h) ? ' width="' + item.w + '" height="' + item.h + '"' : ''
   return (
     '<figure class="stickers__cell">' +
@@ -147,37 +115,32 @@ function initEffect (imgs) {
   const isMobile = window.matchMedia('(max-width: 640px)').matches
   cfg = { ...TUNE, ...(isMobile ? MOBILE : {}) }
 
-  // init like fand: a global CRT post-effect over everything we add.
-  // pixelRatio 1 keeps the scanlines as discrete lines (not a sub-pixel moiré)
-  // and keeps the single WebGL pass cheap → 60fps scroll.
+  // pixelRatio 1 keeps the scanlines discrete and the passes cheap → 60fps.
+  vfx = VFX.init({ pixelRatio: 1, zIndex: 2 })
+  if (!vfx) return  // no WebGL → plain photos stay visible
+
   const uniforms = {
     uFisheye:    () => cfg.fisheye,
+    uOverscan:   () => cfg.overscan,
     uAberration: () => cfg.aberration,
-    uGlitch:     () => cfg.glitch,
     uScan:       () => cfg.scan,
     uScanCount:  () => cfg.scanCount,
     uVignette:   () => cfg.vignette,
     uDither:     () => cfg.dither,
   }
-  vfx = VFX.init({
-    pixelRatio: 1,
-    zIndex: 2,
-    postEffect: { shader: CRT_SHADER, uniforms },
-  })
-  if (!vfx) return  // no WebGL → plain photos stay visible
 
-  // Each sticker is added with a passthrough shader; the CRT post-effect then
-  // processes the composited viewport (fand's approach). `release` keeps cells
-  // rendering a moment after they leave the viewport so scroll stays seamless.
+  // Each image carries the CRT+fisheye as its OWN shader → per-image lens curve,
+  // uniform across the whole stack. `release` keeps a cell rendering briefly after
+  // it scrolls off so the effect never pops.
   const addOne = (img) => {
-    const go = () => vfx && vfx.add(img, { shader: 'none', release: 600 })
+    const go = () => vfx && vfx.add(img, { shader: CRT_SHADER, uniforms, release: 600 })
       .catch(() => { img.style.opacity = '' })
     if (img.complete && img.naturalWidth) go()
     else img.addEventListener('load', go, { once: true })
   }
   imgs.forEach(addOne)
 
-  // Live tuning handle: biakoStickers.set({ scan: 0.7, fisheye: 0.5 })
+  // Live tuning: biakoStickers.set({ fisheye: 1.4, overscan: 0.1 })
   window.biakoStickers = {
     tune: cfg,
     set (patch) { if (patch && typeof patch === 'object') Object.assign(cfg, patch) },
