@@ -44,6 +44,26 @@ const REACH_BACK = 22, REACH_FWD = 46   // tag reach around the player (units)
 const WALL_W = 78, WALL_H = 96, WALL_Y = 150
 const DUMP_W = 62, DUMP_H = 52
 
+// ── Phase 3: enemies + HEAT consequence ──
+// CCTV — wall camera with a vision cone; being in it raises HEAT (less when airborne).
+const CCTV_W = 22, CCTV_H = 14, CCTV_Y = 74
+const CCTV_RATE = 0.34, CCTV_RATE_AIR = 0.15   // heat/s in cone (ground vs air)
+const CCTV_BACK = 10, CCTV_FWD = 46            // cone x-span around the camera (ground)
+const CCTV_T0 = 3.2, CCTV_MIN = 2.8, CCTV_RND = 2.6
+// Pursuer (SEGURATA/POLICÍA) — visualises HEAT: closes in from behind, catches at max.
+const PURSUE_HEAT = 0.45                        // appears above this
+const PURSUE_X0 = -48                           // fully-behind x at PURSUE_HEAT
+const HEAT_CATCH = 0.98                         // ≥ this HEAT → caught (survives 1 frame of decay)
+const CAUGHT_MS = 800                           // CAUGHT pose before BUSTED
+// BUFF (rodillo) — while on screen, erases your most-recent tag.
+const BUFF_W = 30, BUFF_H = 42
+const BUFF_T0 = 6.5, BUFF_MIN = 5.5, BUFF_RND = 4.5
+const BUFF_ERASE_T = 0.7                        // s between erases while a buff is around
+// Collectibles — spray can (−HEAT) and bolsa (+1 TAG). Some spawn elevated.
+const PICK_T0 = 3.0, PICK_MIN = 2.4, PICK_RND = 2.6
+const PICK_R = 13
+const SPRAY_COOL = 0.34
+
 let canvas, ctx, stage
 let els = {}
 let raf = 0, lastT = 0, acc = 0
@@ -57,9 +77,12 @@ let best = 0
 let player = null
 let obstacles = []
 let spots = []
+let cams = [], buffs = [], picks = []
 let speed = SPEED0
 let dist = 0, tags = 0, heat = 0
 let spawnTimer = SPAWN_T0, spotTimer = SPOT_T0, spotFlip = 0
+let camTimer = CCTV_T0, buffTimer = BUFF_T0, pickTimer = PICK_T0, buffEraseTimer = 0, pickFlip = 0
+let caughtT = 0
 let scrollX = 0               // ground stripe scroll
 let holding = false, holdT = 0
 let lastDistShown = -1, lastTagsShown = -1, lastHeatShown = -1
@@ -88,6 +111,15 @@ function readPalette () {
     reach:    v('--brand-yellow', '#FFFFE6'),
     ink:      v('--neutral-50',  '#F4F2EA'),
     accent:   v('--brand-yellow', '#FFFFE6'),
+    // Phase 3
+    cam:      v('--neutral-600', '#636965'),
+    cone:     v('--feedback-error', '#E0655A'),
+    cop:      v('--brand-blue-800', '#2E4178'),
+    copHi:    v('--brand-blue',  '#C6DBF9'),
+    buff:     v('--feedback-error', '#E0655A'),   // orange-ish vest (error red = closest token)
+    buffed:   v('--neutral-600', '#636965'),
+    spray:    v('--brand-blue',  '#C6DBF9'),
+    bag:      v('--brand-green', '#8DF8CD'),
   }
 }
 
@@ -110,9 +142,12 @@ function resetRun () {
   player = { y: GY - PLAYER_H, vy: 0, grounded: true, anim: 'run', landT: 0, bob: 0, tagT: 0 }
   obstacles = []
   spots = []
+  cams = []; buffs = []; picks = []
   speed = SPEED0
   dist = 0; tags = 0; heat = 0
   spawnTimer = SPAWN_T0; spotTimer = SPOT_T0; spotFlip = 0
+  camTimer = CCTV_T0; buffTimer = BUFF_T0; pickTimer = PICK_T0; buffEraseTimer = 0; pickFlip = 0
+  caughtT = 0
   scrollX = 0
   holding = false; holdT = 0
   lastDistShown = -1; lastTagsShown = -1; lastHeatShown = -1
@@ -156,6 +191,9 @@ function tag () {
 
 // ─── Update (fixed timestep) ─────────────────────────────────────────────────
 function update (dt) {
+  // CAUGHT — the pursuer has you: freeze the world for the CAUGHT pose, then BUSTED.
+  if (caughtT > 0) { caughtT -= dt * 1000; player.anim = 'caught'; if (caughtT <= 0) bust(); syncHud(); return }
+
   // difficulty ramp
   speed = Math.min(SPEED_MAX, speed + SPEED_RAMP * dt)
   dist += speed * dt * M_PER_UNIT
@@ -216,7 +254,67 @@ function update (dt) {
     if (spots[i].x + spots[i].w < -8) spots.splice(i, 1)
   }
 
+  // ── CCTV: spawn, move; the cone heats you (much less while airborne) ──
+  const pcx = PLAYER_X + PLAYER_W / 2
+  camTimer -= dt
+  if (camTimer <= 0) { cams.push({ x: VW + CCTV_W }); camTimer = CCTV_MIN + Math.random() * CCTV_RND }
+  for (let i = cams.length - 1; i >= 0; i--) {
+    const c = cams[i]
+    c.x -= speed * dt
+    if (pcx > c.x - CCTV_BACK && pcx < c.x + CCTV_FWD) {
+      heat = Math.min(1, heat + (player.grounded ? CCTV_RATE : CCTV_RATE_AIR) * dt)
+    }
+    if (c.x + CCTV_FWD < -6) cams.splice(i, 1)
+  }
+
+  // ── BUFF: while any is on screen, periodically erase your freshest tag ──
+  buffTimer -= dt
+  if (buffTimer <= 0) { buffs.push({ x: VW + BUFF_W }); buffTimer = BUFF_MIN + Math.random() * BUFF_RND }
+  for (let i = buffs.length - 1; i >= 0; i--) {
+    buffs[i].x -= speed * dt
+    if (buffs[i].x + BUFF_W < -6) buffs.splice(i, 1)
+  }
+  if (buffs.length) {
+    buffEraseTimer -= dt
+    if (buffEraseTimer <= 0) {
+      buffEraseTimer = BUFF_ERASE_T
+      let t = null
+      for (const s of spots) { if (s.tagged && s.x + s.w > 0 && s.x < VW && (!t || s.x > t.x)) t = s }
+      if (t) { t.tagged = false; t.buffed = true; if (tags > 0) tags-- }
+    }
+  } else buffEraseTimer = 0
+
+  // ── Collectibles: spray (−HEAT) / bolsa (+1 TAG), collect on overlap ──
+  pickTimer -= dt
+  if (pickTimer <= 0) {
+    pickFlip ^= 1
+    const y = Math.random() < 0.5 ? GY - PLAYER_H - 92 - Math.random() * 44 : GY - PLAYER_H - 4
+    picks.push({ kind: pickFlip ? 'spray' : 'bag', x: VW + PICK_R, y })
+    pickTimer = PICK_MIN + Math.random() * PICK_RND
+  }
+  const qy0 = player.y, qy1 = player.y + PLAYER_H
+  for (let i = picks.length - 1; i >= 0; i--) {
+    const p = picks[i]
+    p.x -= speed * dt
+    if (px1 > p.x - PICK_R && px0 < p.x + PICK_R && qy1 > p.y - PICK_R && qy0 < p.y + PICK_R) {
+      if (p.kind === 'spray') heat = Math.max(0, heat - SPRAY_COOL)
+      else tags++
+      picks.splice(i, 1); continue
+    }
+    if (p.x + PICK_R < -6) picks.splice(i, 1)
+  }
+
+  // HEAT maxed → the pursuer catches you.
+  if (heat >= HEAT_CATCH) { triggerCaught(); syncHud(); return }
+
   syncHud()
+}
+
+function triggerCaught () {
+  heat = 1
+  caughtT = CAUGHT_MS
+  player.anim = 'caught'
+  holding = false
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────
@@ -244,8 +342,15 @@ function render () {
   const sw = 26
   for (let x = -(scrollX % sw); x < VW; x += sw) ctx.fillRect(Math.round(x), GY + 10, 12, 4)
 
+  // CCTV cameras + vision cones (danger zones)
+  drawCams()
+
   // taggable spots (behind the player) — walls + dumpsters, tags + reach prompt
   drawSpots()
+
+  // collectibles + buff workers (behind the player)
+  drawPicks()
+  drawBuffs()
 
   // obstacles (VALLA — barrier: frame + bars)
   for (const o of obstacles) {
@@ -261,6 +366,9 @@ function render () {
 
   // player (placeholder hooded writer — state-driven squash/stretch + run bob)
   drawPlayer()
+
+  // pursuer (SEGURATA/POLICÍA) — closes in with HEAT, grabs you on CAUGHT
+  drawPursuer()
 }
 
 function drawPlayer () {
@@ -294,6 +402,75 @@ function drawPlayer () {
     ctx.fillRect(fx + 3, fy + 4, 2, 2)
     ctx.fillRect(fx + 5, fy + 1, 2, 2)
   }
+  // CAUGHT — an alarm "!" over the writer
+  if (player.anim === 'caught') {
+    ctx.fillStyle = palette.cone
+    const mx = Math.round(x) + Math.round(w / 2) - 1
+    ctx.fillRect(mx, Math.round(y) - 13, 2, 7)
+    ctx.fillRect(mx, Math.round(y) - 4, 2, 2)
+  }
+}
+
+// CCTV — housing + red lens + translucent vision cone to the ground.
+function drawCams () {
+  for (const c of cams) {
+    const cx = Math.round(c.x)
+    ctx.globalAlpha = 0.14; ctx.fillStyle = palette.cone
+    ctx.beginPath()
+    ctx.moveTo(cx + 2, CCTV_Y + CCTV_H)
+    ctx.lineTo(cx - CCTV_BACK, GY)
+    ctx.lineTo(cx + CCTV_FWD, GY)
+    ctx.lineTo(cx + CCTV_W - 2, CCTV_Y + CCTV_H)
+    ctx.closePath(); ctx.fill()
+    ctx.globalAlpha = 1
+    ctx.fillStyle = palette.cam
+    ctx.fillRect(cx + CCTV_W - 3, CCTV_Y - 6, 3, 6)          // mount
+    ctx.fillRect(cx, CCTV_Y, CCTV_W, CCTV_H)                 // housing
+    ctx.fillStyle = palette.cone
+    ctx.fillRect(cx + 1, CCTV_Y + 4, 4, 4)                   // lens
+  }
+}
+
+// Collectibles — spray can (−HEAT) / bolsa (+1 TAG), with a glint.
+function drawPicks () {
+  for (const p of picks) {
+    const x = Math.round(p.x), y = Math.round(p.y)
+    if (p.kind === 'spray') {
+      ctx.fillStyle = palette.spray; ctx.fillRect(x - 5, y - 8, 10, 16)
+      ctx.fillStyle = palette.ink;   ctx.fillRect(x - 3, y - 12, 6, 4)
+    } else {
+      ctx.fillStyle = palette.bag; ctx.fillRect(x - 7, y - 6, 14, 14)
+      ctx.fillStyle = palette.sky; ctx.fillRect(x - 3, y - 9, 6, 3)
+    }
+    ctx.globalAlpha = 0.5 + 0.5 * Math.sin(scrollX * 0.09)
+    ctx.fillStyle = palette.accent; ctx.fillRect(x + 6, y - 10, 2, 2)
+    ctx.globalAlpha = 1
+  }
+}
+
+// BUFF worker (rodillo) — vest + head + roller.
+function drawBuffs () {
+  for (const b of buffs) {
+    const x = Math.round(b.x), y = GY - BUFF_H
+    ctx.fillStyle = palette.buff;   ctx.fillRect(x, y + 10, BUFF_W - 8, BUFF_H - 10)
+    ctx.fillStyle = palette.hood;   ctx.fillRect(x + 4, y, BUFF_W - 16, 10)
+    ctx.fillStyle = palette.ink;    ctx.fillRect(x + BUFF_W - 8, y + 4, 8, 3)   // handle
+    ctx.fillStyle = palette.buffed; ctx.fillRect(x + BUFF_W - 2, y - 2, 6, 12)  // roller pad
+  }
+}
+
+// Pursuer — SEGURATA/POLICÍA. Position tracks HEAT (0.45 behind → 1.0 on you).
+function drawPursuer () {
+  if (caughtT <= 0 && heat < PURSUE_HEAT) return
+  const t = caughtT > 0 ? 1 : Math.min(1, (heat - PURSUE_HEAT) / (1 - PURSUE_HEAT))
+  const x = Math.round(PURSUE_X0 + (PLAYER_X - PURSUE_X0) * t)
+  const y = GY - PLAYER_H
+  const sw = Math.sin(scrollX * 0.13)
+  ctx.fillStyle = palette.cop;   ctx.fillRect(x, y, PLAYER_W, PLAYER_H)
+  ctx.fillStyle = palette.copHi; ctx.fillRect(x, y, PLAYER_W, Math.round(PLAYER_H * 0.3))   // cap
+  ctx.fillStyle = palette.cop
+  ctx.fillRect(x + 3, y + PLAYER_H, 6, 3 + Math.round(sw * 2))
+  ctx.fillRect(x + PLAYER_W - 9, y + PLAYER_H, 6, 3 - Math.round(sw * 2))
 }
 
 // Taggable surfaces — wall panels / dumpsters, their BIAKO tags, reach prompt.
@@ -316,6 +493,12 @@ function drawSpots () {
       ctx.fillRect(x + s.w - 12, GY - 2, 6, 4)
     }
     if (s.tagged) { drawTag(s); continue }
+    if (s.buffed) {                                    // erased by a buff → grey smear
+      ctx.globalAlpha = 0.7; ctx.fillStyle = palette.buffed
+      ctx.fillRect(Math.round(s.x + s.w * 0.16), Math.round(s.y + s.h * 0.34), Math.round(s.w * 0.68), Math.round(s.h * 0.3))
+      ctx.globalAlpha = 1
+      continue
+    }
     // reach prompt — a pulsing down-caret above a taggable surface
     if (s.x + s.w > z0 && s.x < z1) {
       ctx.globalAlpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(scrollX * 0.06))
@@ -476,10 +659,15 @@ export function init () {
     get speed () { return speed },
     get obstacles () { return obstacles.length },
     get obstaclePos () { return obstacles.map(o => Math.round(o.x)) },
-    get spots () { return spots.map(s => ({ kind: s.kind, x: Math.round(s.x), w: s.w, tagged: s.tagged })) },
+    get spots () { return spots.map(s => ({ kind: s.kind, x: Math.round(s.x), w: s.w, tagged: s.tagged, buffed: !!s.buffed })) },
     get tags () { return tags },
     get heat () { return heat },
+    get cams () { return cams.map(c => Math.round(c.x)) },
+    get buffs () { return buffs.length },
+    get picks () { return picks.map(p => ({ kind: p.kind, x: Math.round(p.x), y: Math.round(p.y) })) },
+    get caughtT () { return caughtT },
     get player () { return player && { y: player.y, vy: player.vy, grounded: player.grounded, anim: player.anim, tagT: player.tagT } },
+    setHeat (v) { heat = Math.max(0, Math.min(1, v)) },   // dev only
     press, release, tag, start: startRun,
   }
 
