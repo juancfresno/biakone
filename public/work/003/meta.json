@@ -1,6 +1,9 @@
 {
   "name": "Dumpster 01",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "First scale dumpster, used as a test for texture, paint and dirt.",
+  "materials": "3D print, acrylic paint, stickers, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

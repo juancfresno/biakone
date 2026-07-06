@@ -1,6 +1,9 @@
 {
   "name": "Garage Door Frame",
-  "type": "Framed Piece",
+  "type": "Framed scale piece",
   "year": "2026",
-  "description": ""
+  "description": "Framed garage door treated as a small-scale urban scene.",
+  "materials": "Mixed media, acrylic paint, markers, stickers, printed elements and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

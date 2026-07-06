@@ -346,7 +346,7 @@
 .drawer__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.42);
+  background: rgba(0, 0, 0, 0.33);   /* Figma dim */
   cursor: pointer;
 }
 
@@ -354,7 +354,7 @@
    direct child of <body> EXCEPT the drawer, which work.js re-parents to <body>
    so it sits above the fixed shell and outside the filtered layer (stays sharp). */
 body.drawer-open > *:not(#work-drawer):not(script) {
-  filter: blur(18px);
+  filter: blur(7px);                 /* Figma backdrop-blur */
   transition: filter 360ms ease;
 }
 
@@ -395,15 +395,16 @@ body.drawer-open > *:not(#work-drawer):not(script) {
   overscroll-behavior: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  background: var(--neutral-950);
+  background: var(--bg-inverse);     /* theme-aware; #141414 in light (Figma) */
   cursor: grab;
 }
 .drawer__gallery::-webkit-scrollbar { display: none; }
 .drawer__gallery.is-dragging { cursor: grabbing; }
-/* Edge zones page between images — cursor turns into a directional arrow
-   (custom SVG set in work.js via --cursor-prev/--cursor-next; w/e-resize fallback). */
-.drawer__gallery.is-edge-prev { cursor: var(--cursor-prev, w-resize); }
-.drawer__gallery.is-edge-next { cursor: var(--cursor-next, e-resize); }
+/* On hover-capable devices the real cursor is hidden — the DRAG chip
+   (.drawer__cursor, set in work.js) stands in for it. */
+@media (hover: hover) and (pointer: fine) {
+  .drawer__gallery { cursor: none; }
+}
 .drawer__slide {
   height: 100%;
   flex: 0 0 auto;
@@ -423,67 +424,68 @@ body.drawer-open > *:not(#work-drawer):not(script) {
 
 /* Close control is the shared .overlay-close (shell.css). */
 
-/* Dark info bar — full-width across the bottom of the panel (Figma). */
+/* ── Floating dark info box (Figma 6214:4165) ──────────────────────────
+   A #141414 card centred at the bottom of the panel, floating above the
+   gallery (not glued to the edge). Inverse tokens keep it theme-aware:
+   dark box + cream text in light theme (= Figma); inverts in dark. */
 .drawer__info {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  left: 50%;
+  bottom: var(--space-6);                       /* 24px — floats */
+  transform: translateX(-50%);
   z-index: 2;
-  background: var(--neutral-950);
-  color: var(--neutral-50);
-  border-top: 1px solid var(--neutral-800);
-  padding: var(--space-4) var(--space-6);
+  width: min(720px, calc(100% - var(--space-10)));
+  background: var(--bg-inverse);
+  color: var(--text-inverse-primary);
+  padding: var(--space-10) var(--space-5);      /* 40px / 20px */
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
 }
+/* Header: ↘ NN. Name  Type(grey)  |  Year, with a divider under it. */
 .drawer__info-head {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-inverse-subtle);
   font-family: var(--font-ui);
   font-size: var(--text-ui-sm);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
-.drawer__title { display: inline-flex; gap: 0.5em; align-items: baseline; }
-.drawer__code { color: var(--neutral-400); }
-.drawer__spec { display: inline-flex; gap: 1em; color: var(--neutral-400); white-space: nowrap; }
+.drawer__title {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.drawer__name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.drawer__type { color: var(--text-inverse-tertiary); white-space: nowrap; }  /* grey */
+.drawer__year { flex-shrink: 0; }
+/* Body: Switzer Light 12px — description, then Materials/Scale/Status lines. */
 .drawer__info-body {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-8);
-}
-.drawer__desc {
-  margin: 0;
-  max-width: 68ch;
+  padding-top: var(--space-4);
   font-family: var(--font-body);
-  font-size: var(--text-body-sm);
-  line-height: 1.45;
-  color: var(--neutral-300);
+  font-size: var(--text-body-xs);               /* 12px */
+  font-weight: 300;                             /* Switzer Light */
+  line-height: 1.4;
+  color: var(--text-inverse-secondary);
 }
-/* Details list — inline key/value pairs. */
-.drawer__details {
-  margin: 0;
-  flex-shrink: 0;
-  display: flex;
-  gap: var(--space-6);
-  font-family: var(--font-ui);
-  font-size: var(--text-ui-sm);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.drawer__details div { display: flex; flex-direction: column; gap: 2px; }
-.drawer__details dt { color: var(--neutral-500); }
-.drawer__details dd { margin: 0; color: var(--neutral-300); }
+.drawer__desc { margin: 0 0 var(--space-2); max-width: 72ch; }
+.drawer__details { margin: 0; }
+.drawer__details > div { display: block; }
+.drawer__details dt { display: inline; }
+.drawer__details dt::after { content: " — "; white-space: pre; }
+.drawer__details dd { display: inline; margin: 0; }
+/* Divider, then Previous / Next (navigates between PROJECTS). */
 .drawer__pager {
   display: flex;
   justify-content: space-between;
   gap: var(--space-4);
+  margin-top: var(--space-4);
   padding-top: var(--space-3);
-  border-top: 1px solid var(--neutral-800);
+  border-top: 1px solid var(--border-inverse-subtle);
   font-family: var(--font-ui);
   font-size: var(--text-ui-sm);
   letter-spacing: 0.04em;
@@ -495,11 +497,37 @@ body.drawer-open > *:not(#work-drawer):not(script) {
   border: 0;
   padding: 0;
   font: inherit;
-  color: var(--neutral-50);
+  color: var(--text-inverse-primary);
   cursor: pointer;
   transition: opacity 140ms ease;
 }
 .drawer__pg:hover { opacity: 0.6; }
+
+/* DRAG affordance — a chip that replaces the cursor while over the gallery.
+   Positioned in work.js via a viewport-space transform (fixed, follows the
+   pointer). Hidden under reduced motion (see below). */
+.drawer__cursor {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 6;
+  padding: 4px 12px;                            /* Figma: 12h / 4v */
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.33);
+  -webkit-backdrop-filter: blur(7px);
+  backdrop-filter: blur(7px);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-50);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate3d(-200px, -200px, 0) translate(-50%, -50%);
+  will-change: transform, opacity;
+}
+.drawer__cursor.is-visible { opacity: 1; }
 
 /* ─── Mobile: full-width panel, vertical image stack, stacked info ─── */
 @media (max-width: 767px) {
@@ -508,17 +536,28 @@ body.drawer-open > *:not(#work-drawer):not(script) {
     overflow-x: hidden;
     overflow-y: auto;
     align-items: stretch;
-    padding-bottom: 200px;   /* clear the info bar */
+    padding-bottom: 340px;   /* clear the full-width info box */
     cursor: default;
   }
   .drawer__slide { height: auto; width: 100%; }
   .drawer__slide img { height: auto; width: 100%; }
-  .drawer__info-body { flex-direction: column; gap: var(--space-3); }
-  .drawer__details { gap: var(--space-4); }
+  /* Info box spans full width at the bottom on mobile. */
+  .drawer__info {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: var(--space-6) var(--space-5);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .drawer__panel { transition: none; }
   .drawer__panel.is-glitch { animation: none; }
   body.drawer-open > *:not(#work-drawer):not(script) { transition: none; }
+  .drawer__gallery { cursor: grab; }   /* no custom chip */
+  .drawer__cursor { display: none; }
 }

@@ -1,6 +1,9 @@
 {
   "name": "Fire Hydrant",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "Scale fire hydrant with urban weathering and hand-painted wear.",
+  "materials": "3D print, acrylic paint, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

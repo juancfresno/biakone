@@ -1,6 +1,9 @@
 {
   "name": "Utility Box",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "Urban utility box covered with stickers, tags and layered marks.",
+  "materials": "3D print, acrylic paint, stickers, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

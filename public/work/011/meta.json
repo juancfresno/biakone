@@ -1,6 +1,9 @@
 {
   "name": "Street Lamp",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "Scale street lamp, painted and aged with urban details.",
+  "materials": "3D print, acrylic paint, markers, stickers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

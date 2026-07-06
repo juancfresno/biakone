@@ -74,28 +74,34 @@
           <!-- slides injected per project -->
         </div>
 
+        <!-- Floating dark info box — Figma 6214:4165. Header (↘ NN. name · type
+             | year), divider, description + Materials/Scale/Status, divider,
+             Previous / Next between PROJECTS. -->
         <aside class="drawer__info" id="drawer-info">
           <div class="drawer__info-head">
             <span class="drawer__title">
               <span class="drawer__arrow" aria-hidden="true">↘</span>
               <span class="drawer__code" data-code></span>
               <span class="drawer__name" data-name></span>
+              <span class="drawer__type" data-type></span>
             </span>
-            <span class="drawer__spec">
-              <span data-type></span>
-              <span data-year></span>
-            </span>
+            <span class="drawer__year" data-year></span>
           </div>
           <div class="drawer__info-body">
             <p class="drawer__desc" data-desc></p>
             <dl class="drawer__details" data-details></dl>
           </div>
           <div class="drawer__pager">
-            <button class="drawer__pg" type="button" data-prev>Previous</button>
-            <button class="drawer__pg" type="button" data-next>Next</button>
+            <button class="drawer__pg" type="button" data-prev>⟵ Previous</button>
+            <button class="drawer__pg" type="button" data-next>Next ⟶</button>
           </div>
         </aside>
       </div>
+
+      <!-- Drag affordance — a pill that replaces the cursor over the gallery.
+           Direct child of .drawer (which has no transform) so its fixed
+           positioning maps to viewport clientX/clientY. -->
+      <div class="drawer__cursor" id="drawer-cursor" aria-hidden="true">Drag</div>
     </div>
   </div>
 

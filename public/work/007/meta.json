@@ -1,6 +1,9 @@
 {
   "name": "Mailbox",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "Mailbox reinterpreted as an urban object with paint, stickers and wear.",
+  "materials": "3D print, acrylic paint, stickers, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

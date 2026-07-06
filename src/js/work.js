@@ -400,28 +400,7 @@ function bindOpen () {
   })
 }
 
-// ─── Detail drawer (Phase 1: gallery + info) ────────────────────────────────
-const EDGE = 0.2   // width fraction of the left/right prev/next image zones
-
-function drawerImages () { return [...dGallery.querySelectorAll('.drawer__slide')] }
-function currentImageIndex () {
-  const slides = drawerImages(); const sl = dGallery.scrollLeft
-  let best = 0, bd = Infinity
-  slides.forEach((s, i) => { const d = Math.abs(s.offsetLeft - sl); if (d < bd) { bd = d; best = i } })
-  return best
-}
-function scrollToImage (i) {
-  const slides = drawerImages()
-  if (!slides.length) return
-  i = Math.max(0, Math.min(slides.length - 1, i))
-  dGallery.scrollTo({ left: slides[i].offsetLeft, behavior: reduceMotion() ? 'auto' : 'smooth' })
-}
-function nextImage () { scrollToImage(currentImageIndex() + 1) }
-function prevImage () { scrollToImage(currentImageIndex() - 1) }
-
-// PHASE-2 HOOK — clicking a gallery image (not an edge, not a drag) will promote
-// it to a full-height slider (drawer[data-mode="slider"]). Stubbed for now.
-function zoomImage (/* i */) { /* Phase 2 */ }
+// ─── Detail drawer: horizontal gallery (drag + momentum) + floating info box ──
 
 function fillDrawer (i) {
   const p = projects[i]
@@ -434,20 +413,28 @@ function fillDrawer (i) {
     .join('')
   dGallery.scrollLeft = 0
   dGallery.scrollTop = 0
-  dInfo.querySelector('[data-code]').textContent = p.code
+  // Header — code as "NN." (Figma), name, type (grey), year.
+  const num = /^\d+$/.test(String(p.code)) ? String(parseInt(p.code, 10)).padStart(2, '0') + '.' : p.code
+  dInfo.querySelector('[data-code]').textContent = num
   dInfo.querySelector('[data-name]').textContent = p.name
   dInfo.querySelector('[data-type]').textContent = p.type || ''
   dInfo.querySelector('[data-year]').textContent = p.year || ''
   dInfo.querySelector('[data-desc]').textContent = p.description || ''
 
-  // Details list — from meta.details when present, else a sensible default.
-  const hasPhotos = imgs[0] && !imgs[0].src.includes('_placeholder')
-  const details = Array.isArray(p.details) && p.details.length ? p.details : [
-    { label: 'Scale', value: '1:12' },
-    { label: 'Images', value: hasPhotos ? String(imgs.length) : '—' },
-  ]
-  dInfo.querySelector('[data-details]').innerHTML = details
-    .map(d => '<div><dt>' + d.label + '</dt><dd>' + d.value + '</dd></div>').join('')
+  // Materials / Scale / Status — one line each (Figma). Falls back to
+  // meta.details, else a sensible default, when the fields are absent.
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  let rows
+  if (p.materials || p.scale || p.status) {
+    rows = [['Materials', p.materials], ['Scale', p.scale], ['Status', p.status]].filter(([, v]) => v)
+  } else if (Array.isArray(p.details) && p.details.length) {
+    rows = p.details.map(d => [d.label, d.value])
+  } else {
+    const hasPhotos = imgs[0] && !imgs[0].src.includes('_placeholder')
+    rows = [['Scale', '1:12'], ['Images', hasPhotos ? String(imgs.length) : '—']]
+  }
+  dInfo.querySelector('[data-details]').innerHTML = rows
+    .map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('')
 }
 
 let closing = false, openTl = null
@@ -521,16 +508,6 @@ function step (dir) {
 function bindDrawer () {
   if (!drawer) return
 
-  // Custom directional arrow cursors for the edge zones (encoded here so no
-  // manual escaping). Falls back to w/e-resize via the CSS var default.
-  const chev = (d) => 'url("data:image/svg+xml,' + encodeURIComponent(
-    "<svg xmlns='http://www.w3.org/2000/svg' width='36' height='36'>" +
-    "<path d='" + d + "' fill='none' stroke='#000' stroke-width='5' stroke-opacity='0.45' stroke-linecap='round' stroke-linejoin='round'/>" +
-    "<path d='" + d + "' fill='none' stroke='#fff' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/></svg>"
-  ) + '") 18 18, w-resize'
-  dGallery.style.setProperty('--cursor-prev', chev('M23 9 L12 18 L23 27'))
-  dGallery.style.setProperty('--cursor-next', chev('M13 9 L24 18 L13 27').replace('w-resize', 'e-resize'))
-
   drawer.addEventListener('click', (e) => {
     if (e.target.closest('[data-drawer-close]')) { closeDrawer(); return }
     if (e.target.closest('[data-prev]')) { step(-1); return }
@@ -546,46 +523,49 @@ function bindDrawer () {
   cleanup.push(() => document.removeEventListener('keydown', onKey))
 
   const mobileLayout = () => window.matchMedia('(max-width: 767px)').matches
+  const hoverFine   = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches
+  const cursorChip  = document.getElementById('drawer-cursor')
 
-  // Drag to scroll the gallery.
+  // ── Drag-to-scroll with momentum + a "DRAG" chip that replaces the cursor ──
   let down = false, startX = 0, startScroll = 0, moved = 0
+  let velX = 0, lastX = 0, inertiaId = 0
+  const stopInertia = () => { if (inertiaId) { cancelAnimationFrame(inertiaId); inertiaId = 0 } }
+  const inertia = () => {                                   // decaying fling
+    velX *= 0.94
+    dGallery.scrollLeft -= velX
+    inertiaId = Math.abs(velX) > 0.4 ? requestAnimationFrame(inertia) : 0
+  }
+  const moveChip = (x, y) => { if (cursorChip) cursorChip.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) translate(-50%,-50%)' }
+  const showChip = () => { if (cursorChip && hoverFine() && !reduceMotion() && !mobileLayout()) cursorChip.classList.add('is-visible') }
+  const hideChip = () => { if (cursorChip) cursorChip.classList.remove('is-visible') }
+
   dGallery.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse' || mobileLayout()) return
-    down = true; moved = 0; startX = e.clientX; startScroll = dGallery.scrollLeft
+    stopInertia()
+    down = true; moved = 0; startX = e.clientX; lastX = e.clientX; velX = 0
+    startScroll = dGallery.scrollLeft
     dGallery.setPointerCapture(e.pointerId)
   })
   dGallery.addEventListener('pointermove', (e) => {
-    // Edge-zone detection → directional arrow cursor.
-    if (!down && !mobileLayout()) {
-      const r = dGallery.getBoundingClientRect()
-      const rel = (e.clientX - r.left) / r.width
-      dGallery.classList.toggle('is-edge-prev', rel < EDGE)
-      dGallery.classList.toggle('is-edge-next', rel > 1 - EDGE)
-    }
+    if (e.pointerType === 'mouse' && !mobileLayout()) moveChip(e.clientX, e.clientY)
     if (!down) return
     const dx = e.clientX - startX
     if (Math.abs(dx) > 3) dGallery.classList.add('is-dragging')
     moved = Math.max(moved, Math.abs(dx))
+    velX = e.clientX - lastX; lastX = e.clientX
     dGallery.scrollLeft = startScroll - dx
   })
   const end = (e) => {
     if (!down) return
     down = false; dGallery.classList.remove('is-dragging')
     try { dGallery.releasePointerCapture(e.pointerId) } catch {}
+    if (!reduceMotion() && Math.abs(velX) > 1) inertia()   // physical momentum
   }
   dGallery.addEventListener('pointerup', end)
   dGallery.addEventListener('pointercancel', end)
-  dGallery.addEventListener('mouseleave', () => dGallery.classList.remove('is-edge-prev', 'is-edge-next'))
-
-  // Click: edge zones page prev/next image; the middle is the Phase-2 zoom hook.
-  dGallery.addEventListener('click', (e) => {
-    if (moved > 4 || mobileLayout()) return
-    const r = dGallery.getBoundingClientRect()
-    const rel = (e.clientX - r.left) / r.width
-    if (rel < EDGE) prevImage()
-    else if (rel > 1 - EDGE) nextImage()
-    else zoomImage(currentImageIndex())
-  })
+  dGallery.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { moveChip(e.clientX, e.clientY); showChip() } })
+  dGallery.addEventListener('pointerleave', hideChip)
+  cleanup.push(stopInertia)
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────

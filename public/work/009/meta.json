@@ -1,6 +1,9 @@
 {
   "name": "Dumpster 02",
-  "type": "Object",
+  "type": "Scale object",
   "year": "2026",
-  "description": ""
+  "description": "Scale dumpster with stickers, tags, grime and surface experiments.",
+  "materials": "3D print, acrylic paint, stickers, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }

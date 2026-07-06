@@ -188,6 +188,9 @@ async function buildWork () {
       type: meta.type || '',
       year: meta.year || '',
       description: meta.description || '',
+      materials: meta.materials || '',
+      scale: meta.scale || '',
+      status: meta.status || '',
       details: Array.isArray(meta.details) ? meta.details : null,
       images,
     })

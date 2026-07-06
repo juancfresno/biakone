@@ -1,6 +1,9 @@
 {
   "name": "Column Wall",
-  "type": "Wall Piece",
+  "type": "Wall piece",
   "year": "2026",
-  "description": ""
+  "description": "Urban wall section with columns, tags, stickers and aged texture.",
+  "materials": "Mixed media, acrylic paint, markers, stickers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
 }
