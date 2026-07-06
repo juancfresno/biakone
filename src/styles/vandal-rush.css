@@ -143,7 +143,32 @@ body[data-page="vandal-rush"] [data-barba="container"] { height: 100dvh; }
 .vr__scores dd { margin: 0; color: var(--neutral-50); font-variant-numeric: tabular-nums; }
 .vr__best dd { color: var(--brand-yellow); }
 
+/* ─── Touch controls — TAG button (bottom-right thumb zone) ─── */
+.vr__controls {
+  position: absolute;
+  right: 0; bottom: 0;
+  padding: 0 max(env(safe-area-inset-right), 18px) max(env(safe-area-inset-bottom), 22px) 0;
+  z-index: 3;
+  transition: opacity 160ms ease;
+}
+.vr__controls[aria-hidden="true"] { opacity: 0; visibility: hidden; pointer-events: none; }
+.vr__tag-btn {
+  appearance: none;
+  width: 84px; height: 84px;
+  border-radius: 999px;
+  border: 2px solid var(--brand-blue);
+  background: color-mix(in srgb, var(--brand-blue) 14%, transparent);
+  color: var(--brand-blue);
+  font-family: var(--font-ui); font-size: var(--text-body-md); font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  cursor: pointer; touch-action: none;
+  -webkit-user-select: none; user-select: none;
+  transition: transform 90ms ease, background 120ms ease;
+}
+.vr__tag-btn:active { transform: scale(0.92); background: color-mix(in srgb, var(--brand-blue) 32%, transparent); }
+@media (max-width: 360px) { .vr__tag-btn { width: 72px; height: 72px; } }
+
 @media (prefers-reduced-motion: reduce) {
   .vr__screen { -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .vr__hud { transition: none; }
+  .vr__hud, .vr__controls, .vr__tag-btn { transition: none; }
 }

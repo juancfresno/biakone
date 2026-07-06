@@ -34,6 +34,16 @@ const VALLA_W = 18, VALLA_H = 44
 const SPAWN_T0 = 1.4           // s before the first valla
 const SPAWN_MIN = 1.0, SPAWN_RND = 0.9   // s gap between vallas (time-based → fair at any speed)
 
+// Taggable spots (wall panels / dumpsters) + HEAT
+const SPOT_T0 = 2.0, SPOT_MIN = 1.6, SPOT_RND = 1.4   // s between taggable spots
+const TAG_MS = 320             // player committed (jump-locked) while tagging
+const TAG_HEAT = 0.16          // heat added per tag
+const HEAT_DECAY = 0.055       // heat/s bled off over time
+const REACH_BACK = 22, REACH_FWD = 46   // tag reach around the player (units)
+// Wall spot: upper-background panel. Dumpster: ground box behind the player.
+const WALL_W = 78, WALL_H = 96, WALL_Y = 150
+const DUMP_W = 62, DUMP_H = 52
+
 let canvas, ctx, stage
 let els = {}
 let raf = 0, lastT = 0, acc = 0
@@ -46,13 +56,14 @@ let best = 0
 // run state
 let player = null
 let obstacles = []
+let spots = []
 let speed = SPEED0
 let dist = 0, tags = 0, heat = 0
-let spawnTimer = SPAWN_T0
+let spawnTimer = SPAWN_T0, spotTimer = SPOT_T0, spotFlip = 0
 let scrollX = 0               // ground stripe scroll
 let holding = false, holdT = 0
-let lastDistShown = -1
-let onResize, onVis, onKey, onKeyUp, onPointerDown, onPointerUp, onClick
+let lastDistShown = -1, lastTagsShown = -1, lastHeatShown = -1
+let onResize, onVis, onKey, onKeyUp, onPointerDown, onPointerUp, onClick, onTagDown
 
 function readPalette () {
   const cs = getComputedStyle(document.body)
@@ -69,6 +80,12 @@ function readPalette () {
     pack:     v('--brand-blue',  '#C6DBF9'),
     valla:    v('--neutral-500', '#8A918D'),
     vallaEdge: v('--neutral-300', '#C9C5BD'),
+    wallSpot: v('--neutral-900', '#242625'),
+    wallSpotEdge: v('--neutral-700', '#4A4D4B'),
+    dumpster: v('--neutral-700', '#4A4D4B'),
+    dumpLid:  v('--brand-green', '#8DF8CD'),
+    tagInk:   v('--brand-blue',  '#C6DBF9'),
+    reach:    v('--brand-yellow', '#FFFFE6'),
     ink:      v('--neutral-50',  '#F4F2EA'),
     accent:   v('--brand-yellow', '#FFFFE6'),
   }
@@ -90,14 +107,15 @@ function fit () {
 
 // ─── Run setup ───────────────────────────────────────────────────────────────
 function resetRun () {
-  player = { y: GY - PLAYER_H, vy: 0, grounded: true, anim: 'run', landT: 0, bob: 0 }
+  player = { y: GY - PLAYER_H, vy: 0, grounded: true, anim: 'run', landT: 0, bob: 0, tagT: 0 }
   obstacles = []
+  spots = []
   speed = SPEED0
   dist = 0; tags = 0; heat = 0
-  spawnTimer = SPAWN_T0
+  spawnTimer = SPAWN_T0; spotTimer = SPOT_T0; spotFlip = 0
   scrollX = 0
   holding = false; holdT = 0
-  lastDistShown = -1
+  lastDistShown = -1; lastTagsShown = -1; lastHeatShown = -1
   acc = 0; lastT = 0
   syncHud(true)
 }
@@ -105,7 +123,7 @@ function resetRun () {
 // ─── Input: variable jump (press → launch, hold → float higher) ──────────────
 function press () {
   if (state !== 'playing' || !player) return
-  if (player.grounded) {
+  if (player.grounded && player.tagT <= 0) {     // can't jump mid-tag (the trade-off)
     player.vy = -JUMP_V
     player.grounded = false
     player.anim = 'jump'
@@ -113,6 +131,28 @@ function press () {
   }
 }
 function release () { holding = false }
+
+// Tag the nearest untagged surface in reach → +TAGS, +HEAT, commit to the pose.
+function tag () {
+  if (state !== 'playing' || !player || player.tagT > 0) return
+  const pcx = PLAYER_X + PLAYER_W / 2
+  const z0 = PLAYER_X - REACH_BACK, z1 = PLAYER_X + PLAYER_W + REACH_FWD
+  let target = null, bestDx = Infinity
+  for (const s of spots) {
+    if (s.tagged) continue
+    if (s.x + s.w > z0 && s.x < z1) {
+      const dx = Math.abs(s.x + s.w / 2 - pcx)
+      if (dx < bestDx) { bestDx = dx; target = s }
+    }
+  }
+  if (!target) return                            // whiff — nothing in reach
+  target.tagged = true
+  target.seed = Math.random()                    // vary the placeholder scribble
+  tags++
+  heat = Math.min(1, heat + TAG_HEAT)
+  player.anim = 'tag'; player.tagT = TAG_MS       // committed (jump-locked)
+  syncHud(true)
+}
 
 // ─── Update (fixed timestep) ─────────────────────────────────────────────────
 function update (dt) {
@@ -133,13 +173,18 @@ function update (dt) {
     player.vy = 0
     if (!player.grounded) { player.grounded = true; player.landT = LAND_MS }
   }
-  // animation state
-  if (player.grounded) {
-    if (player.landT > 0) { player.landT -= dt * 1000; player.anim = 'land' }
-    else { player.anim = 'run'; player.bob += speed * dt }
-  } else {
-    player.anim = player.vy < 0 ? 'jump' : 'fall'
-  }
+  // timers (tag pose + landing squash)
+  if (player.tagT > 0) player.tagT -= dt * 1000
+  if (player.landT > 0) player.landT -= dt * 1000
+
+  // animation state — priority: tag > airborne > land > run
+  if (player.tagT > 0) player.anim = 'tag'
+  else if (!player.grounded) player.anim = player.vy < 0 ? 'jump' : 'fall'
+  else if (player.landT > 0) player.anim = 'land'
+  else { player.anim = 'run'; player.bob += speed * dt }
+
+  // HEAT bleeds off over time (tagging spikes it)
+  heat = Math.max(0, heat - HEAT_DECAY * dt)
 
   // spawn vallas on a time gap (fair at any speed)
   spawnTimer -= dt
@@ -147,17 +192,28 @@ function update (dt) {
     obstacles.push({ x: VW + VALLA_W, w: VALLA_W, h: VALLA_H })
     spawnTimer = SPAWN_MIN + Math.random() * SPAWN_RND
   }
+  // spawn taggable spots — alternating wall panel / dumpster
+  spotTimer -= dt
+  if (spotTimer <= 0) {
+    spotFlip ^= 1
+    spots.push(spotFlip
+      ? { kind: 'wall',     x: VW + WALL_W, y: WALL_Y,      w: WALL_W, h: WALL_H, tagged: false, seed: 0 }
+      : { kind: 'dumpster', x: VW + DUMP_W, y: GY - DUMP_H, w: DUMP_W, h: DUMP_H, tagged: false, seed: 0 })
+    spotTimer = SPOT_MIN + Math.random() * SPOT_RND
+  }
 
-  // move, collide, cull
-  const px0 = PLAYER_X, px1 = PLAYER_X + PLAYER_W
-  const py0 = player.y, py1 = player.y + PLAYER_H
+  // move + collide + cull obstacles (vallas are lethal)
+  const px0 = PLAYER_X, px1 = PLAYER_X + PLAYER_W, py1 = player.y + PLAYER_H
   for (let i = obstacles.length - 1; i >= 0; i--) {
     const o = obstacles[i]
     o.x -= speed * dt
-    const oy0 = GY - o.h
-    // AABB (small forgiveness inset so a pixel-touch isn't a bust)
-    if (px1 - 3 > o.x && px0 + 3 < o.x + o.w && py1 - 2 > oy0) { bust(); return }
+    if (px1 - 3 > o.x && px0 + 3 < o.x + o.w && py1 - 2 > GY - o.h) { bust(); return }
     if (o.x + o.w < -4) obstacles.splice(i, 1)
+  }
+  // move + cull spots (non-lethal tag targets)
+  for (let i = spots.length - 1; i >= 0; i--) {
+    spots[i].x -= speed * dt
+    if (spots[i].x + spots[i].w < -8) spots.splice(i, 1)
   }
 
   syncHud()
@@ -187,6 +243,9 @@ function render () {
   ctx.fillStyle = palette.stripe
   const sw = 26
   for (let x = -(scrollX % sw); x < VW; x += sw) ctx.fillRect(Math.round(x), GY + 10, 12, 4)
+
+  // taggable spots (behind the player) — walls + dumpsters, tags + reach prompt
+  drawSpots()
 
   // obstacles (VALLA — barrier: frame + bars)
   for (const o of obstacles) {
@@ -226,6 +285,62 @@ function drawPlayer () {
     ctx.fillRect(Math.round(x) + 3, Math.round(y + h), 6, 3 + Math.round(swing * 2))
     ctx.fillRect(Math.round(x) + w - 9, Math.round(y + h), 6, 3 - Math.round(swing * 2))
   }
+  // TAG pose — a spray burst thrown forward
+  if (player.anim === 'tag') {
+    ctx.fillStyle = palette.tagInk
+    const fx = Math.round(x) + w + 1, fy = Math.round(y + h * 0.3)
+    ctx.fillRect(fx, fy, 3, 3)
+    ctx.fillRect(fx + 3, fy - 3, 2, 2)
+    ctx.fillRect(fx + 3, fy + 4, 2, 2)
+    ctx.fillRect(fx + 5, fy + 1, 2, 2)
+  }
+}
+
+// Taggable surfaces — wall panels / dumpsters, their BIAKO tags, reach prompt.
+function drawSpots () {
+  const z0 = PLAYER_X - REACH_BACK, z1 = PLAYER_X + PLAYER_W + REACH_FWD
+  for (const s of spots) {
+    const x = Math.round(s.x)
+    if (s.kind === 'wall') {
+      ctx.fillStyle = palette.wallSpot
+      ctx.fillRect(x, s.y, s.w, s.h)
+      ctx.strokeStyle = palette.wallSpotEdge; ctx.lineWidth = 1
+      ctx.strokeRect(x + 0.5, s.y + 0.5, s.w - 1, s.h - 1)
+    } else {
+      ctx.fillStyle = palette.dumpster
+      ctx.fillRect(x, s.y, s.w, s.h)
+      ctx.fillStyle = palette.dumpLid
+      ctx.fillRect(x, s.y, s.w, 6)                     // lid
+      ctx.fillStyle = palette.wallLine
+      ctx.fillRect(x + 6, GY - 2, 6, 4)               // wheels
+      ctx.fillRect(x + s.w - 12, GY - 2, 6, 4)
+    }
+    if (s.tagged) { drawTag(s); continue }
+    // reach prompt — a pulsing down-caret above a taggable surface
+    if (s.x + s.w > z0 && s.x < z1) {
+      ctx.globalAlpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(scrollX * 0.06))
+      ctx.fillStyle = palette.reach
+      const cx = Math.round(s.x + s.w / 2)
+      ctx.fillRect(cx - 5, s.y - 13, 10, 2)
+      ctx.beginPath(); ctx.moveTo(cx - 5, s.y - 9); ctx.lineTo(cx + 5, s.y - 9); ctx.lineTo(cx, s.y - 3); ctx.closePath(); ctx.fill()
+      ctx.globalAlpha = 1
+    }
+  }
+}
+
+// Placeholder BIAKO tag stamped on a surface (real graffiti art comes later).
+function drawTag (s) {
+  ctx.save()
+  ctx.translate(s.x + s.w / 2, s.y + s.h / 2)
+  ctx.rotate(-0.1 + (s.seed - 0.5) * 0.18)
+  ctx.fillStyle = palette.tagInk
+  ctx.font = '700 ' + Math.round(s.w * 0.2) + 'px "Geist Mono", monospace'
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+  ctx.fillText('BIAKO', 0, 0)
+  ctx.strokeStyle = palette.tagInk; ctx.lineWidth = 2
+  const tw = s.w * 0.4
+  ctx.beginPath(); ctx.moveTo(-tw, s.h * 0.2); ctx.quadraticCurveTo(0, s.h * 0.28, tw, s.h * 0.16); ctx.stroke()
+  ctx.restore()
 }
 
 // ─── Main loop — fixed-timestep update, render every frame ───────────────────
@@ -260,18 +375,14 @@ function setState (s) {
   else if (s === 'start')  showScreen('start')
   else if (s === 'paused') showScreen('paused')
   else if (s === 'busted') showScreen('busted')
+  if (els.controls) els.controls.setAttribute('aria-hidden', s === 'playing' ? 'false' : 'true')
 }
 
 function syncHud (force) {
   const d = Math.floor(dist)
-  if (force || d !== lastDistShown) {
-    lastDistShown = d
-    if (els.dist) els.dist.textContent = String(d).padStart(3, '0') + 'M'
-  }
-  if (force) {
-    if (els.tags) els.tags.textContent = String(tags).padStart(3, '0')
-    if (els.heat) els.heat.style.setProperty('--heat', String(heat))
-  }
+  if (force || d !== lastDistShown) { lastDistShown = d; if (els.dist) els.dist.textContent = String(d).padStart(3, '0') + 'M' }
+  if (force || tags !== lastTagsShown) { lastTagsShown = tags; if (els.tags) els.tags.textContent = String(tags).padStart(3, '0') }
+  if (force || Math.abs(heat - lastHeatShown) > 0.02) { lastHeatShown = heat; if (els.heat) els.heat.style.setProperty('--heat', heat.toFixed(3)) }
 }
 
 function startRun () { resetRun(); setState('playing') }
@@ -292,6 +403,9 @@ function onDown (e) { if (state === 'playing') { e.preventDefault(); press() } }
 function onUp () { release() }
 function onKeydown (e) {
   if (e.key === 'Escape') { if (state === 'playing') pause(); else if (state === 'paused') resume(); return }
+  if (e.key === 'f' || e.key === 'F' || e.key === 'k' || e.key === 'K' || e.key === 'ArrowDown') {
+    e.preventDefault(); if (state === 'playing' && !e.repeat) tag(); return
+  }
   if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
     e.preventDefault()
     if (state === 'start' || state === 'busted') startRun()
@@ -318,6 +432,8 @@ export function init () {
 
   els = {
     hud: document.getElementById('vr-hud'),
+    controls: document.getElementById('vr-controls'),
+    tag: document.getElementById('vr-tag'),
     tags: document.getElementById('vr-tags'),
     dist: document.getElementById('vr-dist'),
     heat: document.getElementById('vr-heat'),
@@ -338,12 +454,14 @@ export function init () {
 
   onPointerDown = onDown; onPointerUp = onUp
   onKey = onKeydown; onKeyUp = onKeyup; onClick = onStageClick
+  onTagDown = (e) => { e.preventDefault(); tag() }   // pointerdown = responsive tag
   canvas.addEventListener('pointerdown', onPointerDown)
   window.addEventListener('pointerup', onPointerUp)
   window.addEventListener('pointercancel', onPointerUp)
   window.addEventListener('keydown', onKey)
   window.addEventListener('keyup', onKeyUp)
   stage.addEventListener('click', onClick)
+  if (els.tag) els.tag.addEventListener('pointerdown', onTagDown)
 
   onVis = () => { if (document.hidden && state === 'playing') pause() }
   onResize = () => fit()
@@ -357,8 +475,12 @@ export function init () {
     get dist () { return dist },
     get speed () { return speed },
     get obstacles () { return obstacles.length },
-    get player () { return player && { y: player.y, vy: player.vy, grounded: player.grounded, anim: player.anim } },
-    press, release, start: startRun,
+    get obstaclePos () { return obstacles.map(o => Math.round(o.x)) },
+    get spots () { return spots.map(s => ({ kind: s.kind, x: Math.round(s.x), w: s.w, tagged: s.tagged })) },
+    get tags () { return tags },
+    get heat () { return heat },
+    get player () { return player && { y: player.y, vy: player.vy, grounded: player.grounded, anim: player.anim, tagT: player.tagT } },
+    press, release, tag, start: startRun,
   }
 
   raf = requestAnimationFrame(frame)
@@ -372,6 +494,7 @@ export function destroy () {
   window.removeEventListener('keydown', onKey)
   window.removeEventListener('keyup', onKeyUp)
   if (stage && onClick) stage.removeEventListener('click', onClick)
+  if (els.tag && onTagDown) els.tag.removeEventListener('pointerdown', onTagDown)
   if (onVis) document.removeEventListener('visibilitychange', onVis)
   if (onResize) {
     window.removeEventListener('resize', onResize)
@@ -379,7 +502,7 @@ export function destroy () {
   }
   delete window.vandalRush
   canvas = ctx = stage = player = null
-  els = {}; obstacles = []
-  onPointerDown = onPointerUp = onKey = onKeyUp = onClick = onVis = onResize = null
+  els = {}; obstacles = []; spots = []
+  onPointerDown = onPointerUp = onKey = onKeyUp = onClick = onVis = onResize = onTagDown = null
   lastT = 0; acc = 0; state = 'start'
 }

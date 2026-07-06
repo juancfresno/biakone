@@ -38,13 +38,19 @@
           </button>
         </div>
 
+        <!-- Touch controls (shown while playing): tap anywhere = jump, this
+             button = tag the nearest surface. -->
+        <div class="vr__controls" id="vr-controls" aria-hidden="true">
+          <button class="vr__tag-btn" id="vr-tag" type="button" aria-label="Tag a surface">TAG</button>
+        </div>
+
         <!-- START screen -->
         <div class="vr__screen vr__screen--start is-active" id="vr-start">
           <p class="vr__brand">LAB / 01</p>
           <p class="vr__title">VANDAL RUSH</p>
           <p class="vr__tagline">No te dejes cazar.</p>
           <button class="vr__btn vr__btn--primary" id="vr-play" type="button">PLAY</button>
-          <p class="vr__hint">Tap para saltar · mantené para saltar más alto</p>
+          <p class="vr__hint">Tap para saltar · mantené para más alto · TAG para pintar</p>
           <a class="vr__back" href="/lab" data-vr-exit>← LAB</a>
         </div>
 
