@@ -55,6 +55,7 @@ body[data-page="stickers"] .intro {
 .stickers__cell {
   position: relative;
   width: 100%;
+  margin: 0;                  /* reset the UA <figure> 40px side margin (full-bleed) */
   min-height: 100vh;          /* one sticker per screen-ish */
   display: flex;
   align-items: center;
@@ -91,8 +92,15 @@ body[data-page="stickers"] > canvas {
   text-align: center;
 }
 
-/* ─── Mobile: photos naturally fill the width, stacked ──────── */
+/* ─── Mobile: full-bleed. Every image fills the ENTIRE screen width edge to
+   edge at its own natural aspect ratio (verticals tall, horizontals short),
+   stacked and scrolled vertically. No side gutters, no forced height. ─── */
 @media (max-width: 640px) {
   .stickers__cell { min-height: auto; padding: 0; }
-  .stickers__cell img { max-height: none; max-width: 100%; }
+  .stickers__cell img {
+    width: 100vw;             /* edge to edge */
+    height: auto;             /* keep each image's real aspect ratio */
+    max-width: none;
+    max-height: none;
+  }
 }
