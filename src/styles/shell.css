@@ -399,3 +399,39 @@ body[data-page="home"] .theme-toggle:hover { color: #ffffff; }
   83%      { opacity: 0.9;  }
   84%      { opacity: 1;    }
 }
+
+/* ============================================================
+   OVERLAY CLOSE — the single shared close control for EVERY
+   overlay (Work detail drawer, tag lightbox, any future modal).
+   Pill chip, top-right (~24px), Geist Mono uppercase, subtle
+   translucent bg + blur so it stays legible over blurred
+   backdrops. Positions against the overlay's own fixed/absolute
+   container. Overlays also close on Esc + backdrop click.
+   ============================================================ */
+.overlay-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  z-index: 5;                      /* above the overlay's content, clickable */
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--neutral-950) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--neutral-50) 26%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  font-family: var(--font-ui);     /* Geist Mono */
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;       /* "Close ✕" → "CLOSE ✕" */
+  color: var(--neutral-50);        /* cream — legible over the blurred dim */
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.overlay-close:hover {
+  background: color-mix(in srgb, var(--neutral-950) 72%, transparent);
+  border-color: color-mix(in srgb, var(--neutral-50) 42%, transparent);
+}

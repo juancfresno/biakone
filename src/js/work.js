@@ -450,6 +450,7 @@ function fillDrawer (i) {
     .map(d => '<div><dt>' + d.label + '</dt><dd>' + d.value + '</dd></div>').join('')
 }
 
+let closing = false, openTl = null
 function glitchPanel () {
   if (reduceMotion() || !panel) return
   panel.classList.remove('is-glitch')
@@ -464,17 +465,19 @@ function openDrawer (i) {
   // being the one <body> child excluded from the page blur, stays sharp.
   if (drawer.parentElement !== document.body) document.body.appendChild(drawer)
   drawer.hidden = false
+  closing = false                              // cancel any pending close
   document.body.classList.add('drawer-open')   // → blurs the page (work.css)
   document.body.style.overflow = 'hidden'
 
   const content = panel.querySelectorAll('.drawer__info-head, .drawer__info-body, .drawer__pager')
+  if (openTl) openTl.kill()
   gsap.killTweensOf([panel, backdrop, dGallery, ...content])
   if (reduceMotion()) {
     gsap.set(backdrop, { autoAlpha: 1 })
     gsap.set(panel, { xPercent: 0 })
     gsap.set([dGallery, ...content], { clearProps: 'all' })
   } else {
-    gsap.timeline()
+    openTl = gsap.timeline()
       .set(backdrop, { autoAlpha: 0 })
       .set(panel, { xPercent: 100 })
       .set(dGallery, { autoAlpha: 0 })
@@ -486,11 +489,19 @@ function openDrawer (i) {
       .to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'expo.out', stagger: 0.07, clearProps: 'transform,opacity' }, 0.26)
       .add(glitchPanel, 0.42)            // light VHS accent on landing
   }
-  drawer.querySelector('.drawer__close').focus()
+  drawer.querySelector('.overlay-close').focus()
 }
 function closeDrawer () {
   if (!drawer || drawer.hidden) return
-  const done = () => { drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery' }
+  closing = true
+  // Guarded so a re-open (openDrawer sets closing=false) cancels a pending finish,
+  // and so the drawer always closes even if a tween's onComplete is dropped.
+  const done = () => {
+    if (!closing) return
+    closing = false
+    drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery'
+  }
+  if (openTl) { openTl.kill(); openTl = null }    // stop the open timeline fighting the close
   document.body.classList.remove('drawer-open')   // → un-blurs the page
   document.body.style.overflow = ''
   if (reduceMotion()) { done() }
@@ -498,6 +509,7 @@ function closeDrawer () {
     gsap.killTweensOf([panel, backdrop])
     gsap.to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' })
     gsap.to(panel, { xPercent: 100, duration: 0.4, ease: 'expo.in', onComplete: done })
+    setTimeout(done, 460)                          // guaranteed finish (fallback)
   }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
 }
@@ -614,6 +626,8 @@ export function destroy () {
   cancelAnimationFrame(elasticRafId); elasticRafId = 0
   cancelAnimationFrame(scrollRafId); scrollRafId = 0
   if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }
+  if (openTl) { openTl.kill(); openTl = null }
+  closing = false
   document.body.style.overflow = ''
   document.body.classList.remove('drawer-open')          // drop the page blur
   // The drawer was re-parented to <body>; remove it so it doesn't outlive the page.

@@ -126,35 +126,7 @@ body.lb-open > *:not(.lightbox):not(script) {
   filter: blur(30px);
   transition: filter 320ms ease;
 }
-/* CLOSE chip — pinned to the top-right of the screen (the lightbox is fixed
-   inset:0), above the tag, as a rounded pill that reads as a button. */
-.lightbox__close {
-  position: absolute;
-  top: 24px;
-  right: 24px;
-  z-index: 2;                     /* above backdrop + tag, clickable */
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5em;
-  padding: 7px 13px;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--neutral-950) 55%, transparent);
-  border: 1px solid color-mix(in srgb, var(--neutral-50) 26%, transparent);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  font-family: var(--font-ui);    /* Geist Mono */
-  font-size: var(--text-ui-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--neutral-50);       /* cream — legible over the blurred dim */
-  cursor: pointer;
-  transition: background 140ms ease, border-color 140ms ease;
-}
-.lightbox__close:hover {
-  background: color-mix(in srgb, var(--neutral-950) 72%, transparent);
-  border-color: color-mix(in srgb, var(--neutral-50) 42%, transparent);
-}
+/* Close control is the shared .overlay-close (shell.css). */
 @keyframes lb-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .lightbox__img { transition: none; transform: none; }
