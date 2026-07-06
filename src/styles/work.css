@@ -491,17 +491,20 @@ body.drawer-open > *:not(#work-drawer):not(script) {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
+/* Prev/Next reuse the shared nav-tab hover (.nav-link in shell.css): plain
+   text at rest, brand-blue chip + dark text on hover — uniform with the nav
+   tabs and the CLOSE control. Here we only set the rest colour (cream on the
+   inverse box) and reset the <button>. */
 .drawer__pg {
   appearance: none;
   background: none;
   border: 0;
   padding: 0;
   font: inherit;
+  text-transform: uppercase;   /* buttons don't inherit it from the pager */
   color: var(--text-inverse-primary);
   cursor: pointer;
-  transition: opacity 140ms ease;
 }
-.drawer__pg:hover { opacity: 0.6; }
 
 /* DRAG affordance — a chip that replaces the cursor while over the gallery.
    Positioned in work.js via a viewport-space transform (fixed, follows the
@@ -541,14 +544,15 @@ body.drawer-open > *:not(#work-drawer):not(script) {
   }
   .drawer__slide { height: auto; width: 100%; }
   .drawer__slide img { height: auto; width: 100%; }
-  /* Info box spans full width at the bottom on mobile. */
+  /* Info box stays floating on mobile — a small ~12px margin all round so it
+     reads as a card without losing much width for the text. */
   .drawer__info {
-    left: 0;
-    right: 0;
-    bottom: 0;
-    transform: none;
-    width: 100%;
-    max-height: 60vh;
+    left: 50%;
+    right: auto;
+    bottom: 12px;
+    transform: translateX(-50%);
+    width: calc(100% - 24px);
+    max-height: 70vh;
     overflow-y: auto;
     padding: var(--space-6) var(--space-5);
   }
