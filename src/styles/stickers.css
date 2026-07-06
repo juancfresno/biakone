@@ -49,26 +49,28 @@ body[data-page="stickers"] .intro {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);       /* 40px — tight vertical rhythm (was a full screen per cell) */
+  gap: 0;
 }
 
 .stickers__cell {
   position: relative;
   width: 100%;
-  margin: 0;                  /* reset the UA <figure> 40px side margin */
+  margin: 0;                  /* reset the UA <figure> 40px side margin (full-bleed) */
+  min-height: 100vh;          /* one sticker per screen-ish */
   display: flex;
   align-items: center;
-  justify-content: center;    /* DESKTOP: centre — dark sides fall to bg */
+  justify-content: center;    /* centre horizontally — dark sides fall to bg */
+  padding: var(--space-6) 0;
   background: var(--neutral-950);
 }
 .stickers__cell img {
   display: block;
-  /* DESKTOP: centred, comfortable size, never stretched (native aspect ratio,
-     bounded by height for verticals / capped width for horizontals). */
+  /* Native aspect ratio, never stretched: bounded by height on wide screens
+     (narrow, centred, dark sides) and by width on mobile (fills the screen). */
   width: auto;
   height: auto;
-  max-height: 78vh;
-  max-width: min(100%, 900px);
+  max-height: 86vh;
+  max-width: 100%;
   object-fit: contain;
   /* VFX-JS sets opacity:0 on the source once the shader is live; until
      then (and as the no-WebGL fallback) the plain photo shows. */
@@ -92,13 +94,12 @@ body[data-page="stickers"] > canvas {
 
 /* ─── Mobile: full-bleed. Every image fills the ENTIRE screen width edge to
    edge at its own natural aspect ratio (verticals tall, horizontals short),
-   stacked flush and scrolled vertically. No side gutters, no forced height.
-   The per-image fisheye (stickers.js) then curves each one edge to edge. ─── */
+   stacked and scrolled vertically. No side gutters, no forced height. ─── */
 @media (max-width: 640px) {
-  .stickers__stack { gap: 0; }   /* flush stack, edge to edge */
+  .stickers__cell { min-height: auto; padding: 0; }
   .stickers__cell img {
-    width: 100vw;                /* edge to edge */
-    height: auto;                /* keep each image's real aspect ratio */
+    width: 100vw;             /* edge to edge */
+    height: auto;             /* keep each image's real aspect ratio */
     max-width: none;
     max-height: none;
   }
