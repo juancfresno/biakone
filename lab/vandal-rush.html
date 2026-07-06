@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Vandal Rush — Lab — Biakone</title>
+  <meta name="robots" content="noindex, follow">
+  <meta name="description" content="Vandal Rush — a pixel-art graffiti runner from the Biakone lab. No te dejes cazar.">
+  <link rel="canonical" href="https://biakone.com/lab/vandal-rush">
+  <meta property="og:title" content="Vandal Rush — Lab — Biakone">
+  <meta property="og:description" content="A pixel-art graffiti runner from the Biakone lab. No te dejes cazar.">
+  <meta property="og:url" content="https://biakone.com/lab/vandal-rush">
+  <meta name="twitter:title" content="Vandal Rush — Lab — Biakone">
+  <meta name="twitter:description" content="A pixel-art graffiti runner from the Biakone lab. No te dejes cazar.">
+  <!-- @include partials/head.html -->
+</head>
+<body data-page="vandal-rush" data-barba="wrapper">
+  <!-- @include partials/grain.html -->
+  <!-- @include partials/nav.html -->
+
+  <div data-barba="container" data-barba-namespace="vandal-rush">
+    <main class="vr">
+      <h1 class="sr-only">Vandal Rush — a Biakone Lab graffiti runner</h1>
+
+      <!-- Full-viewport portrait stage. Canvas = the game world (Canvas 2D);
+           everything else here is the DOM HUD / menu overlay. -->
+      <div class="vr__stage" id="vr-stage">
+        <canvas class="vr__canvas" id="vr-canvas"></canvas>
+
+        <!-- HUD — shown while playing (Figma: TAGS · DIST · HEAT · pause). -->
+        <div class="vr__hud" id="vr-hud" aria-hidden="true">
+          <div class="vr__stat"><span class="vr__label">TAGS</span><span class="vr__val" id="vr-tags">000</span></div>
+          <div class="vr__stat"><span class="vr__label">DIST</span><span class="vr__val" id="vr-dist">000M</span></div>
+          <div class="vr__stat vr__stat--heat">
+            <span class="vr__label">HEAT</span>
+            <span class="vr__heat" id="vr-heat" aria-hidden="true"></span>
+          </div>
+          <button class="vr__pause" id="vr-pause" type="button" aria-label="Pause">
+            <span aria-hidden="true">❚❚</span>
+          </button>
+        </div>
+
+        <!-- START screen -->
+        <div class="vr__screen vr__screen--start is-active" id="vr-start">
+          <p class="vr__brand">LAB / 01</p>
+          <p class="vr__title">VANDAL RUSH</p>
+          <p class="vr__tagline">No te dejes cazar.</p>
+          <button class="vr__btn vr__btn--primary" id="vr-play" type="button">PLAY</button>
+          <p class="vr__hint">Tap para saltar · mantené para saltar más alto</p>
+          <a class="vr__back" href="/lab" data-vr-exit>← LAB</a>
+        </div>
+
+        <!-- PAUSE screen -->
+        <div class="vr__screen vr__screen--pause" id="vr-paused" hidden>
+          <p class="vr__title vr__title--sm">PAUSA</p>
+          <button class="vr__btn vr__btn--primary" id="vr-resume" type="button">RESUME</button>
+          <a class="vr__btn vr__btn--ghost" href="/lab" data-vr-exit>EXIT</a>
+        </div>
+
+        <!-- BUSTED (game over) screen -->
+        <div class="vr__screen vr__screen--busted" id="vr-busted" hidden>
+          <p class="vr__busted">BUSTED.</p>
+          <p class="vr__tagline">No te dejes cazar.</p>
+          <dl class="vr__scores">
+            <div><dt>TAGS</dt><dd id="vr-final-tags">000</dd></div>
+            <div><dt>DISTANCE</dt><dd id="vr-final-dist">000M</dd></div>
+            <div class="vr__best"><dt>BEST</dt><dd id="vr-best">000M</dd></div>
+          </dl>
+          <button class="vr__btn vr__btn--primary" id="vr-retry" type="button">RETRY</button>
+          <a class="vr__btn vr__btn--ghost" href="/lab" data-vr-exit>MENU</a>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- @include partials/footer.html -->
+
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>

@@ -15,11 +15,12 @@ const PAGES = {
   work:     () => import('./work.js'),
   stickers: () => import('./stickers.js'),
   lab:      () => import('./lab.js'),
+  'vandal-rush': () => import('./vandal-rush.js'),
   about:    () => import('./about.js'),
 }   // contact is static — no module
 const TITLES = {
   home: 'Biakone — Urban Objects, Graffiti & Scale Work', work: 'Work — Biakone', stickers: 'Stickers — Biakone',
-  lab: 'Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
+  lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
 let current = null

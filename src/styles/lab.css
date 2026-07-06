@@ -39,3 +39,33 @@ body[data-page="lab"] {
   .lab { margin-top: var(--space-6); }
   .lab__wave { height: min(440px, 96vw); cursor: default; }
 }
+
+/* ─── Experiments — playable Lab cards ─────────────────────────
+   LAB / NN — Title — tagline — PLAY. Dark tokens already scoped
+   to body[data-page="lab"] above. */
+.lab-experiments { margin-top: var(--space-10); }
+.lab-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "no      cta"
+    "title   cta"
+    "tagline cta";
+  align-items: center;
+  gap: 4px var(--space-6);
+  padding: var(--space-6);
+  border: 1px solid var(--neutral-700);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--neutral-900) 55%, transparent);
+  color: var(--neutral-50);
+  text-decoration: none;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+.lab-card__no      { grid-area: no; font-family: var(--font-ui); font-size: var(--text-ui-sm); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brand-blue); }
+.lab-card__title   { grid-area: title; font-family: var(--font-display); font-weight: 700; font-size: clamp(24px, 6vw, 40px); line-height: 1; letter-spacing: 0.01em; text-transform: uppercase; }
+.lab-card__tagline { grid-area: tagline; font-family: var(--font-body); font-size: var(--text-body-sm); color: var(--neutral-300); }
+.lab-card__cta     { grid-area: cta; display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-ui); font-size: var(--text-ui-sm); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brand-blue); }
+@media (hover: hover) {
+  .lab-card:hover { border-color: var(--brand-blue); background: color-mix(in srgb, var(--neutral-900) 85%, transparent); }
+}
+@media (max-width: 640px) { .lab-experiments { margin-top: var(--space-8); } }
