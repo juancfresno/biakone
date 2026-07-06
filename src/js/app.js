@@ -18,8 +18,8 @@ const PAGES = {
   about:    () => import('./about.js'),
 }   // contact is static — no module
 const TITLES = {
-  home: 'BIAKO — Urban objects, 1:12', work: 'BIAKO — Work', stickers: 'BIAKO — Stickers',
-  lab: 'BIAKO — Lab', about: 'BIAKO — About', contact: 'BIAKO — Contact',
+  home: 'Biakone — Urban Objects, Graffiti & Scale Work', work: 'Work — Biakone', stickers: 'Stickers — Biakone',
+  lab: 'Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
 let current = null

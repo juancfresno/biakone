@@ -54,3 +54,18 @@ main { position: relative; z-index: 2; min-width: 0; }
 @media (prefers-reduced-motion: reduce) {
   html, body { transition: none; }
 }
+
+/* Visually-hidden (screen-reader only) — for semantic h1s that must not alter
+   the visual layout. Standard accessible clip technique. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
