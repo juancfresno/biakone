@@ -423,6 +423,7 @@ body[data-page="home"] .theme-toggle:hover { color: #ffffff; }
   font-family: var(--font-ui);     /* Geist Mono */
   font-size: var(--text-ui-sm);    /* 11px — same as the nav tabs */
   letter-spacing: 0.04em;
+  text-transform: uppercase;       /* "Close" → "CLOSE", matching nav/footer */
   color: var(--neutral-50);        /* cream at rest — legible over the blurred dim */
   cursor: pointer;
 }
