@@ -4,10 +4,15 @@
 // menus. SPA-safe: init() mounts, destroy() tears everything down (rAF, every
 // listener, the canvas) so it coexists cleanly with the barba page transitions.
 //
-// PHASE 1 — minimal playable runner: auto-scroll, the writer with RUN/JUMP/FALL/
-// LAND, one obstacle (VALLA) with AABB collision, tap-to-jump + hold-for-higher,
-// a DIST counter, and game over → BUSTED + RETRY. Art is still PLACEHOLDER
-// (colored rects) — real sprites, tags, enemies and HEAT come in later phases.
+// Runner (Phase 1) + tag mechanic (2) + enemies & HEAT (3) + juice (4): parallax
+// city, spray particles, screen shake, synth SFX, and an atlas-driven SPRITE
+// SYSTEM that swaps in real pixel art with no code changes (until then the
+// colored-rect placeholders keep working). Mobile-first, 60fps, reduced-motion.
+
+import { createSprites } from './vandal-rush/sprites.js'
+import { createAudio } from './vandal-rush/audio.js'
+
+const ATLAS_URL = '/lab/vandal-rush/sprites/atlas.json'
 
 // ─── World model ────────────────────────────────────────────────────────────
 // Fixed logical HEIGHT, variable width: world height always fills the viewport
@@ -73,6 +78,14 @@ let reduce = false
 let palette = {}
 let best = 0
 
+// juice / systems
+let sprites = null, audio = null
+let parallax = []             // pre-rendered offscreen layers
+let particles = []            // fixed pool (no per-frame allocation)
+const PMAX = 140
+let shake = 0                 // screen-shake magnitude (world units)
+let gameTime = 0              // ms since run start (sprite anim clock)
+
 // run state
 let player = null
 let obstacles = []
@@ -137,6 +150,85 @@ function fit () {
   ctx.imageSmoothingEnabled = false
 }
 
+// ─── Juice: sprites, parallax, particles, shake ──────────────────────────────
+// Sprite helper — draw an anim frame, or return false so the caller draws its
+// placeholder rect. gameTime is the shared anim clock.
+function spr (name, x, y, w, h, flip) {
+  return !!(sprites && sprites.draw(ctx, name, gameTime, x, y, w, h, flip))
+}
+
+// Pre-render two building layers to offscreen canvases (built once; blitted with
+// a scroll offset each frame → cheap parallax, easy 60fps).
+function makeCityLayer (tileW, topY, maxH, body, lit) {
+  const c = document.createElement('canvas')
+  c.width = tileW; c.height = VH
+  const g = c.getContext('2d')
+  let x = 0
+  while (x < tileW) {
+    const w = 24 + Math.floor(Math.random() * 42)
+    const top = topY - (26 + Math.floor(Math.random() * maxH))
+    g.fillStyle = body
+    g.fillRect(x, top, w, VH - top)
+    g.fillStyle = lit
+    for (let wy = top + 8; wy < topY - 6; wy += 12)
+      for (let wx = x + 4; wx < x + w - 5; wx += 9)
+        if (Math.random() < 0.32) g.fillRect(wx, wy, 3, 4)
+    x += w + 2 + Math.floor(Math.random() * 7)
+  }
+  return c
+}
+function buildParallax () {
+  parallax = [
+    { canvas: makeCityLayer(360, GY * 0.72, 150, palette.wallLine, palette.accent), factor: 0.16 },
+    { canvas: makeCityLayer(300, GY * 0.9,  100, palette.ground,   palette.tagInk), factor: 0.42 },
+  ]
+}
+function drawParallax () {
+  for (const L of parallax) {
+    const w = L.canvas.width
+    for (let x = -((scrollX * L.factor) % w); x < VW; x += w) ctx.drawImage(L.canvas, Math.round(x), 0)
+  }
+}
+
+function initParticles () { particles.length = 0; for (let i = 0; i < PMAX; i++) particles.push({ life: 0 }) }
+// emit n particles from (x,y). o: { color, ang, spread, sp, vx, vy, grav, life, size }
+function emit (x, y, n, o) {
+  if (reduce) n = Math.min(n, 4)
+  for (let i = 0, s = 0; i < PMAX && s < n; i++) {
+    const p = particles[i]; if (p.life > 0) continue
+    s++
+    const ang = (o.ang || 0) + (Math.random() - 0.5) * (o.spread != null ? o.spread : Math.PI * 2)
+    const sp = (o.sp || 60) * (0.4 + Math.random() * 0.6)
+    p.x = x; p.y = y
+    p.vx = Math.cos(ang) * sp + (o.vx || 0)
+    p.vy = Math.sin(ang) * sp + (o.vy || 0)
+    p.grav = o.grav || 0
+    p.size = o.size || 2
+    p.color = o.color || palette.ink
+    p.maxLife = o.life || 0.5
+    p.life = p.maxLife
+  }
+}
+function updateParticles (dt) {
+  for (const p of particles) {
+    if (p.life <= 0) continue
+    p.life -= dt
+    p.vy += p.grav * dt
+    p.x += p.vx * dt
+    p.y += p.vy * dt
+  }
+}
+function drawParticles () {
+  for (const p of particles) {
+    if (p.life <= 0) continue
+    ctx.globalAlpha = Math.max(0, Math.min(1, p.life / p.maxLife))
+    ctx.fillStyle = p.color
+    ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size)
+  }
+  ctx.globalAlpha = 1
+}
+function addShake (m) { if (!reduce) shake = Math.min(14, Math.max(shake, m)) }
+
 // ─── Run setup ───────────────────────────────────────────────────────────────
 function resetRun () {
   player = { y: GY - PLAYER_H, vy: 0, grounded: true, anim: 'run', landT: 0, bob: 0, tagT: 0 }
@@ -163,6 +255,8 @@ function press () {
     player.grounded = false
     player.anim = 'jump'
     holding = true; holdT = 0
+    emit(PLAYER_X + PLAYER_W / 2, GY, 6, { color: palette.groundTop, ang: -Math.PI / 2, spread: 1.4, sp: 90, grav: 320, life: 0.32, size: 2 })
+    if (audio) audio.sfx.jump()
   }
 }
 function release () { holding = false }
@@ -186,6 +280,9 @@ function tag () {
   tags++
   heat = Math.min(1, heat + TAG_HEAT)
   player.anim = 'tag'; player.tagT = TAG_MS       // committed (jump-locked)
+  emit(PLAYER_X + PLAYER_W + 2, player.y + PLAYER_H * 0.35, 14, { color: palette.tagInk, ang: 0, spread: 1.1, sp: 130, grav: 120, life: 0.5, size: 2 })
+  addShake(2)
+  if (audio) audio.sfx.tag()
   syncHud(true)
 }
 
@@ -209,7 +306,11 @@ function update (dt) {
   if (player.y >= floor) {
     player.y = floor
     player.vy = 0
-    if (!player.grounded) { player.grounded = true; player.landT = LAND_MS }
+    if (!player.grounded) {
+      player.grounded = true; player.landT = LAND_MS
+      emit(PLAYER_X + PLAYER_W / 2, GY, 6, { color: palette.groundTop, ang: -Math.PI / 2, spread: 1.6, sp: 70, grav: 300, life: 0.3, size: 2 })
+      addShake(1.5)
+    }
   }
   // timers (tag pose + landing squash)
   if (player.tagT > 0) player.tagT -= dt * 1000
@@ -280,7 +381,11 @@ function update (dt) {
       buffEraseTimer = BUFF_ERASE_T
       let t = null
       for (const s of spots) { if (s.tagged && s.x + s.w > 0 && s.x < VW && (!t || s.x > t.x)) t = s }
-      if (t) { t.tagged = false; t.buffed = true; if (tags > 0) tags-- }
+      if (t) {
+        t.tagged = false; t.buffed = true; if (tags > 0) tags--
+        emit(t.x + t.w / 2, t.y + t.h / 2, 10, { color: palette.buffed, sp: 70, life: 0.5, grav: 40, size: 2 })
+        if (audio) audio.sfx.buff()
+      }
     }
   } else buffEraseTimer = 0
 
@@ -299,6 +404,8 @@ function update (dt) {
     if (px1 > p.x - PICK_R && px0 < p.x + PICK_R && qy1 > p.y - PICK_R && qy0 < p.y + PICK_R) {
       if (p.kind === 'spray') heat = Math.max(0, heat - SPRAY_COOL)
       else tags++
+      emit(p.x, p.y, 10, { color: p.kind === 'spray' ? palette.spray : palette.bag, sp: 90, life: 0.45, grav: 60, size: 2 })
+      if (audio) audio.sfx.pickup()
       picks.splice(i, 1); continue
     }
     if (p.x + PICK_R < -6) picks.splice(i, 1)
@@ -315,6 +422,9 @@ function triggerCaught () {
   caughtT = CAUGHT_MS
   player.anim = 'caught'
   holding = false
+  addShake(8)
+  emit(PLAYER_X + PLAYER_W / 2, player.y + PLAYER_H / 2, 16, { color: palette.cone, sp: 120, life: 0.6, grav: 200, size: 2 })
+  if (audio) audio.sfx.caught()
 }
 
 // ─── Render ──────────────────────────────────────────────────────────────────
@@ -323,12 +433,16 @@ function render () {
   ctx.clearRect(0, 0, canvas.width, canvas.height)
   ctx.fillStyle = palette.letterbox
   ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0)
+  // world transform (+ screen shake in world units)
+  const shx = shake ? (Math.random() - 0.5) * shake : 0
+  const shy = shake ? (Math.random() - 0.5) * shake : 0
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, shx * scale * dpr, shy * scale * dpr)
 
-  // sky / wall
+  // sky + parallax city
   ctx.fillStyle = palette.sky
-  ctx.fillRect(0, 0, VW, VH)
-  // a couple of faint wall seams for depth
+  ctx.fillRect(-8, -8, VW + 16, VH + 16)
+  drawParallax()
+  // faint near-wall seams for depth
   ctx.fillStyle = palette.wallLine
   for (let x = -(scrollX * 0.3 % 120); x < VW; x += 120) ctx.fillRect(Math.round(x), 60, 2, GY - 60)
 
@@ -355,6 +469,7 @@ function render () {
   // obstacles (VALLA — barrier: frame + bars)
   for (const o of obstacles) {
     const oy = GY - o.h
+    if (spr('valla', Math.round(o.x), oy, o.w, o.h)) continue
     ctx.fillStyle = palette.valla
     ctx.fillRect(Math.round(o.x), oy, o.w, o.h)
     ctx.fillStyle = palette.vallaEdge
@@ -364,11 +479,14 @@ function render () {
     ctx.fillRect(Math.round(o.x) + o.w / 2 - 1, oy + 3, 2, o.h - 6) // gap between bars
   }
 
-  // player (placeholder hooded writer — state-driven squash/stretch + run bob)
+  // player (hooded writer — sprite if the atlas is loaded, else placeholder)
   drawPlayer()
 
   // pursuer (SEGURATA/POLICÍA) — closes in with HEAT, grabs you on CAUGHT
   drawPursuer()
+
+  // spray / dust / debris particles (front layer)
+  drawParticles()
 }
 
 function drawPlayer () {
@@ -377,6 +495,8 @@ function drawPlayer () {
   else if (player.anim === 'jump') { w = PLAYER_W - 3; h = PLAYER_H + 4 }   // stretch
   const x = PLAYER_X + (PLAYER_W - w) / 2
   const y = player.y + PLAYER_H - h                 // feet anchored to player.y + PLAYER_H
+  // sprite path (real art) — falls through to placeholder if the atlas isn't ready
+  if (spr('writer-' + player.anim, Math.round(x), Math.round(y), w, h, false)) return
   // hoodie body
   ctx.fillStyle = palette.hoodie
   ctx.fillRect(Math.round(x), Math.round(y), w, h)
@@ -415,6 +535,7 @@ function drawPlayer () {
 function drawCams () {
   for (const c of cams) {
     const cx = Math.round(c.x)
+    // cone always drawn (danger zone); housing uses a sprite if present
     ctx.globalAlpha = 0.14; ctx.fillStyle = palette.cone
     ctx.beginPath()
     ctx.moveTo(cx + 2, CCTV_Y + CCTV_H)
@@ -423,6 +544,7 @@ function drawCams () {
     ctx.lineTo(cx + CCTV_W - 2, CCTV_Y + CCTV_H)
     ctx.closePath(); ctx.fill()
     ctx.globalAlpha = 1
+    if (spr('cctv', cx, CCTV_Y, CCTV_W, CCTV_H)) continue
     ctx.fillStyle = palette.cam
     ctx.fillRect(cx + CCTV_W - 3, CCTV_Y - 6, 3, 6)          // mount
     ctx.fillRect(cx, CCTV_Y, CCTV_W, CCTV_H)                 // housing
@@ -435,6 +557,7 @@ function drawCams () {
 function drawPicks () {
   for (const p of picks) {
     const x = Math.round(p.x), y = Math.round(p.y)
+    if (spr(p.kind === 'spray' ? 'spray' : 'bolsa', x - 8, y - 12, 16, 24)) continue
     if (p.kind === 'spray') {
       ctx.fillStyle = palette.spray; ctx.fillRect(x - 5, y - 8, 10, 16)
       ctx.fillStyle = palette.ink;   ctx.fillRect(x - 3, y - 12, 6, 4)
@@ -452,6 +575,7 @@ function drawPicks () {
 function drawBuffs () {
   for (const b of buffs) {
     const x = Math.round(b.x), y = GY - BUFF_H
+    if (spr('buff', x, y, BUFF_W, BUFF_H)) continue
     ctx.fillStyle = palette.buff;   ctx.fillRect(x, y + 10, BUFF_W - 8, BUFF_H - 10)
     ctx.fillStyle = palette.hood;   ctx.fillRect(x + 4, y, BUFF_W - 16, 10)
     ctx.fillStyle = palette.ink;    ctx.fillRect(x + BUFF_W - 8, y + 4, 8, 3)   // handle
@@ -465,6 +589,7 @@ function drawPursuer () {
   const t = caughtT > 0 ? 1 : Math.min(1, (heat - PURSUE_HEAT) / (1 - PURSUE_HEAT))
   const x = Math.round(PURSUE_X0 + (PLAYER_X - PURSUE_X0) * t)
   const y = GY - PLAYER_H
+  if (spr('cop-run', x, y, PLAYER_W, PLAYER_H)) return
   const sw = Math.sin(scrollX * 0.13)
   ctx.fillStyle = palette.cop;   ctx.fillRect(x, y, PLAYER_W, PLAYER_H)
   ctx.fillStyle = palette.copHi; ctx.fillRect(x, y, PLAYER_W, Math.round(PLAYER_H * 0.3))   // cap
@@ -526,20 +651,28 @@ function drawTag (s) {
   ctx.restore()
 }
 
-// ─── Main loop — fixed-timestep update, render every frame ───────────────────
+// ─── Main loop ───────────────────────────────────────────────────────────────
+// Fixed-timestep game update (only while playing); particles/shake/anim-clock run
+// in real time every frame so juice keeps animating during caught/paused/busted.
 function frame (now) {
   raf = requestAnimationFrame(frame)
+  if (!lastT) lastT = now
+  const rdelta = Math.min(250, now - lastT)
+  lastT = now
+
   if (state === 'playing' && !document.hidden) {
-    if (!lastT) lastT = now
-    let delta = now - lastT
-    lastT = now
-    if (delta > 250) delta = 250
-    acc += delta
+    acc += rdelta
     let guard = 0
     while (acc >= STEP && guard++ < 8) { update(STEP / 1000); acc -= STEP; if (state !== 'playing') break }
   } else {
-    lastT = now; acc = 0
+    acc = 0
   }
+
+  gameTime += rdelta
+  const rdt = rdelta / 1000
+  updateParticles(rdt)
+  shake *= Math.pow(0.86, rdelta / 16.67)
+  if (shake < 0.05) shake = 0
   render()
 }
 
@@ -568,11 +701,14 @@ function syncHud (force) {
   if (force || Math.abs(heat - lastHeatShown) > 0.02) { lastHeatShown = heat; if (els.heat) els.heat.style.setProperty('--heat', heat.toFixed(3)) }
 }
 
-function startRun () { resetRun(); setState('playing') }
+function startRun () { if (audio) audio.unlock(); resetRun(); setState('playing') }
 function pause ()    { if (state === 'playing') setState('paused') }
 function resume ()   { if (state === 'paused') setState('playing') }
 function bust () {
   holding = false
+  addShake(10)
+  if (player) emit(PLAYER_X + PLAYER_W / 2, player.y + PLAYER_H / 2, 22, { color: palette.ink, sp: 170, life: 0.7, grav: 320, size: 2 })
+  if (audio) audio.sfx.bust()
   best = Math.max(best, Math.floor(dist))
   try { localStorage.setItem('vr:best', String(best)) } catch {}
   if (els.finalTags) els.finalTags.textContent = String(tags).padStart(3, '0')
@@ -599,11 +735,13 @@ function onKeyup (e) { if (e.key === ' ' || e.key === 'ArrowUp' || e.key === 'w'
 function onStageClick (e) {
   const t = e.target.closest('button, [data-vr-exit]')
   if (!t) return
-  if (t.id === 'vr-play' || t.id === 'vr-retry') { e.preventDefault(); startRun() }
+  if (t.id === 'vr-play' || t.id === 'vr-retry' || t.id === 'vr-restart') { e.preventDefault(); startRun() }
   else if (t.id === 'vr-pause') { e.preventDefault(); pause() }
   else if (t.id === 'vr-resume') { e.preventDefault(); resume() }
+  else if (t.id === 'vr-sound') { e.preventDefault(); if (audio) { audio.unlock(); syncSound(audio.toggleMute()) } }
   // [data-vr-exit] → real <a href="/lab"> handled by barba.
 }
+function syncSound (muted) { if (els.sound) els.sound.textContent = 'SOUND: ' + (muted ? 'OFF' : 'ON') }
 
 // ─── Lifecycle ───────────────────────────────────────────────────────────────
 export function init () {
@@ -626,14 +764,23 @@ export function init () {
     finalTags: document.getElementById('vr-final-tags'),
     finalDist: document.getElementById('vr-final-dist'),
     best: document.getElementById('vr-best'),
+    bestStart: document.getElementById('vr-best-start'),
+    sound: document.getElementById('vr-sound'),
   }
   try { best = parseInt(localStorage.getItem('vr:best') || '0', 10) || 0 } catch { best = 0 }
   if (els.best) els.best.textContent = String(best).padStart(3, '0') + 'M'
+  if (els.bestStart) els.bestStart.textContent = String(best).padStart(3, '0') + 'M'
 
+  // Systems: sprite atlas (async → placeholders until ready), SFX, particles, parallax.
+  sprites = createSprites(); sprites.load(ATLAS_URL)
+  audio = createAudio()
+  initParticles()
   readPalette()
+  buildParallax()
   fit()
   resetRun()
   setState('start')
+  if (audio) syncSound(audio.muted)
 
   onPointerDown = onDown; onPointerUp = onUp
   onKey = onKeydown; onKeyUp = onKeyup; onClick = onStageClick
@@ -668,6 +815,7 @@ export function init () {
     get caughtT () { return caughtT },
     get player () { return player && { y: player.y, vy: player.vy, grounded: player.grounded, anim: player.anim, tagT: player.tagT } },
     setHeat (v) { heat = Math.max(0, Math.min(1, v)) },   // dev only
+    get fx () { return { parallax: parallax.length, particles: particles.filter(p => p.life > 0).length, spritesReady: !!(sprites && sprites.ready), shake: Math.round(shake * 10) / 10, muted: !!(audio && audio.muted) } },
     press, release, tag, start: startRun,
   }
 
@@ -689,8 +837,11 @@ export function destroy () {
     if (window.visualViewport) window.visualViewport.removeEventListener('resize', onResize)
   }
   delete window.vandalRush
+  if (sprites) { sprites.destroy(); sprites = null }
+  if (audio) { audio.destroy(); audio = null }
   canvas = ctx = stage = player = null
-  els = {}; obstacles = []; spots = []
+  els = {}; obstacles = []; spots = []; cams = []; buffs = []; picks = []
+  particles = []; parallax = []
   onPointerDown = onPointerUp = onKey = onKeyUp = onClick = onVis = onResize = onTagDown = null
-  lastT = 0; acc = 0; state = 'start'
+  lastT = 0; acc = 0; shake = 0; gameTime = 0; state = 'start'
 }

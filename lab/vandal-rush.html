@@ -50,6 +50,7 @@
           <p class="vr__title">VANDAL RUSH</p>
           <p class="vr__tagline">No te dejes cazar.</p>
           <button class="vr__btn vr__btn--primary" id="vr-play" type="button">PLAY</button>
+          <p class="vr__best-line">BEST <span id="vr-best-start">000M</span></p>
           <p class="vr__hint">Tap para saltar · mantené para más alto · TAG para pintar</p>
           <a class="vr__back" href="/lab" data-vr-exit>← LAB</a>
         </div>
@@ -57,8 +58,12 @@
         <!-- PAUSE screen -->
         <div class="vr__screen vr__screen--pause" id="vr-paused" hidden>
           <p class="vr__title vr__title--sm">PAUSA</p>
-          <button class="vr__btn vr__btn--primary" id="vr-resume" type="button">RESUME</button>
-          <a class="vr__btn vr__btn--ghost" href="/lab" data-vr-exit>EXIT</a>
+          <div class="vr__menu">
+            <button class="vr__btn vr__btn--primary" id="vr-resume" type="button">RESUME</button>
+            <button class="vr__btn vr__btn--ghost" id="vr-restart" type="button">RESTART</button>
+            <button class="vr__btn vr__btn--ghost" id="vr-sound" type="button">SOUND: ON</button>
+            <a class="vr__btn vr__btn--ghost" href="/lab" data-vr-exit>EXIT</a>
+          </div>
         </div>
 
         <!-- BUSTED (game over) screen -->

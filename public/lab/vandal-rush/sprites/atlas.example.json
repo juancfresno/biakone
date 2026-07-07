@@ -1,0 +1,21 @@
+{
+  "_note": "TEMPLATE. Copy to atlas.json, drop sprites.png next to it, adjust the frame rects to your sheet, redeploy. Frames are [x, y, w, h] in sheet pixels (free-form). Alternatively add \"frameSize\": [28,32] and use [col,row] frames for a fixed grid. fps 0 = static (1 frame shown).",
+  "image": "sprites.png",
+  "anims": {
+    "writer-idle":   { "fps": 4,  "frames": [[0, 0, 28, 32], [28, 0, 28, 32]] },
+    "writer-run":    { "fps": 12, "frames": [[0, 32, 28, 32], [28, 32, 28, 32], [56, 32, 28, 32], [84, 32, 28, 32], [112, 32, 28, 32], [140, 32, 28, 32]] },
+    "writer-jump":   { "fps": 0,  "frames": [[0, 64, 28, 32]] },
+    "writer-fall":   { "fps": 0,  "frames": [[28, 64, 28, 32]] },
+    "writer-land":   { "fps": 0,  "frames": [[56, 64, 28, 32]] },
+    "writer-tag":    { "fps": 10, "frames": [[0, 96, 28, 32], [28, 96, 28, 32]] },
+    "writer-caught": { "fps": 0,  "frames": [[0, 128, 28, 32]] },
+
+    "valla":         { "fps": 0,  "frames": [[0, 168, 18, 44]] },
+    "cctv":          { "fps": 4,  "frames": [[24, 168, 22, 14], [24, 184, 22, 14]] },
+    "cop-run":       { "fps": 12, "frames": [[0, 220, 28, 34], [28, 220, 28, 34], [56, 220, 28, 34], [84, 220, 28, 34]] },
+    "buff":          { "fps": 6,  "frames": [[0, 260, 30, 42], [30, 260, 30, 42]] },
+
+    "spray":         { "fps": 0,  "frames": [[120, 168, 10, 16]] },
+    "bolsa":         { "fps": 0,  "frames": [[132, 168, 14, 14]] }
+  }
+}

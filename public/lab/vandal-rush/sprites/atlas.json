@@ -1,0 +1,5 @@
+{
+  "_note": "Inert placeholder. The game keeps drawing colored-rect placeholders while image is empty. To ship real art: set image to your sheet filename (dropped next to this file), fill anims like atlas.example.json, and redeploy.",
+  "image": "",
+  "anims": {}
+}
