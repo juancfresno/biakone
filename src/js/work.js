@@ -126,7 +126,7 @@ function cellHtml (p) {
   const cover = p.images && p.images[0] ? p.images[0].src : '/work/_placeholder.webp'
   return (
     '<button class="work__cell" type="button" data-index="' + p._i + '" ' +
-        'aria-label="' + p.code + ' ' + p.name + '">' +
+        'style="--i:' + p._i + '" aria-label="' + p.code + ' ' + p.name + '">' +
       '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async" draggable="false">' +
       '<span class="work__cell-label"><span class="work__cell-num">' + p.code + '</span> ' + p.name + '</span>' +
     '</button>'
@@ -290,25 +290,17 @@ function applyView (view, animate) {
   if (toolbar) toolbar.querySelectorAll('.work__view-btn').forEach(b =>
     b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'))
   try { sessionStorage.setItem('biako-work-view', view) } catch {}
-  if (!animate) return
-  // Mobile toggle: glitch the incoming view in with the shared VHS effect instead
-  // of the plain per-item stagger. Desktop keeps the stagger; reduced-motion keeps
-  // the plain (instant) swap via runEntrance's own reduced-motion branch.
-  if (window.matchMedia('(max-width: 767px)').matches && !reduceMotion()) {
-    requestAnimationFrame(() => glitchView(view))
-  } else {
-    requestAnimationFrame(() => runEntrance(view))
-  }
+  if (animate) requestAnimationFrame(() => runEntrance(view))
 }
 
-// Glitch the whole incoming view in (mobile). Grid cells are hidden until their
-// first entrance, so make the target's items visible first, then run the shared
-// one-shot glitch on the container.
-function glitchView (view) {
-  const el = view === 'grid' ? grid : list
-  const items = view === 'grid' ? [...grid.querySelectorAll('.work__cell')] : rows
-  if (items.length) gsap.set(items, { clearProps: 'opacity,visibility,transform' })
-  playGlitch(el, 'is-glitch-in')
+// Glitch the mosaic images in (mobile) — per-cell, staggered, using the shared
+// VHS effect (same as the About photos). Cells are hidden until their first
+// entrance, so reveal them, then run the one-shot glitch on the grid.
+function glitchGrid () {
+  const cells = [...grid.querySelectorAll('.work__cell')]
+  if (!cells.length) return
+  gsap.set(cells, { clearProps: 'opacity,visibility,transform' })
+  playGlitch(grid, 'is-glitch-in')
 }
 
 // ─── Entrance coordination ──────────────────────────────────────────────────
@@ -319,7 +311,13 @@ function maybeEnter () {
   if (pageEntered && rowsReady) requestAnimationFrame(() => runEntrance(currentView))
 }
 export function entered () { pageEntered = true; maybeEnter() }
-function runEntrance (view) { view === 'grid' ? enterGrid() : enterList() }
+// LIST is always a clean stagger. GRID glitches its images in on mobile (the
+// shared VHS entrance); desktop keeps the GSAP mosaic rise.
+function runEntrance (view) {
+  if (view !== 'grid') { enterList(); return }
+  if (window.matchMedia('(max-width: 767px)').matches && !reduceMotion()) glitchGrid()
+  else enterGrid()
+}
 
 // List entrance — staggered fade + short rise, expo-out. Rows rest at 0.5 opacity
 // (1 when active), so each animates to its own resting opacity, then hands styling

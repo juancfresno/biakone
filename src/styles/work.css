@@ -117,13 +117,14 @@
 
 /* ─── Shared VHS/RGB-shift glitch reused on mobile ──────────────────────────
    Same keyframes + #work-rgb filter as the centre-image change above (itself
-   the same VHS language as the About photo entrance). Applied to whole views
-   on the list↔grid toggle (glitch-in) and to the drawer image area on close
-   (glitch-out = the same keyframe played in reverse). Mobile only for now. */
+   the same VHS language as the About photo entrance). The GRID/mosaic images
+   glitch in per-cell, staggered exactly like the About photos; the LIST stays
+   clean. The drawer image area glitches OUT on close (same keyframe reversed).
+   Mobile only for now. */
 @media (max-width: 767px) {
-  .work__list.is-glitch-in,
-  .work__grid.is-glitch-in {
+  .work__grid.is-glitch-in .work__cell {
     animation: work-glitch-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    animation-delay: calc(var(--i, 0) * 40ms);
     will-change: transform, filter, opacity, clip-path;
   }
   .drawer__gallery.is-glitch-out {
@@ -132,8 +133,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .work__list.is-glitch-in,
-  .work__grid.is-glitch-in,
+  .work__grid.is-glitch-in .work__cell,
   .drawer__gallery.is-glitch-out { animation: none; }
 }
 
