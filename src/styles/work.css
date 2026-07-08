@@ -115,6 +115,28 @@
   .work__stage.is-glitch .work__stage-scan { animation: none; }
 }
 
+/* ─── Shared VHS/RGB-shift glitch reused on mobile ──────────────────────────
+   Same keyframes + #work-rgb filter as the centre-image change above (itself
+   the same VHS language as the About photo entrance). Applied to whole views
+   on the list↔grid toggle (glitch-in) and to the drawer image area on close
+   (glitch-out = the same keyframe played in reverse). Mobile only for now. */
+@media (max-width: 767px) {
+  .work__list.is-glitch-in,
+  .work__grid.is-glitch-in {
+    animation: work-glitch-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+    will-change: transform, filter, opacity, clip-path;
+  }
+  .drawer__gallery.is-glitch-out {
+    animation: work-glitch-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) reverse both;
+    will-change: transform, filter, opacity, clip-path;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .work__list.is-glitch-in,
+  .work__grid.is-glitch-in,
+  .drawer__gallery.is-glitch-out { animation: none; }
+}
+
 /* ─── LIST VIEW ─── */
 .work__list {
   list-style: none;

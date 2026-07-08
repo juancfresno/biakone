@@ -30,20 +30,25 @@ function buildStage () {
   const SVGNS = 'http://www.w3.org/2000/svg'
 
   // Reusable RGB-split filter (VHS chromatic aberration), toggled by the glitch
-  // keyframes. Lives inside the (swapped) stage so it's SPA-clean.
-  const defs = document.createElementNS(SVGNS, 'svg')
-  defs.setAttribute('class', 'work__stage-defs')
-  defs.setAttribute('aria-hidden', 'true')
-  defs.innerHTML =
-    '<filter id="work-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
-      '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
-      '<feOffset in="r" dx="6" result="ro"/>' +
-      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>' +
-      '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>' +
-      '<feOffset in="b" dx="-6" result="bo"/>' +
-      '<feBlend in="ro" in2="g" mode="screen" result="rg"/>' +
-      '<feBlend in="rg" in2="bo" mode="screen"/>' +
-    '</filter>'
+  // keyframes. Mounted on the SECTION (not the stage) so #work-rgb still resolves
+  // when the stage is display:none (mobile) or when the drawer — re-parented to
+  // <body> — references it. One instance, deduped across SPA re-inits.
+  if (!section.querySelector('.work__stage-defs')) {
+    const defs = document.createElementNS(SVGNS, 'svg')
+    defs.setAttribute('class', 'work__stage-defs')
+    defs.setAttribute('aria-hidden', 'true')
+    defs.innerHTML =
+      '<filter id="work-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
+        '<feOffset in="r" dx="6" result="ro"/>' +
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>' +
+        '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 1 0" result="b"/>' +
+        '<feOffset in="b" dx="-6" result="bo"/>' +
+        '<feBlend in="ro" in2="g" mode="screen" result="rg"/>' +
+        '<feBlend in="rg" in2="bo" mode="screen"/>' +
+      '</filter>'
+    section.appendChild(defs)
+  }
 
   stageImg = document.createElement('img')
   stageImg.className = 'work__stage-img'
@@ -54,7 +59,19 @@ function buildStage () {
   scan.className = 'work__stage-scan'
   scan.setAttribute('aria-hidden', 'true')
 
-  stage.append(defs, stageImg, scan)
+  stage.append(stageImg, scan)
+}
+
+// ─── Shared VHS/RGB-shift glitch ─────────────────────────────────────────────
+// The SAME effect as the centre-image change (work-glitch-in + #work-rgb), which
+// is the same VHS language as the About photo entrance. Reused on mobile for the
+// drawer close (glitch-out) and the list↔grid toggle (glitch-in) so every glitch
+// on the site matches. `cls` maps to a keyframe binding in work.css.
+function playGlitch (el, cls) {
+  if (!el || reduceMotion()) return
+  el.classList.remove(cls)
+  void el.offsetWidth                    // reflow so the one-shot restarts
+  el.classList.add(cls)
 }
 
 function showImage (src) {
@@ -273,7 +290,25 @@ function applyView (view, animate) {
   if (toolbar) toolbar.querySelectorAll('.work__view-btn').forEach(b =>
     b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'))
   try { sessionStorage.setItem('biako-work-view', view) } catch {}
-  if (animate) requestAnimationFrame(() => runEntrance(view))
+  if (!animate) return
+  // Mobile toggle: glitch the incoming view in with the shared VHS effect instead
+  // of the plain per-item stagger. Desktop keeps the stagger; reduced-motion keeps
+  // the plain (instant) swap via runEntrance's own reduced-motion branch.
+  if (window.matchMedia('(max-width: 767px)').matches && !reduceMotion()) {
+    requestAnimationFrame(() => glitchView(view))
+  } else {
+    requestAnimationFrame(() => runEntrance(view))
+  }
+}
+
+// Glitch the whole incoming view in (mobile). Grid cells are hidden until their
+// first entrance, so make the target's items visible first, then run the shared
+// one-shot glitch on the container.
+function glitchView (view) {
+  const el = view === 'grid' ? grid : list
+  const items = view === 'grid' ? [...grid.querySelectorAll('.work__cell')] : rows
+  if (items.length) gsap.set(items, { clearProps: 'opacity,visibility,transform' })
+  playGlitch(el, 'is-glitch-in')
 }
 
 // ─── Entrance coordination ──────────────────────────────────────────────────
@@ -487,6 +522,7 @@ function closeDrawer () {
     if (!closing) return
     closing = false
     drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery'
+    dGallery.classList.remove('is-glitch-out')
   }
   if (openTl) { openTl.kill(); openTl = null }    // stop the open timeline fighting the close
   document.body.classList.remove('drawer-open')   // → un-blurs the page
@@ -495,6 +531,9 @@ function closeDrawer () {
   else {
     gsap.killTweensOf([panel, backdrop])
     gsap.to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' })
+    // Mobile: glitch the image area OUT as the panel leaves — symmetric with the
+    // subtle glitch it enters with, same shared VHS/RGB-shift effect (reversed).
+    if (window.matchMedia('(max-width: 767px)').matches) playGlitch(dGallery, 'is-glitch-out')
     gsap.to(panel, { xPercent: 100, duration: 0.4, ease: 'expo.in', onComplete: done })
     setTimeout(done, 460)                          // guaranteed finish (fallback)
   }
