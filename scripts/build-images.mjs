@@ -24,6 +24,7 @@ const SECTIONS = [
   { name: 'stickers', manifest: 'stickers.json' },
   { name: 'tags',     manifest: 'tags.json' },
   { name: 'about',    manifest: 'about.json' },
+  { name: 'posters',  manifest: 'posters.json' },
 ]
 // `work` is NOT a flat section — it's built by buildWork() below, because each
 // project is a SUBFOLDER (public/work/<NN-slug>/) holding image(s) + meta.json.

@@ -1,73 +1,390 @@
 /* ============================================================
-   HOME — Figma 6166:637.
-   Cutting-mat bg (fixed, full-bleed) + overlay, hero top-left,
-   tag marquee just above the fixed footer.
-
-   The tag marquee + lightbox are the SHARED tags component —
-   see src/styles/tags.css and src/js/tags.js. This file only owns
-   the home-specific layer: background, hero, and marquee position.
+   HOME — Figma frame 6217:4587. Mobile-first; the desktop grid
+   mirrors the two-column Figma composition. Every value references
+   a token. Reuses the shared shell (.intro), the tag marquee
+   (.tags__track) and the shared VHS glitch (about-glitch-in / about-rgb).
    ============================================================ */
 
-/* ─── Background photo + overlay (fixed, full viewport) ───────── */
-.home-bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
+.home-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-40);                 /* 160px between every module/section */
+  /* Full-bleed like the rest of the site — only the shared .intro 24px side
+     padding (--space-6) holds the margins; no extra max-width inset. */
+  /* tag marquee (last child) → 32px → fixed footer */
+  padding-bottom: calc(var(--footer-h) + var(--space-8));
 }
-.home-bg__img {
+
+/* ── On-scroll reveal — the SAME VHS glitch reveal the About photos use ──
+   Reuses about.css's `about-glitch-in` keyframes + `about-scan-flash` scanline
+   flash + the `#about-rgb` RGB-split filter (injected by home-v2.js), so the
+   entrances are identical to the About strip. Staggered per --rv-i, triggered
+   as each element enters the viewport (JS toggles .is-in). ── */
+.hv2-reveal { position: relative; opacity: 0; }
+.hv2-reveal.is-in {
+  animation: about-glitch-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rv-i, 0) * 150ms);   /* clear cascade between steps */
+  will-change: transform, filter, opacity, clip-path;
+}
+/* Scanline flicker overlay — identical to the About cell ::after. */
+.hv2-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  opacity: 0;
+}
+.hv2-reveal.is-in::after {
+  animation: about-scan-flash 0.56s ease-out both;
+  animation-delay: calc(var(--rv-i, 0) * 150ms);
+}
+
+/* ── Section label + hairline divider (Figma: line, label under it) ── */
+.hv2-head {
+  position: relative;
+  border-top: 1px solid var(--border-strong);   /* fallback: mobile / no-JS / reduced-motion */
+  padding-top: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+/* When the shared elastic line is live it replaces the static border (mirrors
+   .work--elastic hiding the row borders). */
+.hv2-head--elastic { border-top-color: transparent; }
+.hv2-elastic-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  width: 100%;
+  overflow: visible;                 /* let the bulge escape the 1px box */
+  color: var(--border-strong);       /* path stroke = currentColor */
+  pointer-events: none;
+}
+.hv2-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hv2-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* 1 · Tagline + character (top-left) */
+.hv2-tophead { display: flex; flex-direction: column; gap: var(--space-8); }
+.hv2-tagline { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* 2 · Welcome block */
+.hv2-welcome-block { display: flex; flex-direction: column; gap: var(--space-4); }  /* welcome → lead = 16px */
+.hv2-welcome {
+  margin: 0;
+  font-family: var(--font-body);
+  font-weight: var(--weight-light);
+  font-size: var(--text-body-md);          /* 16 — Switzer Light */
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+.hv2-lead {
+  margin: 0;
+  max-width: 52ch;
+  font-family: var(--font-body);
+  font-weight: var(--weight-light);
+  font-size: var(--text-body-sm);          /* 14 */
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* 1b · Pixel character — idle frames 1–4, arm-raise frame 5 (home-v2.js).
+   Anchored bottom-left so the wider arm-raise frame extends to the right
+   without shifting the body. Crisp pixels. */
+.hv2-figure {
+  position: relative;
+  width: 48px;
+  height: 72px;                            /* Figma character height */
+}
+.hv2-figure__img {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+/* 2 · Featured piece — vertical slideshow image */
+.hv2-featured { position: relative; margin: 0; width: 100%; }
+.hv2-featured__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 442 / 787;                 /* Figma featured ratio */
+  overflow: hidden;
+  background: var(--neutral-950);
+}
+.hv2-featured__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hv2-featured__name {
+  margin-top: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* 2b · Featured info */
+.hv2-featured-info { display: flex; flex-direction: column; gap: var(--space-4); }
+.hv2-featured__desc {
+  margin: 0;
+  max-width: 46ch;
+  font-family: var(--font-body);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-body-sm);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.hv2-featured__meta {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-family: var(--font-body);           /* body, like the description */
+  font-weight: var(--weight-light);
+  font-size: var(--text-body-sm);          /* 14, matches the description */
+  line-height: 1.5;
+  color: var(--text-tertiary);             /* a touch lower tone than the description */
+}
+.hv2-featured__meta div { display: flex; gap: var(--space-2); }
+.hv2-featured__meta dt { color: var(--text-tertiary); }
+.hv2-featured__meta dt::after { content: " —"; }
+.hv2-featured__meta dd { margin: 0; color: var(--text-tertiary); }
+
+/* 5 · Bottom-left — BIAKO sticker cluster + the piece meta */
+.hv2-foot { display: flex; align-items: flex-end; gap: var(--space-6); flex-wrap: wrap; }
+.hv2-stickers-deco { flex: 0 0 auto; }
+.hv2-stickers-deco__img {
+  display: block;
+  width: auto;
+  height: 72px;                             /* Figma sticker cluster ≈ 79px */
+}
+
+/* 3 · Glitch tag box — dark square, one tag centred */
+.hv2-tagbox { width: 192px; max-width: 100%; }
+.hv2-tagbox__stage {
+  position: relative;
+  width: 192px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  background: var(--neutral-950);          /* #141414 */
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.hv2-tagbox__img {
+  width: 60%;
+  height: auto;
+  object-fit: contain;
+}
+
+/* ============================================================
+   4 · ESCALE WORLD — auto-scrolling conveyor (marquee, same approach
+   as the tag marquee: duplicated track translated -50%, seamless loop,
+   pause on hover). Reveal (fade+rise) sits on the clipping wrapper;
+   the inner track carries the transform animation — no conflict.
+   ============================================================ */
+.hv2-carousel {
+  overflow: hidden;
+  margin-inline: calc(-1 * var(--space-6));   /* bleed to the content edges */
+}
+.hv2-carousel__track {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  width: max-content;
+  will-change: transform;
+  animation: hv2-conveyor 55s linear infinite;
+}
+@keyframes hv2-conveyor {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+@media (hover: hover) and (pointer: fine) {
+  .hv2-carousel[data-marquee]:hover .hv2-carousel__track,
+  .hv2-carousel[data-marquee]:focus-within .hv2-carousel__track { animation-play-state: paused; }
+}
+.hv2-carousel__item {
+  flex: 0 0 auto;
+  margin: 0;
+  width: clamp(150px, 42vw, 213px);        /* Figma item width 213 */
+  aspect-ratio: 213 / 380;
+  overflow: hidden;
+  background: var(--neutral-950);
+}
+.hv2-carousel__item img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center;
-  user-select: none;
-  -webkit-user-drag: none;
 }
-.home-bg__overlay {
+
+/* ============================================================
+   5 · Lower row — Stickers + Lab
+   ============================================================ */
+.hv2-lower { display: flex; flex-direction: column; gap: var(--space-10); }
+.hv2-col { min-width: 0; }
+
+.hv2-stickers__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 442 / 785;                 /* Figma stickers ratio */
+  max-height: 78vh;
+  overflow: hidden;
+  background: var(--neutral-950);
+}
+.hv2-stickers__img {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.2);
-  pointer-events: none;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-/* ─── Home main — full viewport, hero anchored top-left ───────── */
-.home {
-  position: relative;
-  min-height: 100dvh;
-  min-height: 100vh;
-  padding: 0;
+/* Lab preview — reuses the lab-card visual language */
+.hv2-lab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  height: 100%;
+  min-height: 220px;
+  padding: var(--space-6);
+  background: var(--neutral-950);
+  color: var(--neutral-50);
+  text-decoration: none;
+  justify-content: flex-end;
 }
-.home__bio {
-  position: absolute;
-  left: var(--space-6);                                 /* 24px */
-  top: calc(var(--nav-h) + var(--space-2));             /* just under fixed nav */
-  margin: 0;
+.hv2-lab__no {
   font-family: var(--font-ui);
-  font-size: 11px;
-  line-height: 1.4;
-  letter-spacing: 0.04em;
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--neutral-50);                             /* cream, both themes */
-  z-index: 3;
-  pointer-events: none;
+  color: var(--neutral-400);
+}
+.hv2-lab__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(24px, 6vw, 40px);
+  line-height: 1;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+.hv2-lab__tagline {
+  font-family: var(--font-editorial);
+  font-size: var(--text-editorial-md);
+  color: var(--neutral-300);
+}
+.hv2-lab__cta {
+  margin-top: var(--space-3);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--neutral-50);
 }
 
-/* ─── Tag marquee wrapper — fixed above the footer, full-bleed ── */
-.home__tags {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--footer-h) + var(--space-4));       /* clear the footer */
-  z-index: 3;
+/* ============================================================
+   6 · Tag marquee — full-bleed, in flow (shared .tags__track)
+   ============================================================ */
+.hv2-marquee {
   overflow: hidden;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  padding-block: var(--space-2);
 }
 
-/* Home-only: the fixed bg scales slightly under the open lightbox so the
-   blur's transparent edge halo never shows. */
-body.lb-open .home-bg { transform: scale(1.08); }
+/* ── Shared VHS/RGB-shift glitch (reuses about-glitch-in + #about-rgb),
+   applied by JS on each slideshow/tag swap. ── */
+.hv2-glitch { animation: about-glitch-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
-/* ─── Mobile spacing tweaks ───────────────────────────────────── */
-@media (max-width: 640px) {
-  .home__bio { left: var(--space-4); font-size: 10px; }
+/* ============================================================
+   DESKTOP — Figma composition (frame 6217:4587)
+   Left column: tagline + character (top) → welcome (top-aligned with the
+   image top) → BIAKO stickers + right-aligned piece meta (bottom).
+   Right: tag box top-right at the margin; the big image tucked under it
+   (right edge at the tag box's LEFT edge, gap kept on the right); the
+   vertical piece title sits in that gap, bottom-aligned, 16px from the edge.
+   ============================================================ */
+@media (min-width: 900px) {
+  .hv2-hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 439px) 192px;
+    grid-template-areas:
+      "tophead   .         tagbox"
+      "welcome   featured  ."
+      "foot      featured  name";
+    grid-template-rows: auto auto 1fr;
+    column-gap: 0;                     /* image col touches the gap/tag-box col */
+    row-gap: 0;
+    align-items: start;
+  }
+  /* Left-column gutter so the text doesn't butt against the image. */
+  .hv2-tophead, .hv2-welcome-block, .hv2-foot { padding-inline-end: var(--space-4); }
+  .hv2-tophead       { grid-area: tophead; gap: var(--space-16); }  /* tagline → character */
+  .hv2-figure        { margin-bottom: var(--space-8); }  /* character → welcome = 32px (keeps welcome top = image top) */
+  .hv2-welcome-block { grid-area: welcome; align-self: start; }  /* top = image top */
+  .hv2-tagbox        { grid-area: tagbox; justify-self: end; }
+  .hv2-featured      { grid-area: featured; width: 100%; align-self: start; }
+  .hv2-foot          { grid-area: foot; align-self: end; }
+
+  /* Piece meta — right-aligned, its right edge 16px from the image's left edge. */
+  .hv2-foot .hv2-featured-info { flex: 1 1 auto; text-align: right; }
+  .hv2-foot .hv2-featured__desc { max-width: none; margin-left: auto; }
+  .hv2-foot .hv2-featured__meta div { justify-content: flex-end; }
+
+  /* Vertical piece title — in the gap right of the image, bottom-aligned,
+     16px from the right margin (relates to the image row, not the edge). */
+  .hv2-featured__name {
+    grid-area: name;
+    align-self: end;
+    justify-self: end;
+    margin: 0 var(--space-4) var(--space-1) 0;
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+    color: var(--text-tertiary);
+  }
+
+  .hv2-lower {
+    display: grid;
+    grid-template-columns: 442px minmax(0, 1fr);   /* Figma: stickers 442 · lab */
+    column-gap: var(--space-12);
+    align-items: stretch;
+  }
+}
+
+/* ============================================================
+   REDUCED MOTION — reveals + swaps become plain, marquee calmer
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  /* Plain fade fallback — no glitch, no scanline. Still scroll-triggered. */
+  .hv2-reveal { opacity: 0; transition: opacity 0.5s ease; animation: none; }
+  .hv2-reveal.is-in { opacity: 1; animation: none; }
+  .hv2-reveal::after, .hv2-reveal.is-in::after { content: none; animation: none; }
+  .hv2-glitch { animation: none; }
+  /* Stop the conveyor; let the strip be scrolled manually instead. */
+  .hv2-carousel { overflow-x: auto; scrollbar-width: none; }
+  .hv2-carousel::-webkit-scrollbar { display: none; }
+  .hv2-carousel__track { animation: none; }
 }

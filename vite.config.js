@@ -63,9 +63,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         home:     resolve(__dirname, 'index.html'),
-        'home-v2': resolve(__dirname, 'home-v2.html'),
         work:     resolve(__dirname, 'work.html'),
         stickers: resolve(__dirname, 'stickers.html'),
+        posters:  resolve(__dirname, 'posters.html'),
         lab:      resolve(__dirname, 'lab.html'),
         'vandal-rush': resolve(__dirname, 'lab/vandal-rush.html'),
         about:    resolve(__dirname, 'about.html'),

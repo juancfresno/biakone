@@ -12,16 +12,16 @@ import { runTransition } from './transition.js'
 // VFX-JS only loads when you actually visit Stickers) ────────────────────────
 const PAGES = {
   home:     () => import('./home.js'),
-  'home-v2': () => import('./home-v2.js'),
   work:     () => import('./work.js'),
   stickers: () => import('./stickers.js'),
+  posters:  () => import('./posters.js'),
   lab:      () => import('./lab.js'),
   'vandal-rush': () => import('./vandal-rush.js'),
   about:    () => import('./about.js'),
 }   // contact is static — no module
 const TITLES = {
-  home: 'Biakone — Urban Objects, Graffiti & Scale Work', 'home-v2': 'Home v2 — Biakone (preview)', work: 'Work — Biakone', stickers: 'Stickers — Biakone',
-  lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
+  home: 'Biakone — Urban Objects, Graffiti & Scale Work', work: 'Work — Biakone', stickers: 'Stickers — Biakone',
+  posters: 'Posters — Biakone', lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
 let current = null

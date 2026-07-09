@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Posters — Biakone</title>
+  <meta name="description" content="Biako posters — a full-screen rotation of Biakone's poster work: graffiti, urban objects and street-culture prints.">
+  <link rel="canonical" href="https://biakone.com/posters">
+  <meta property="og:title" content="Posters — Biakone">
+  <meta property="og:description" content="Biako posters — a full-screen rotation of Biakone's poster work: graffiti, urban objects and street-culture prints.">
+  <meta property="og:url" content="https://biakone.com/posters">
+  <meta name="twitter:title" content="Posters — Biakone">
+  <meta name="twitter:description" content="Biako posters — a full-screen rotation of Biakone's poster work: graffiti, urban objects and street-culture prints.">
+  <!-- @include partials/head.html -->
+</head>
+<body data-page="posters" data-barba="wrapper">
+
+  <!-- @include partials/grain.html -->
+  <!-- @include partials/nav.html -->
+
+  <div data-barba="container" data-barba-namespace="posters">
+    <main class="posters" aria-label="Posters">
+      <h1 class="sr-only">Posters</h1>
+
+      <!-- Full-viewport poster slideshow (cover). Auto-advances every 6s with the
+           shared VHS glitch; the shell (nav/footer) floats on top. Driven by posters.js. -->
+      <div class="posters__stage" id="posters-stage" aria-hidden="true">
+        <img class="posters__img" alt="" decoding="async">
+      </div>
+
+      <!-- Progress line — fills 0→100% over the 6s interval, resets on each change. -->
+      <div class="posters__progress" aria-hidden="true">
+        <div class="posters__progress-fill" id="posters-progress"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- @include partials/footer.html -->
+
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,69 @@
+/* ============================================================
+   POSTERS — full-viewport poster slideshow. One image covers the
+   whole viewport; the shared shell (fixed nav + footer) floats on
+   top. Auto-advances every 6s with the shared VHS glitch, driven by
+   src/js/posters.js. Progress line fills 0→100% over each interval.
+   Tokens only.
+   ============================================================ */
+
+.posters {
+  position: relative;
+  min-height: 100svh;
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+/* Full-bleed image stage — fixed behind the shell (nav/footer are z-index 20). */
+.posters__stage {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  background: var(--neutral-950);
+}
+.posters__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  will-change: transform, filter, opacity, clip-path;
+}
+
+/* Glitch swap — reuses the shared about-glitch-in keyframes + #about-rgb filter
+   (injected by posters.js), the same VHS transition as Work / Home. */
+.posters__img.is-glitch {
+  animation: about-glitch-in 0.52s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+/* Progress line — thin bar pinned to the bottom of the viewport, above the
+   footer. The fill scales 0→1 over the interval (posters.js drives the timing). */
+.posters__progress {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--footer-h);
+  z-index: 19;
+  height: 2px;
+  background: var(--border-inverse-subtle);   /* faint track over the photo */
+}
+.posters__progress-fill {
+  height: 100%;
+  width: 100%;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: var(--logo-accent);              /* Biako blue */
+  will-change: transform;
+}
+.posters__progress-fill.is-running {
+  animation: posters-progress var(--posters-interval, 6s) linear forwards;
+}
+@keyframes posters-progress {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posters__img.is-glitch { animation: none; }   /* plain swap, keep the auto-advance */
+}
