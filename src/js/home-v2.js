@@ -8,9 +8,11 @@
 // SPA-safe: init() mounts, destroy() tears down every timer / observer / raf.
 
 import { initTags, destroyTags } from './tags.js'
+import { initElasticLines } from './elastic-line.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
+let elasticDestroy = null// shared ElasticLine teardown (section dividers)
 let typeRaf = 0
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
@@ -26,6 +28,11 @@ function ensureRgbFilter () {
   rgbSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
   rgbSvg.setAttribute('class', 'about-defs')
   rgbSvg.setAttribute('aria-hidden', 'true')
+  // A bare inline <svg> defaults to 300×150 and would add scroll height — pin it
+  // to zero so it only carries the filter def (filters resolve regardless).
+  rgbSvg.setAttribute('width', '0')
+  rgbSvg.setAttribute('height', '0')
+  rgbSvg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden'
   rgbSvg.innerHTML =
     '<filter id="about-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
       '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
@@ -39,15 +46,15 @@ function ensureRgbFilter () {
   document.body.appendChild(rgbSvg)
 }
 
-// ─── On-scroll reveal (fade + rise) ─────────────────────────────────────────
+// ─── On-scroll reveal — the About glitch reveal (see home-v2.css) ────────────
 // Scroll-driven (not IntersectionObserver) so an element that is scrolled PAST
 // — including an instant jump to the bottom — still reveals and never stays
 // stuck at opacity 0. An element reveals once its top enters the lower 92% of
-// the viewport (or is already above it).
+// the viewport (or is already above it). CSS decides the visual: the shared
+// about-glitch-in reveal, or a plain fade under prefers-reduced-motion.
 function initReveals () {
   let pending = [...document.querySelectorAll('.hv2-reveal')]
   if (!pending.length) return
-  if (reduceMotion()) { pending.forEach(el => el.classList.add('is-in')); return }
 
   let ticking = false
   const check = () => {
@@ -84,13 +91,7 @@ function slideshow (img, srcs, interval) {
     i = (i + 1) % srcs.length
     const next = srcs[i]
     const pre = new Image()
-    const apply = () => {
-      img.src = next
-      if (reduceMotion()) return
-      img.classList.remove('hv2-glitch')
-      void img.offsetWidth               // reflow → restart the one-shot glitch
-      img.classList.add('hv2-glitch')
-    }
+    const apply = () => { img.src = next; glitch(img) }
     pre.onload = apply; pre.onerror = apply; pre.src = next
   }
   timers.push(setInterval(swap, interval))
@@ -137,28 +138,54 @@ function typewriter () {
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
+// Restart the shared VHS glitch on an element (one-shot).
+function glitch (el) {
+  if (!el || reduceMotion()) return
+  el.classList.remove('hv2-glitch')
+  void el.offsetWidth
+  el.classList.add('hv2-glitch')
+}
+
+// Featured = a slider through the MAIN image (01) of EVERY piece. On each advance
+// the image AND the vertical name label glitch and swap together (in sync); the
+// info block (description + Materials/Scale/Status) follows the shown piece too.
 function fillFeatured (items) {
   if (!items.length) return
-  // Latest piece = highest code (folder-driven manifest is already ordered).
-  const p = items.reduce((a, b) =>
-    (parseInt(b.code, 10) || 0) >= (parseInt(a.code, 10) || 0) ? b : a, items[0])
-  const imgs = (p.images || []).map(im => im.src).filter(Boolean)
-
-  if (els.featStage) {
-    const img = els.featStage.querySelector('.hv2-featured__img')
-    slideshow(img, imgs.length ? imgs : ['/work/_placeholder.webp'], 3200)
-  }
+  const pieces = items.map(p => ({
+    src: (p.images && p.images[0] && p.images[0].src) || '/work/_placeholder.webp',
+    name: [p.name, p.type].filter(Boolean).join(' — '),
+    desc: p.description || '',
+    meta: [['Materials', p.materials], ['Scale', p.scale], ['Status', p.status]].filter(([, v]) => v),
+  }))
+  const img    = els.featStage && els.featStage.querySelector('.hv2-featured__img')
   const nameEl = document.querySelector('[data-name]')
-  if (nameEl) nameEl.textContent = [p.name, p.type].filter(Boolean).join(' — ')
   const descEl = document.querySelector('[data-desc]')
-  if (descEl) descEl.textContent = p.description || ''
   const metaEl = document.querySelector('[data-meta]')
-  if (metaEl) {
-    const rows = [['Materials', p.materials], ['Scale', p.scale], ['Status', p.status]]
-      .filter(([, v]) => v)
-    metaEl.innerHTML = rows
+
+  const paint = (p) => {
+    if (img) img.src = p.src
+    if (nameEl) nameEl.textContent = p.name
+    if (descEl) descEl.textContent = p.desc
+    if (metaEl) metaEl.innerHTML = p.meta
       .map(([k, v]) => '<div><dt>' + esc(k) + '</dt><dd>' + esc(v) + '</dd></div>').join('')
   }
+
+  paint(pieces[0])          // start on the first piece's 01
+  if (pieces.length < 2) return
+
+  let i = 0
+  const advance = () => {
+    i = (i + 1) % pieces.length
+    const p = pieces[i]
+    const pre = new Image()
+    const apply = () => {
+      paint(p)              // new image + new name + info appear together…
+      glitch(img)           // …and the image + name glitch in sync
+      glitch(nameEl)
+    }
+    pre.onload = apply; pre.onerror = apply; pre.src = p.src
+  }
+  timers.push(setInterval(advance, 3200))
 }
 
 function fillCarousel (items) {
@@ -189,6 +216,13 @@ export function init () {
 
   ensureRgbFilter()
   initReveals()
+
+  // Section dividers (Escale World / Stickers / Lab) get the SAME elastic
+  // drag/bounce line as the Work list rows (shared elastic-line.js). Desktop /
+  // fine-pointer only; the static CSS border is the fallback otherwise.
+  elasticDestroy = initElasticLines(
+    document.querySelectorAll('.hv2-head'),
+    { className: 'hv2-elastic-line', activeClass: 'hv2-head--elastic' })
 
   // Work manifest → featured slideshow + Escale World carousel.
   fetch('/work.json', { cache: 'no-cache' })
@@ -226,6 +260,7 @@ export function entered () {
 export function destroy () {
   timers.forEach(clearInterval); timers = []
   if (revealCleanup) revealCleanup()
+  if (elasticDestroy) { elasticDestroy(); elasticDestroy = null }
   cancelAnimationFrame(typeRaf); typeRaf = 0
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}

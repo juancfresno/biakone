@@ -9,30 +9,58 @@
 body[data-page="home-v2"] .home-v2 {
   display: flex;
   flex-direction: column;
-  gap: var(--space-16);
+  gap: var(--space-40);                 /* 160px between every module/section */
   max-width: 1440px;
   margin-inline: auto;
+  /* tag marquee (last child) → 32px → fixed footer */
+  padding-bottom: calc(var(--footer-h) + var(--space-8));
 }
 
-/* ── On-scroll reveal — fade + rise, STAGGERED (JS toggles .is-in) ──
-   Items reveal as they enter the viewport; grouped items that enter together
-   (hero elements, lower columns) cascade via a per-item --rv-i delay. ── */
-.hv2-reveal {
-  opacity: 0;
-  transform: translateY(24px);
-  transition-property: opacity, transform;
-  transition-duration: 0.6s;
-  transition-timing-function: cubic-bezier(0.2, 0.7, 0.2, 1);
-  transition-delay: calc(var(--rv-i, 0) * 70ms);
-  will-change: opacity, transform;
+/* ── On-scroll reveal — the SAME VHS glitch reveal the About photos use ──
+   Reuses about.css's `about-glitch-in` keyframes + `about-scan-flash` scanline
+   flash + the `#about-rgb` RGB-split filter (injected by home-v2.js), so the
+   entrances are identical to the About strip. Staggered per --rv-i, triggered
+   as each element enters the viewport (JS toggles .is-in). ── */
+.hv2-reveal { position: relative; opacity: 0; }
+.hv2-reveal.is-in {
+  animation: about-glitch-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rv-i, 0) * 80ms);
+  will-change: transform, filter, opacity, clip-path;
 }
-.hv2-reveal.is-in { opacity: 1; transform: none; }
+/* Scanline flicker overlay — identical to the About cell ::after. */
+.hv2-reveal::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  opacity: 0;
+}
+.hv2-reveal.is-in::after {
+  animation: about-scan-flash 0.56s ease-out both;
+  animation-delay: calc(var(--rv-i, 0) * 80ms);
+}
 
 /* ── Section label + hairline divider (Figma: line, label under it) ── */
 .hv2-head {
-  border-top: 1px solid var(--border-strong);
+  position: relative;
+  border-top: 1px solid var(--border-strong);   /* fallback: mobile / no-JS / reduced-motion */
   padding-top: var(--space-3);
   margin-bottom: var(--space-5);
+}
+/* When the shared elastic line is live it replaces the static border (mirrors
+   .work--elastic hiding the row borders). */
+.hv2-head--elastic { border-top-color: transparent; }
+.hv2-elastic-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  width: 100%;
+  overflow: visible;                 /* let the bulge escape the 1px box */
+  color: var(--border-strong);       /* path stroke = currentColor */
+  pointer-events: none;
 }
 .hv2-label {
   font-family: var(--font-ui);
@@ -303,7 +331,10 @@ body[data-page="home-v2"] .home-v2 {
    REDUCED MOTION — reveals + swaps become plain, marquee calmer
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
-  .hv2-reveal { opacity: 1; transform: none; transition: none; }
+  /* Plain fade fallback — no glitch, no scanline. Still scroll-triggered. */
+  .hv2-reveal { opacity: 0; transition: opacity 0.5s ease; animation: none; }
+  .hv2-reveal.is-in { opacity: 1; animation: none; }
+  .hv2-reveal::after, .hv2-reveal.is-in::after { content: none; animation: none; }
   .hv2-glitch { animation: none; }
   .hv2-caret { animation: none; }
   /* Stop the conveyor; let the strip be scrolled manually instead. */
