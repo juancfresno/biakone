@@ -12,7 +12,6 @@ import { initTags, destroyTags } from './tags.js'
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
 let typeRaf = 0
-let dragCleanup = []
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
 let started = false      // slideshows started once (post-entrance)
@@ -134,38 +133,6 @@ function typewriter () {
   typeRaf = requestAnimationFrame(step)
 }
 
-// ─── Drag-to-pan for the carousel (same pattern as About's strip) ───────────
-function enableDrag (el) {
-  let down = false, startX = 0, startScroll = 0, moved = 0
-  const onDown = (e) => {
-    if (e.pointerType !== 'mouse') return
-    down = true; moved = 0; startX = e.clientX; startScroll = el.scrollLeft
-    el.setPointerCapture(e.pointerId)
-  }
-  const onMove = (e) => {
-    if (!down) return
-    const dx = e.clientX - startX
-    if (Math.abs(dx) > 3) el.classList.add('is-dragging')
-    moved = Math.max(moved, Math.abs(dx))
-    el.scrollLeft = startScroll - dx
-  }
-  const end = (e) => {
-    if (!down) return
-    down = false; el.classList.remove('is-dragging')
-    try { el.releasePointerCapture(e.pointerId) } catch {}
-  }
-  el.addEventListener('pointerdown', onDown)
-  el.addEventListener('pointermove', onMove)
-  el.addEventListener('pointerup', end)
-  el.addEventListener('pointercancel', end)
-  dragCleanup.push(() => {
-    el.removeEventListener('pointerdown', onDown)
-    el.removeEventListener('pointermove', onMove)
-    el.removeEventListener('pointerup', end)
-    el.removeEventListener('pointercancel', end)
-  })
-}
-
 // ─── Data-driven displays ───────────────────────────────────────────────────
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -195,14 +162,18 @@ function fillFeatured (items) {
 }
 
 function fillCarousel (items) {
-  if (!els.carousel) return
-  els.carousel.innerHTML = items.map((p) => {
+  if (!els.carousel || !items.length) return
+  const card = (p) => {
     const cover = p.images && p.images[0] ? p.images[0].src : '/work/_placeholder.webp'
-    return '<figure class="hv2-carousel__item" role="listitem">' +
+    return '<figure class="hv2-carousel__item">' +
       '<img src="' + cover + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async" draggable="false">' +
       '</figure>'
-  }).join('')
-  enableDrag(els.carousel)
+  }
+  // Duplicate the set so the -50% conveyor loops seamlessly (tag-marquee trick).
+  const half = items.map(card).join('')
+  els.carousel.innerHTML = '<div class="hv2-carousel__track">' + half + half + '</div>'
+  const all = els.carousel.querySelectorAll('.hv2-carousel__item')
+  for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -256,7 +227,6 @@ export function destroy () {
   timers.forEach(clearInterval); timers = []
   if (revealCleanup) revealCleanup()
   cancelAnimationFrame(typeRaf); typeRaf = 0
-  dragCleanup.forEach(fn => fn()); dragCleanup = []
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
   destroyTags()

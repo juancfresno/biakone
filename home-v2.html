@@ -26,7 +26,7 @@
         </div>
 
         <!-- 2 · FEATURED PIECE — auto-playing slideshow of the latest work piece -->
-        <figure class="hv2-featured hv2-reveal">
+        <figure class="hv2-featured hv2-reveal" style="--rv-i:0">
           <div class="hv2-featured__stage" id="hv2-featured-stage" aria-hidden="true">
             <img class="hv2-featured__img" alt="" decoding="async">
           </div>
@@ -34,28 +34,29 @@
         </figure>
 
         <!-- 2b · FEATURED INFO — name/description/meta from the work manifest -->
-        <div class="hv2-featured-info hv2-reveal">
+        <div class="hv2-featured-info hv2-reveal" style="--rv-i:1">
           <p class="hv2-featured__desc" data-desc></p>
           <dl class="hv2-featured__meta" data-meta></dl>
         </div>
 
         <!-- 3 · GLITCH TAG BOX — one tag centred, glitch-swapping on a loop -->
-        <div class="hv2-tagbox hv2-reveal">
+        <div class="hv2-tagbox hv2-reveal" style="--rv-i:2">
           <div class="hv2-tagbox__stage" id="hv2-tagbox" aria-hidden="true">
             <img class="hv2-tagbox__img" alt="" decoding="async">
           </div>
         </div>
       </section>
 
-      <!-- 4 · ESCALE WORLD — horizontal carousel of every work piece (image 01) -->
-      <section class="hv2-section hv2-reveal" aria-label="Escale World">
-        <div class="hv2-head"><span class="hv2-label">Escale World</span></div>
-        <div class="hv2-carousel" id="hv2-carousel" role="list"><!-- injected --></div>
+      <!-- 4 · ESCALE WORLD — auto-scrolling conveyor of every work piece (image 01) -->
+      <section class="hv2-section" aria-label="Escale World">
+        <div class="hv2-head hv2-reveal" style="--rv-i:0"><span class="hv2-label">Escale World</span></div>
+        <div class="hv2-carousel hv2-reveal" id="hv2-carousel" data-marquee style="--rv-i:1"
+             aria-label="Escale World carousel"><!-- track injected --></div>
       </section>
 
       <!-- 5 · Lower row: Stickers (cycling strip) + Lab preview -->
       <section class="hv2-lower">
-        <div class="hv2-col hv2-reveal" aria-label="Stickers">
+        <div class="hv2-col hv2-reveal" style="--rv-i:0" aria-label="Stickers">
           <div class="hv2-head"><span class="hv2-label">Stickers</span></div>
           <div class="hv2-stickers">
             <div class="hv2-stickers__stage" id="hv2-stickers" aria-hidden="true">
@@ -64,7 +65,7 @@
           </div>
         </div>
 
-        <div class="hv2-col hv2-reveal" aria-label="Lab">
+        <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Lab">
           <div class="hv2-head"><span class="hv2-label">Lab</span></div>
           <a class="hv2-lab" href="/lab">
             <span class="hv2-lab__no">LAB / 01</span>
