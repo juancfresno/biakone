@@ -122,7 +122,7 @@
   transition: transform 380ms cubic-bezier(0.18, 0.9, 0.24, 1);
   will-change: transform;
 }
-body.lb-open > *:not(.lightbox):not(script) {
+body.lb-open > *:not(.lightbox):not(.biako-cursor):not(script) {
   filter: blur(30px);
   transition: filter 320ms ease;
 }

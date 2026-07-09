@@ -375,7 +375,7 @@
 /* When open, blur + dim the whole page (nav, footer, content, grain) — every
    direct child of <body> EXCEPT the drawer, which work.js re-parents to <body>
    so it sits above the fixed shell and outside the filtered layer (stays sharp). */
-body.drawer-open > *:not(#work-drawer):not(script) {
+body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   filter: blur(7px);                 /* Figma backdrop-blur */
   transition: filter 360ms ease;
 }

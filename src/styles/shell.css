@@ -24,8 +24,10 @@
   height: 100%;
   pointer-events: none;              /* never blocks clicks/hover/drag */
   user-select: none;
-  z-index: 9998;                     /* above nav/lightbox/drawer; below the
-                                        page-swap overlay (transition.css 10000) */
+  z-index: 10001;                    /* on top of EVERYTHING — nav, lightbox,
+                                        drawer AND the page-swap overlay
+                                        (transition.css 10000) — so the cursor
+                                        never hides behind an overlay/backdrop */
 }
 @media (pointer: coarse) { .biako-cursor { display: none; } }
 
@@ -452,3 +454,23 @@ body[data-page="home"] .theme-toggle:hover { color: #ffffff; }
   color: var(--neutral-50);        /* cream at rest — legible over the blurred dim */
   cursor: pointer;
 }
+
+/* ESC hint — small muted label pinned TOP-LEFT of an overlay, mirroring the
+   top-right CLOSE (same top margin, same type). Reads: left "PRESS ESC TO
+   CLOSE" · right "CLOSE". Fine-pointer only (touch has no Esc key). */
+.overlay-esc-hint {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  z-index: 5;                      /* same layer as .overlay-close */
+  display: none;                   /* shown only where an Esc key exists */
+  font-family: var(--font-ui);     /* Geist Mono */
+  font-size: var(--text-ui-sm);    /* 11px — matches CLOSE */
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--neutral-50);
+  opacity: 0.5;                    /* muted/subtle, still legible over the dim */
+  pointer-events: none;            /* purely informational */
+  user-select: none;
+}
+@media (pointer: fine) { .overlay-esc-hint { display: block; } }
