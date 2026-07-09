@@ -12,6 +12,31 @@
 }
 
 /* ================================================================
+   CUSTOM CURSOR — RGB-glitch arrow ported from juancfresno
+   (src/components/ui/Cursor/Cursor.tsx). A full-screen fixed canvas
+   that follows the pointer; shell.js drives it. Desktop / fine-pointer
+   only — on touch there is no custom cursor and the OS cursor stays.
+   ================================================================ */
+.biako-cursor {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;              /* never blocks clicks/hover/drag */
+  user-select: none;
+  z-index: 9998;                     /* above nav/lightbox/drawer; below the
+                                        page-swap overlay (transition.css 10000) */
+}
+@media (pointer: coarse) { .biako-cursor { display: none; } }
+
+/* Hide the OS cursor on fine-pointer devices — the canvas draws it instead.
+   The per-element custom cursors (About wordmark, drawer DRAG chip) already
+   set `cursor: none` themselves, so this is consistent with them. */
+@media (pointer: fine) {
+  *, *::before, *::after { cursor: none !important; }
+}
+
+/* ================================================================
    TOP NAV — fixed to viewport top
    ================================================================ */
 .top {

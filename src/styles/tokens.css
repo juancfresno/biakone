@@ -66,6 +66,14 @@
   --logo-accent: #003DFF;
   --logo-fresno-accent: var(--logo-accent); /* legacy alias */
 
+  /* custom cursor — RGB-glitch arrow ported from the portfolio (Cursor.tsx).
+     The main stroke is Biako ink; the R/G/B channels are the chromatic-
+     aberration split (kept vivid so the glitch reads). Theme-independent. */
+  --cursor-main:     var(--neutral-50);   /* was #fcfcf7 → Biako cream ink */
+  --cursor-glitch-r: #ff0033;             /* red channel   (chromatic split) */
+  --cursor-glitch-g: #00ff88;             /* green channel (chromatic split) */
+  --cursor-glitch-b: var(--logo-accent);  /* #003DFF — exact Biako logo blue  */
+
   /* feedback (for Shop / forms later) */
   --feedback-success: #38AE7A;
   --feedback-warning: #E0AC3A;
