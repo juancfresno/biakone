@@ -71,18 +71,22 @@ body[data-page="home-v2"] .home-v2 {
 }
 
 /* ============================================================
-   1–3 · HERO
+   HERO
    ============================================================ */
 .hv2-hero {
   display: flex;
   flex-direction: column;
-  gap: var(--space-8);
+  gap: var(--space-6);
 }
 
-/* 1 · Intro (typed) */
-.hv2-intro { display: flex; flex-direction: column; gap: var(--space-2); }
+/* 1 · Tagline + character (top-left) */
+.hv2-tophead { display: flex; flex-direction: column; gap: var(--space-8); }
+.hv2-tagline { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* 2 · Welcome block */
+.hv2-welcome-block { display: flex; flex-direction: column; gap: var(--space-1); }
 .hv2-welcome {
-  margin: var(--space-4) 0 0;
+  margin: 0;
   font-family: var(--font-body);
   font-weight: var(--weight-light);
   font-size: var(--text-body-md);          /* 16 — Switzer Light */
@@ -90,7 +94,7 @@ body[data-page="home-v2"] .home-v2 {
   color: var(--text-primary);
 }
 .hv2-lead {
-  margin: var(--space-1) 0 0;
+  margin: 0;
   max-width: 46ch;
   font-family: var(--font-body);
   font-weight: var(--weight-light);
@@ -167,6 +171,15 @@ body[data-page="home-v2"] .home-v2 {
 .hv2-featured__meta dt { color: var(--text-tertiary); }
 .hv2-featured__meta dt::after { content: " —"; }
 .hv2-featured__meta dd { margin: 0; color: var(--text-secondary); }
+
+/* 5 · Bottom-left — BIAKO sticker cluster + the piece meta */
+.hv2-foot { display: flex; align-items: flex-end; gap: var(--space-6); flex-wrap: wrap; }
+.hv2-stickers-deco { flex: 0 0 auto; }
+.hv2-stickers-deco__img {
+  display: block;
+  width: auto;
+  height: 72px;                             /* Figma sticker cluster ≈ 79px */
+}
 
 /* 3 · Glitch tag box — dark square, one tag centred */
 .hv2-tagbox { width: 192px; max-width: 100%; }
@@ -309,37 +322,45 @@ body[data-page="home-v2"] .home-v2 {
 
 /* ============================================================
    DESKTOP — Figma composition (frame 6217:4587)
-   Left column: intro → pixel character → piece description (bottom).
-   Right: tag box pinned top-right at the margin; the big image tucked
-   under it — its right edge at the tag box's LEFT edge, leaving the gap
-   on the right where the vertical piece name sits.
+   Left column: tagline + character (top) → welcome (top-aligned with the
+   image top) → BIAKO stickers + right-aligned piece meta (bottom).
+   Right: tag box top-right at the margin; the big image tucked under it
+   (right edge at the tag box's LEFT edge, gap kept on the right); the
+   vertical piece title sits in that gap, bottom-aligned, 16px from the edge.
    ============================================================ */
 @media (min-width: 900px) {
   .hv2-hero {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(300px, 439px) 192px;
     grid-template-areas:
-      "intro   .         tagbox"
-      "figure  featured  name"
-      "desc    featured  name";
+      "tophead   .         tagbox"
+      "welcome   featured  ."
+      "foot      featured  name";
+    grid-template-rows: auto auto 1fr;
     column-gap: 0;                     /* image col touches the gap/tag-box col */
     row-gap: 0;
     align-items: start;
   }
-  /* Left-column gutter so the text/character don't butt against the image. */
-  .hv2-intro, .hv2-figure, .hv2-featured-info { padding-inline-end: var(--space-16); }
-  .hv2-intro         { grid-area: intro; }
-  .hv2-figure        { grid-area: figure; margin-top: var(--space-10); }
+  /* Left-column gutter so the text doesn't butt against the image. */
+  .hv2-tophead, .hv2-welcome-block, .hv2-foot { padding-inline-end: var(--space-4); }
+  .hv2-tophead       { grid-area: tophead; gap: var(--space-16); }  /* tagline → character */
+  .hv2-welcome-block { grid-area: welcome; align-self: start; }  /* top = image top */
   .hv2-tagbox        { grid-area: tagbox; justify-self: end; }
-  .hv2-featured      { grid-area: featured; width: 100%; }   /* right edge = tag box left edge */
-  .hv2-featured-info { grid-area: desc; align-self: end; margin-bottom: var(--space-4); }
+  .hv2-featured      { grid-area: featured; width: 100%; align-self: start; }
+  .hv2-foot          { grid-area: foot; align-self: end; }
 
-  /* Vertical piece name — lives in the gap to the right of the image. */
+  /* Piece meta — right-aligned, its right edge 16px from the image's left edge. */
+  .hv2-foot .hv2-featured-info { flex: 1 1 auto; text-align: right; }
+  .hv2-foot .hv2-featured__desc { max-width: none; margin-left: auto; }
+  .hv2-foot .hv2-featured__meta div { justify-content: flex-end; }
+
+  /* Vertical piece title — in the gap right of the image, bottom-aligned,
+     16px from the right margin (relates to the image row, not the edge). */
   .hv2-featured__name {
     grid-area: name;
     align-self: end;
-    justify-self: start;
-    margin: 0 0 var(--space-6) var(--space-5);
+    justify-self: end;
+    margin: 0 var(--space-4) var(--space-1) 0;
     writing-mode: vertical-rl;
     white-space: nowrap;
     color: var(--text-tertiary);

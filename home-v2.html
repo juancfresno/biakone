@@ -15,22 +15,29 @@
     <main class="intro home-v2">
       <h1 class="sr-only">Biakone — Home (v2 preview)</h1>
 
-      <!-- ── HERO: intro (types itself) · pixel character · glitch tag box ·
-           featured piece (tucked under the tag box, gap kept on the right) ── -->
+      <!-- ── HERO — Figma 6217:4587. Left column top→bottom: tagline, pixel
+           character, welcome (welcome top-aligned with the image top), then the
+           right-aligned piece meta + BIAKO stickers at the bottom. Right: tag box
+           top-right, big image tucked under it, vertical piece title in the gap. ── -->
       <section class="hv2-hero">
 
-        <!-- 1 · INTRO — bio + welcome + lead, enters with the shared VHS glitch -->
-        <div class="hv2-intro hv2-reveal" style="--rv-i:0">
-          <p class="intro__bio">Visual Artist — Designer</p>
-          <p class="intro__bio">↘ Urban objects, graffiti &amp; scale work</p>
-          <p class="hv2-welcome">Welcome, outsider.</p>
-          <p class="hv2-lead">Everything starts with a tag. Then come the objects, the stickers, the miniatures, the weird things and the rest of the noise.</p>
+        <!-- 1 · TOP-LEFT — tagline + pixel character (between tagline and welcome) -->
+        <div class="hv2-tophead">
+          <div class="hv2-tagline hv2-reveal" style="--rv-i:0">
+            <p class="intro__bio">Visual Artist — Designer</p>
+            <p class="intro__bio">↘ Urban objects, graffiti &amp; scale work</p>
+          </div>
+          <!-- PIXEL CHARACTER — idle (frames 1–4); raises its arm on hover /
+               cursor proximity (frame 5). Driven by home-v2.js. -->
+          <div class="hv2-figure" id="hv2-figure" aria-hidden="true">
+            <img class="hv2-figure__img" alt="" decoding="async">
+          </div>
         </div>
 
-        <!-- 1b · PIXEL CHARACTER — idle breathe/blink (frames 1–4); raises its arm
-             on hover / cursor proximity (frame 5). Driven by home-v2.js. -->
-        <div class="hv2-figure" id="hv2-figure" aria-hidden="true">
-          <img class="hv2-figure__img" alt="" decoding="async">
+        <!-- 2 · WELCOME — top-aligned with the image top -->
+        <div class="hv2-welcome-block hv2-reveal" style="--rv-i:0">
+          <p class="hv2-welcome">Welcome, outsider.</p>
+          <p class="hv2-lead">Everything starts with a tag. Then come the objects, the stickers, the miniatures, the weird things and the rest of the noise.</p>
         </div>
 
         <!-- 3 · GLITCH TAG BOX — pinned top-right, one tag glitch-swapping on a loop -->
@@ -40,20 +47,25 @@
           </div>
         </div>
 
-        <!-- 2 · FEATURED PIECE — slider through every piece's image 01 -->
+        <!-- 4 · FEATURED PIECE — slider through every piece's image 01 -->
         <figure class="hv2-featured hv2-reveal" style="--rv-i:2">
           <div class="hv2-featured__stage" id="hv2-featured-stage" aria-hidden="true">
             <img class="hv2-featured__img" alt="" decoding="async">
           </div>
         </figure>
 
-        <!-- 2b · vertical piece name — sits in the gap to the right of the image -->
+        <!-- 4b · vertical piece title — in the gap to the right of the image -->
         <div class="hv2-featured__name hv2-reveal" data-name style="--rv-i:2"></div>
 
-        <!-- 2c · FEATURED INFO — description/meta, bottom-left under the image -->
-        <div class="hv2-featured-info hv2-reveal" style="--rv-i:2">
-          <p class="hv2-featured__desc" data-desc></p>
-          <dl class="hv2-featured__meta" data-meta></dl>
+        <!-- 5 · BOTTOM-LEFT — BIAKO stickers + right-aligned piece meta (synced) -->
+        <div class="hv2-foot">
+          <div class="hv2-stickers-deco" aria-hidden="true">
+            <img class="hv2-stickers-deco__img" src="/home/biako-stickers.svg" alt="" decoding="async">
+          </div>
+          <div class="hv2-featured-info hv2-reveal" style="--rv-i:2">
+            <p class="hv2-featured__desc" data-desc></p>
+            <dl class="hv2-featured__meta" data-meta></dl>
+          </div>
         </div>
       </section>
 
