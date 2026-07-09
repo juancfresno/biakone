@@ -5,10 +5,11 @@
 // plus the existing click-drag pan and the shared tag marquee + lightbox.
 // Everything cleans up on leave (SPA-safe).
 import { initTags, destroyTags } from './tags.js'
+import { typewrite } from './typewriter.js'
 
 let strip, cursorEl, rgbSvg
 let pageEntered = false, cellsReady = false, typed = false
-let typeRaf = 0, cursorRaf = 0
+let typeCancel = null, cursorRaf = 0
 let cleanupFns = []
 
 function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }
@@ -76,43 +77,12 @@ function maybeReveal () {
 }
 
 // ─── Terminal-style typewriter for the body copy ────────────────────────────
+// Uses the shared typewriter (src/js/typewriter.js) — the SAME effect the
+// home-v2 intro uses, so the two match exactly.
 function typewriter () {
   if (typed) return
-  const body = document.querySelector('.about__body')
-  if (!body) return
-  const ps = [...body.querySelectorAll('p')]
-  if (!ps.length) return
   typed = true
-  if (reduceMotion()) return          // full text stays instantly
-
-  const texts = ps.map(p => p.textContent)
-  const total = texts.reduce((a, t) => a + t.length, 0)
-  if (!total) return
-  body.style.minHeight = body.offsetHeight + 'px'   // reserve height → no reflow jump
-  ps.forEach(p => { p.textContent = '' })
-
-  const caret = document.createElement('span')
-  caret.className = 'about__caret'
-  caret.setAttribute('aria-hidden', 'true')
-  caret.textContent = '▍'
-
-  const CPS = 260                      // characters/sec — fast, terminal-style
-  const t0 = performance.now()
-  const step = (now) => {
-    const show = Math.floor((now - t0) / 1000 * CPS)
-    let rem = show, placed = false
-    for (let i = 0; i < ps.length; i++) {
-      const t = texts[i]
-      const n = Math.max(0, Math.min(t.length, rem))
-      ps[i].textContent = t.slice(0, n)
-      if (!placed && n < t.length) { ps[i].appendChild(caret); placed = true }
-      rem -= t.length
-    }
-    if (!placed) ps[ps.length - 1].appendChild(caret)
-    if (show < total) { typeRaf = requestAnimationFrame(step) }
-    else { caret.remove(); body.style.minHeight = '' }
-  }
-  typeRaf = requestAnimationFrame(step)
+  typeCancel = typewrite(document.querySelector('.about__body'), { caretClass: 'about__caret' })
 }
 
 // ─── Custom cursor: BIAKO wordmark over the strip (fine-pointer only) ────────
@@ -172,7 +142,7 @@ export function entered () {
 }
 
 export function destroy () {
-  cancelAnimationFrame(typeRaf); typeRaf = 0
+  if (typeCancel) { typeCancel(); typeCancel = null }
   cancelAnimationFrame(cursorRaf); cursorRaf = 0
   cleanupFns.forEach(fn => fn()); cleanupFns = []
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }

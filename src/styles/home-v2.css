@@ -10,8 +10,8 @@ body[data-page="home-v2"] .home-v2 {
   display: flex;
   flex-direction: column;
   gap: var(--space-40);                 /* 160px between every module/section */
-  max-width: 1440px;
-  margin-inline: auto;
+  /* Full-bleed like the rest of the site — only the shared .intro 24px side
+     padding (--space-6) holds the margins; no extra max-width inset. */
   /* tag marquee (last child) → 32px → fixed footer */
   padding-bottom: calc(var(--footer-h) + var(--space-8));
 }
@@ -24,7 +24,7 @@ body[data-page="home-v2"] .home-v2 {
 .hv2-reveal { position: relative; opacity: 0; }
 .hv2-reveal.is-in {
   animation: about-glitch-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--rv-i, 0) * 80ms);
+  animation-delay: calc(var(--rv-i, 0) * 150ms);   /* clear cascade between steps */
   will-change: transform, filter, opacity, clip-path;
 }
 /* Scanline flicker overlay — identical to the About cell ::after. */
@@ -38,7 +38,7 @@ body[data-page="home-v2"] .home-v2 {
 }
 .hv2-reveal.is-in::after {
   animation: about-scan-flash 0.56s ease-out both;
-  animation-delay: calc(var(--rv-i, 0) * 80ms);
+  animation-delay: calc(var(--rv-i, 0) * 150ms);
 }
 
 /* ── Section label + hairline divider (Figma: line, label under it) ── */
@@ -293,30 +293,36 @@ body[data-page="home-v2"] .home-v2 {
    DESKTOP — two-column Figma composition
    ============================================================ */
 @media (min-width: 900px) {
+  /* Right column is EXACTLY the image width (442). The tag box sits top-right,
+     the big image directly beneath it — both flush to the same right edge (the
+     page's 24px margin), tag box's bottom edge meeting the image's top edge
+     (row-gap 0 → corners match). */
   .hv2-hero {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 480px);
+    grid-template-columns: minmax(0, 1fr) 442px;
     grid-template-areas:
       "intro  tagbox"
       "info   featured";
     column-gap: var(--space-16);
-    row-gap: var(--space-10);
+    row-gap: 0;
     align-items: start;
   }
   .hv2-intro         { grid-area: intro; }
   .hv2-tagbox        { grid-area: tagbox; justify-self: end; }
-  .hv2-featured-info { grid-area: info; }
-  .hv2-featured      { grid-area: featured; justify-self: end; max-width: 442px; }
+  .hv2-featured-info { grid-area: info; margin-top: var(--space-6); }
+  .hv2-featured      { grid-area: featured; justify-self: end; width: 442px; }
 
-  /* Featured name as a vertical label on the image's right edge (Figma). */
-  .hv2-featured { padding-right: var(--space-8); }
+  /* Featured name — vertical label overlaid on the image's top-right corner,
+     legible over the photo. */
   .hv2-featured__name {
     position: absolute;
-    top: 0;
-    right: 0;
+    top: var(--space-3);
+    right: var(--space-3);
     margin: 0;
     writing-mode: vertical-rl;
     white-space: nowrap;
+    color: var(--neutral-50);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.55);
   }
 
   .hv2-lower {

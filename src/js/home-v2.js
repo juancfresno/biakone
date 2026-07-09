@@ -9,11 +9,12 @@
 
 import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
+import { typewrite } from './typewriter.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
 let elasticDestroy = null// shared ElasticLine teardown (section dividers)
-let typeRaf = 0
+let typeCancel = null    // shared typewriter cancel
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
 let started = false      // slideshows started once (post-entrance)
@@ -97,43 +98,6 @@ function slideshow (img, srcs, interval) {
   timers.push(setInterval(swap, interval))
 }
 
-// ─── Terminal-style typewriter (same as About) ──────────────────────────────
-function typewriter () {
-  const box = els.type
-  if (!box) return
-  const ps = [...box.querySelectorAll('p')]
-  if (!ps.length || reduceMotion()) return
-
-  const texts = ps.map(p => p.textContent)
-  const total = texts.reduce((a, t) => a + t.length, 0)
-  if (!total) return
-  box.style.minHeight = box.offsetHeight + 'px'
-  ps.forEach(p => { p.textContent = '' })
-
-  const caret = document.createElement('span')
-  caret.className = 'hv2-caret'
-  caret.setAttribute('aria-hidden', 'true')
-  caret.textContent = '▍'
-
-  const CPS = 260
-  const t0 = performance.now()
-  const step = (now) => {
-    const show = Math.floor((now - t0) / 1000 * CPS)
-    let rem = show, placed = false
-    for (let i = 0; i < ps.length; i++) {
-      const t = texts[i]
-      const n = Math.max(0, Math.min(t.length, rem))
-      ps[i].textContent = t.slice(0, n)
-      if (!placed && n < t.length) { ps[i].appendChild(caret); placed = true }
-      rem -= t.length
-    }
-    if (!placed) ps[ps.length - 1].appendChild(caret)
-    if (show < total) typeRaf = requestAnimationFrame(step)
-    else { caret.remove(); box.style.minHeight = '' }
-  }
-  typeRaf = requestAnimationFrame(step)
-}
-
 // ─── Data-driven displays ───────────────────────────────────────────────────
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -215,7 +179,6 @@ export function init () {
   if (!document.querySelector('.home-v2')) { initTags(); return }
 
   ensureRgbFilter()
-  initReveals()
 
   // Section dividers (Escale World / Stickers / Lab) get the SAME elastic
   // drag/bounce line as the Work list rows (shared elastic-line.js). Desktop /
@@ -251,17 +214,22 @@ export function init () {
   initTags()   // shared marquee + lightbox
 }
 
-// Fires after the page-transition-in completes (or on first load).
+// Fires after the page-transition-in completes (or on first load). The intro
+// types first, then the scroll reveals cascade (Welcome → tag box → piece text
+// + image) — coordinated here so the sequence reads AFTER the page has arrived.
 export function entered () {
   pageEntered = true
-  if (!started) { started = true; typewriter() }
+  if (started) return
+  started = true
+  typeCancel = typewrite(els.type, { caretClass: 'hv2-caret' })
+  initReveals()
 }
 
 export function destroy () {
   timers.forEach(clearInterval); timers = []
   if (revealCleanup) revealCleanup()
   if (elasticDestroy) { elasticDestroy(); elasticDestroy = null }
-  cancelAnimationFrame(typeRaf); typeRaf = 0
+  if (typeCancel) { typeCancel(); typeCancel = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
   destroyTags()
