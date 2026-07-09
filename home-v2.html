@@ -15,35 +15,45 @@
     <main class="intro home-v2">
       <h1 class="sr-only">Biakone — Home (v2 preview)</h1>
 
-      <!-- ── HERO: intro (types itself) · glitch tag box · featured piece ── -->
+      <!-- ── HERO: intro (types itself) · pixel character · glitch tag box ·
+           featured piece (tucked under the tag box, gap kept on the right) ── -->
       <section class="hv2-hero">
 
-        <!-- 1 · INTRO — bio + welcome, typed terminal-style -->
+        <!-- 1 · INTRO — bio + welcome + lead, typed terminal-style -->
         <div class="hv2-intro" id="hv2-type">
           <p class="intro__bio">Visual Artist — Designer</p>
           <p class="intro__bio">↘ Urban objects, graffiti &amp; scale work</p>
-          <p class="hv2-welcome">Welcome to my world!</p>
+          <p class="hv2-welcome">Welcome, outsider.</p>
+          <p class="hv2-lead">Everything starts with a tag. Then come the objects, the stickers, the miniatures, the weird things and the rest of the noise.</p>
         </div>
 
-        <!-- 2 · FEATURED PIECE — auto-playing slideshow of the latest work piece -->
-        <figure class="hv2-featured hv2-reveal" style="--rv-i:2">
-          <div class="hv2-featured__stage" id="hv2-featured-stage" aria-hidden="true">
-            <img class="hv2-featured__img" alt="" decoding="async">
-          </div>
-          <figcaption class="hv2-featured__name" data-name></figcaption>
-        </figure>
-
-        <!-- 2b · FEATURED INFO — name/description/meta from the work manifest -->
-        <div class="hv2-featured-info hv2-reveal" style="--rv-i:2">
-          <p class="hv2-featured__desc" data-desc></p>
-          <dl class="hv2-featured__meta" data-meta></dl>
+        <!-- 1b · PIXEL CHARACTER — idle breathe/blink (frames 1–4); raises its arm
+             on hover / cursor proximity (frame 5). Driven by home-v2.js. -->
+        <div class="hv2-figure" id="hv2-figure" aria-hidden="true">
+          <img class="hv2-figure__img" alt="" decoding="async">
         </div>
 
-        <!-- 3 · GLITCH TAG BOX — one tag centred, glitch-swapping on a loop -->
+        <!-- 3 · GLITCH TAG BOX — pinned top-right, one tag glitch-swapping on a loop -->
         <div class="hv2-tagbox hv2-reveal" style="--rv-i:1">
           <div class="hv2-tagbox__stage" id="hv2-tagbox" aria-hidden="true">
             <img class="hv2-tagbox__img" alt="" decoding="async">
           </div>
+        </div>
+
+        <!-- 2 · FEATURED PIECE — slider through every piece's image 01 -->
+        <figure class="hv2-featured hv2-reveal" style="--rv-i:2">
+          <div class="hv2-featured__stage" id="hv2-featured-stage" aria-hidden="true">
+            <img class="hv2-featured__img" alt="" decoding="async">
+          </div>
+        </figure>
+
+        <!-- 2b · vertical piece name — sits in the gap to the right of the image -->
+        <div class="hv2-featured__name hv2-reveal" data-name style="--rv-i:2"></div>
+
+        <!-- 2c · FEATURED INFO — description/meta, bottom-left under the image -->
+        <div class="hv2-featured-info hv2-reveal" style="--rv-i:2">
+          <p class="hv2-featured__desc" data-desc></p>
+          <dl class="hv2-featured__meta" data-meta></dl>
         </div>
       </section>
 

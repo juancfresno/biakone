@@ -15,6 +15,7 @@ let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
 let elasticDestroy = null// shared ElasticLine teardown (section dividers)
 let typeCancel = null    // shared typewriter cancel
+let figCleanup = null    // pixel-character teardown
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
 let started = false      // slideshows started once (post-entrance)
@@ -167,6 +168,48 @@ function fillCarousel (items) {
   for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
 }
 
+// ─── Pixel character ────────────────────────────────────────────────────────
+// Idle = cycle frames 1–4 (breathe + blink). Hover or cursor proximity → frame 5
+// (arm raised). Reduced-motion: static frame 1, but still raises on hover.
+function initFigure () {
+  const el = document.getElementById('hv2-figure')
+  const img = el && el.querySelector('.hv2-figure__img')
+  if (!img) return
+  const base = '/home/character/'
+  const idle = ['frame-1.svg', 'frame-2.svg', 'frame-3.svg', 'frame-4.svg'].map(f => base + f)
+  const wave = base + 'frame-5.svg'
+  ;[...idle, wave].forEach(src => { const p = new Image(); p.src = src })  // preload
+
+  let i = 0, raised = false, tick = 0
+  img.src = idle[0]
+  const show = () => { img.src = raised ? wave : idle[i] }
+  const raise = () => { if (!raised) { raised = true; show() } }
+  const lower = () => { if (raised) { raised = false; show() } }
+
+  if (!reduceMotion()) {
+    tick = setInterval(() => { if (!raised) { i = (i + 1) % idle.length; show() } }, 380)
+    timers.push(tick)
+  }
+  el.addEventListener('pointerenter', raise)
+  el.addEventListener('pointerleave', lower)
+
+  let onMove = null
+  if (!reduceMotion() && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+    onMove = (e) => {
+      const r = el.getBoundingClientRect()
+      const near = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)) < 120
+      near ? raise() : lower()
+    }
+    window.addEventListener('mousemove', onMove, { passive: true })
+  }
+  figCleanup = () => {
+    if (tick) clearInterval(tick)
+    el.removeEventListener('pointerenter', raise)
+    el.removeEventListener('pointerleave', lower)
+    if (onMove) window.removeEventListener('mousemove', onMove)
+  }
+}
+
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 export function init () {
   els = {
@@ -179,6 +222,7 @@ export function init () {
   if (!document.querySelector('.home-v2')) { initTags(); return }
 
   ensureRgbFilter()
+  initFigure()
 
   // Section dividers (Escale World / Stickers / Lab) get the SAME elastic
   // drag/bounce line as the Work list rows (shared elastic-line.js). Desktop /
@@ -229,6 +273,7 @@ export function destroy () {
   timers.forEach(clearInterval); timers = []
   if (revealCleanup) revealCleanup()
   if (elasticDestroy) { elasticDestroy(); elasticDestroy = null }
+  if (figCleanup) { figCleanup(); figCleanup = null }
   if (typeCancel) { typeCancel(); typeCancel = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
