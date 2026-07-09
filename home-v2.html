@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Home v2 — Biakone (preview)</title>
+  <meta name="description" content="Alternative home layout preview for Biakone.">
+  <meta name="robots" content="noindex">
+  <!-- @include partials/head.html -->
+</head>
+<body data-page="home-v2" data-barba="wrapper">
+
+  <!-- @include partials/grain.html -->
+  <!-- @include partials/nav.html -->
+
+  <div data-barba="container" data-barba-namespace="home-v2">
+    <main class="intro home-v2">
+      <h1 class="sr-only">Biakone — Home (v2 preview)</h1>
+
+      <!-- ── HERO: intro (types itself) · glitch tag box · featured piece ── -->
+      <section class="hv2-hero">
+
+        <!-- 1 · INTRO — bio + welcome, typed terminal-style -->
+        <div class="hv2-intro" id="hv2-type">
+          <p class="intro__bio">Visual Artist — Designer</p>
+          <p class="intro__bio">↘ Urban objects, graffiti &amp; scale work</p>
+          <p class="hv2-welcome">Welcome to my world!</p>
+        </div>
+
+        <!-- 2 · FEATURED PIECE — auto-playing slideshow of the latest work piece -->
+        <figure class="hv2-featured hv2-reveal">
+          <div class="hv2-featured__stage" id="hv2-featured-stage" aria-hidden="true">
+            <img class="hv2-featured__img" alt="" decoding="async">
+          </div>
+          <figcaption class="hv2-featured__name" data-name></figcaption>
+        </figure>
+
+        <!-- 2b · FEATURED INFO — name/description/meta from the work manifest -->
+        <div class="hv2-featured-info hv2-reveal">
+          <p class="hv2-featured__desc" data-desc></p>
+          <dl class="hv2-featured__meta" data-meta></dl>
+        </div>
+
+        <!-- 3 · GLITCH TAG BOX — one tag centred, glitch-swapping on a loop -->
+        <div class="hv2-tagbox hv2-reveal">
+          <div class="hv2-tagbox__stage" id="hv2-tagbox" aria-hidden="true">
+            <img class="hv2-tagbox__img" alt="" decoding="async">
+          </div>
+        </div>
+      </section>
+
+      <!-- 4 · ESCALE WORLD — horizontal carousel of every work piece (image 01) -->
+      <section class="hv2-section hv2-reveal" aria-label="Escale World">
+        <div class="hv2-head"><span class="hv2-label">Escale World</span></div>
+        <div class="hv2-carousel" id="hv2-carousel" role="list"><!-- injected --></div>
+      </section>
+
+      <!-- 5 · Lower row: Stickers (cycling strip) + Lab preview -->
+      <section class="hv2-lower">
+        <div class="hv2-col hv2-reveal" aria-label="Stickers">
+          <div class="hv2-head"><span class="hv2-label">Stickers</span></div>
+          <div class="hv2-stickers">
+            <div class="hv2-stickers__stage" id="hv2-stickers" aria-hidden="true">
+              <img class="hv2-stickers__img" alt="" decoding="async">
+            </div>
+          </div>
+        </div>
+
+        <div class="hv2-col hv2-reveal" aria-label="Lab">
+          <div class="hv2-head"><span class="hv2-label">Lab</span></div>
+          <a class="hv2-lab" href="/lab">
+            <span class="hv2-lab__no">LAB / 01</span>
+            <span class="hv2-lab__title">Vandal Rush</span>
+            <span class="hv2-lab__tagline">“No te dejes cazar.”</span>
+            <span class="hv2-lab__cta">Enter the Lab ↘</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- 6 · TAG MARQUEE — shared marquee component (initTags) -->
+      <section class="hv2-marquee" aria-label="Handstyle tags" data-marquee>
+        <div class="tags__track" id="tags-track" role="list"><!-- injected --></div>
+      </section>
+    </main>
+
+    <!-- Shared 3D lightbox (wired by initTags) -->
+    <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+      <div class="lightbox__backdrop" data-lightbox-close></div>
+      <figure class="lightbox__frame" id="lightbox-frame">
+        <img class="lightbox__img" id="lightbox-img" alt="">
+      </figure>
+      <span class="overlay-esc-hint" aria-hidden="true">Press Esc to close</span>
+      <button class="nav-link overlay-close" type="button" data-lightbox-close aria-label="Close">
+        <span>Close</span>
+        <svg class="nav-arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path class="shaft" d="M 2 2 L 7 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+          <path class="head"  d="M 7 2 L 2 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- @include partials/footer.html -->
+
+  <script type="module" src="/src/js/app.js"></script>
+</body>
+</html>
