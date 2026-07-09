@@ -1,69 +1,106 @@
 /* ============================================================
-   POSTERS — full-viewport poster slideshow. One image covers the
-   whole viewport; the shared shell (fixed nav + footer) floats on
-   top. Auto-advances every 6s with the shared VHS glitch, driven by
-   src/js/posters.js. Progress line fills 0→100% over each interval.
-   Tokens only.
+   POSTERS — full-bleed vertical photo stack, Figma home posters.
+   The page runs DARK (#141414 / cream) regardless of the global
+   theme toggle, matching the Figma frame. We re-point the SEMANTIC
+   tokens to their dark values here (scoped to the page) so the
+   shared shell (wordmark, nav, footer, icons) renders cream with
+   zero hardcoded hex — every value still flows through a token.
+
+   The VHS/CRT + fisheye effect is WebGL (VFX-JS), hydrated in
+   src/js/posters.js. Markup stays plain <img> so the page works
+   with no JS / no WebGL / reduced-motion (progressive enhancement).
    ============================================================ */
 
-.posters {
-  position: relative;
-  min-height: 100svh;
-  min-height: 100dvh;
-  min-height: 100vh;
+body[data-page="posters"] {
+  /* text */
+  --text-primary:           var(--neutral-50);
+  --text-secondary:         var(--neutral-300);
+  --text-tertiary:          var(--neutral-400);
+  --text-inverse-primary:   var(--neutral-950);
+  --text-inverse-secondary: var(--neutral-700);
+  --text-brand:             var(--brand-blue-300);
+
+  /* background */
+  --bg-page:            var(--neutral-900);
+  --bg-surface:         var(--neutral-950);
+  --bg-subtle:          var(--neutral-800);
+  --bg-home:            var(--neutral-950); /* #141414 */
+
+  /* logo + borders + icons → cream */
+  --logo-wordmark:      var(--brand-yellow);
+  --border-default:     var(--neutral-700);
+  --border-subtle:      var(--neutral-800);
+  --icon-default:       var(--neutral-50);
+  --icon-muted:         var(--neutral-400);
+
+  background: var(--neutral-950);
+  color: var(--neutral-50);
 }
 
-/* Full-bleed image stage — fixed behind the shell (nav/footer are z-index 20). */
-.posters__stage {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
+/* ─── Layout: full-bleed stack ─────────────────────────────────
+   The .intro wrapper clears the fixed nav/footer and pads the
+   sides; the stack breaks OUT of that padding to run edge-to-edge. */
+body[data-page="posters"] .intro {
+  padding-inline: 0;
+}
+
+.posters { width: 100%; }
+.posters__stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.posters__cell {
+  position: relative;
+  width: 100%;
+  margin: 0;                  /* reset the UA <figure> 40px side margin (full-bleed) */
+  min-height: 100vh;          /* one poster per screen-ish */
+  display: flex;
+  align-items: center;
+  justify-content: center;    /* centre horizontally — dark sides fall to bg */
+  padding: var(--space-6) 0;
   background: var(--neutral-950);
 }
-.posters__img {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  will-change: transform, filter, opacity, clip-path;
+.posters__cell img {
+  display: block;
+  /* Native aspect ratio, never stretched: bounded by height on wide screens
+     (narrow, centred, dark sides) and by width on mobile (fills the screen). */
+  width: auto;
+  height: auto;
+  max-height: 86vh;
+  max-width: 100%;
+  object-fit: contain;
+  /* VFX-JS sets opacity:0 on the source once the shader is live; until
+     then (and as the no-WebGL fallback) the plain photo shows. */
 }
 
-/* Glitch swap — reuses the shared about-glitch-in keyframes + #about-rgb filter
-   (injected by posters.js), the same VHS transition as Work / Home. */
-.posters__img.is-glitch {
-  animation: about-glitch-in 0.52s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+/* The WebGL canvas VFX-JS appends is a fixed, full-viewport overlay.
+   Keep it from ever eating clicks (shell links sit above it at z 20). */
+body[data-page="posters"] > canvas {
+  pointer-events: none !important;
 }
 
-/* Progress line — thin bar pinned to the bottom of the viewport, above the
-   footer. The fill scales 0→1 over the interval (posters.js drives the timing). */
-.posters__progress {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: var(--footer-h);
-  z-index: 19;
-  height: 2px;
-  background: var(--border-inverse-subtle);   /* faint track over the photo */
-}
-.posters__progress-fill {
-  height: 100%;
-  width: 100%;
-  transform: scaleX(0);
-  transform-origin: left center;
-  background: var(--logo-accent);              /* Biako blue */
-  will-change: transform;
-}
-.posters__progress-fill.is-running {
-  animation: posters-progress var(--posters-interval, 6s) linear forwards;
-}
-@keyframes posters-progress {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
+.posters__empty {
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: var(--space-16) var(--space-6);
+  text-align: center;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .posters__img.is-glitch { animation: none; }   /* plain swap, keep the auto-advance */
+/* ─── Mobile: full-bleed. Every image fills the ENTIRE screen width edge to
+   edge at its own natural aspect ratio (verticals tall, horizontals short),
+   stacked and scrolled vertically. No side gutters, no forced height. ─── */
+@media (max-width: 640px) {
+  .posters__cell { min-height: auto; padding: 0; }
+  .posters__cell img {
+    width: 100vw;             /* edge to edge */
+    height: auto;             /* keep each image's real aspect ratio */
+    max-width: none;
+    max-height: none;
+  }
 }
