@@ -1,20 +1,18 @@
 // Home v2 page module (preview route /home-v2) — Figma frame 6217:4587.
 //
 // Reuses existing content + effects, nothing new:
-//  • typewriter for the intro (same algorithm as About),
-//  • the shared VHS glitch (about-glitch-in + #about-rgb) on every image swap,
+//  • the shared VHS glitch (about-glitch-in + #about-rgb) on every text/image
+//    entrance AND on every slider change (name + description),
 //  • the shared tag marquee + 3D lightbox (initTags/destroyTags),
 //  • the work + stickers + tags manifests for all displays.
 // SPA-safe: init() mounts, destroy() tears down every timer / observer / raf.
 
 import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
-import { typewrite } from './typewriter.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
 let elasticDestroy = null// shared ElasticLine teardown (section dividers)
-let typeCancel = null    // shared typewriter cancel
 let figCleanup = null    // pixel-character teardown
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
@@ -103,12 +101,15 @@ function slideshow (img, srcs, interval) {
 const esc = (s) => String(s == null ? '' : s)
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-// Restart the shared VHS glitch on an element (one-shot).
+// Restart the shared VHS/about-glitch on an element (one-shot). On a reveal
+// element we re-trigger its own `is-in` reveal (same about-glitch-in) so it
+// re-glitches; on anything else we use the standalone .hv2-glitch class.
 function glitch (el) {
   if (!el || reduceMotion()) return
-  el.classList.remove('hv2-glitch')
+  const cls = el.classList.contains('hv2-reveal') ? 'is-in' : 'hv2-glitch'
+  el.classList.remove(cls)
   void el.offsetWidth
-  el.classList.add('hv2-glitch')
+  el.classList.add(cls)
 }
 
 // Featured = a slider through the MAIN image (01) of EVERY piece. On each advance
@@ -126,6 +127,7 @@ function fillFeatured (items) {
   const nameEl = document.querySelector('[data-name]')
   const descEl = document.querySelector('[data-desc]')
   const metaEl = document.querySelector('[data-meta]')
+  const infoEl = document.querySelector('.hv2-featured-info')
 
   const paint = (p) => {
     if (img) img.src = p.src
@@ -144,9 +146,10 @@ function fillFeatured (items) {
     const p = pieces[i]
     const pre = new Image()
     const apply = () => {
-      paint(p)              // new image + new name + info appear together…
-      glitch(img)           // …and the image + name glitch in sync
+      paint(p)              // new image + new name + description appear together…
+      glitch(img)           // …and the image, name AND description glitch in sync
       glitch(nameEl)
+      glitch(infoEl)
     }
     pre.onload = apply; pre.onerror = apply; pre.src = p.src
   }
@@ -213,7 +216,6 @@ function initFigure () {
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
 export function init () {
   els = {
-    type: document.getElementById('hv2-type'),
     featStage: document.getElementById('hv2-featured-stage'),
     tagbox: document.getElementById('hv2-tagbox'),
     stickers: document.getElementById('hv2-stickers'),
@@ -258,14 +260,13 @@ export function init () {
   initTags()   // shared marquee + lightbox
 }
 
-// Fires after the page-transition-in completes (or on first load). The intro
-// types first, then the scroll reveals cascade (Welcome → tag box → piece text
-// + image) — coordinated here so the sequence reads AFTER the page has arrived.
+// Fires after the page-transition-in completes (or on first load). The reveals
+// cascade here (Welcome → tag box → piece text + image) — every text block enters
+// with the shared VHS glitch, coordinated AFTER the page has arrived.
 export function entered () {
   pageEntered = true
   if (started) return
   started = true
-  typeCancel = typewrite(els.type, { caretClass: 'hv2-caret' })
   initReveals()
 }
 
@@ -274,7 +275,6 @@ export function destroy () {
   if (revealCleanup) revealCleanup()
   if (elasticDestroy) { elasticDestroy(); elasticDestroy = null }
   if (figCleanup) { figCleanup(); figCleanup = null }
-  if (typeCancel) { typeCancel(); typeCancel = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
   destroyTags()

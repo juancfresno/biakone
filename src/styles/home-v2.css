@@ -3,7 +3,7 @@
    Figma frame 6217:4587. Mobile-first; the desktop grid mirrors
    the two-column Figma composition. Every value references a
    token. Reuses the shared shell (.intro), the tag marquee
-   (.tags__track), the typewriter and the VHS glitch (about-rgb).
+   (.tags__track) and the shared VHS glitch (about-glitch-in / about-rgb).
    ============================================================ */
 
 body[data-page="home-v2"] .home-v2 {
@@ -115,14 +115,6 @@ body[data-page="home-v2"] .home-v2 {
   width: auto;
   image-rendering: pixelated;
 }
-/* Blinking caret injected by the typewriter (same as About). */
-.hv2-caret {
-  display: inline-block;
-  margin-left: 0.04em;
-  color: currentColor;
-  animation: hv2-caret-blink 0.9s steps(1) infinite;
-}
-@keyframes hv2-caret-blink { 50% { opacity: 0; } }
 
 /* 2 · Featured piece — vertical slideshow image */
 .hv2-featured { position: relative; margin: 0; width: 100%; }
@@ -370,7 +362,6 @@ body[data-page="home-v2"] .home-v2 {
   .hv2-reveal.is-in { opacity: 1; animation: none; }
   .hv2-reveal::after, .hv2-reveal.is-in::after { content: none; animation: none; }
   .hv2-glitch { animation: none; }
-  .hv2-caret { animation: none; }
   /* Stop the conveyor; let the strip be scrolled manually instead. */
   .hv2-carousel { overflow-x: auto; scrollbar-width: none; }
   .hv2-carousel::-webkit-scrollbar { display: none; }

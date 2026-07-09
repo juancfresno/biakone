@@ -1,15 +1,14 @@
 // About page module — folder-driven horizontal photo strip (/about.json) with:
-//  • the body copy typing itself in (terminal-style) once the page has entered,
+//  • the body copy entering with the shared VHS glitch reveal once the page has entered,
 //  • a VHS glitch-reveal entrance on the photos (staggered left→right),
 //  • a BIAKO-wordmark custom cursor (difference-blended) over the strip,
 // plus the existing click-drag pan and the shared tag marquee + lightbox.
 // Everything cleans up on leave (SPA-safe).
 import { initTags, destroyTags } from './tags.js'
-import { typewrite } from './typewriter.js'
 
 let strip, cursorEl, rgbSvg
-let pageEntered = false, cellsReady = false, typed = false
-let typeCancel = null, cursorRaf = 0
+let pageEntered = false, cellsReady = false, bodyRevealed = false
+let cursorRaf = 0
 let cleanupFns = []
 
 function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }
@@ -76,13 +75,14 @@ function maybeReveal () {
   if (pageEntered && cellsReady && strip) strip.classList.add('is-in')
 }
 
-// ─── Terminal-style typewriter for the body copy ────────────────────────────
-// Uses the shared typewriter (src/js/typewriter.js) — the SAME effect the
-// home-v2 intro uses, so the two match exactly.
-function typewriter () {
-  if (typed) return
-  typed = true
-  typeCancel = typewrite(document.querySelector('.about__body'), { caretClass: 'about__caret' })
+// ─── Body copy entrance — the shared VHS glitch reveal (same about-glitch-in the
+// photos use), replacing the old typewriter. CSS handles the animation; here we
+// just flip the reveal on once the page has entered.
+function revealBody () {
+  if (bodyRevealed) return
+  bodyRevealed = true
+  const body = document.querySelector('.about__body')
+  if (body) body.classList.add('is-in')
 }
 
 // ─── Custom cursor: BIAKO wordmark over the strip (fine-pointer only) ────────
@@ -138,15 +138,14 @@ export function init () {
 export function entered () {
   pageEntered = true
   maybeReveal()
-  typewriter()
+  revealBody()
 }
 
 export function destroy () {
-  if (typeCancel) { typeCancel(); typeCancel = null }
   cancelAnimationFrame(cursorRaf); cursorRaf = 0
   cleanupFns.forEach(fn => fn()); cleanupFns = []
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
-  pageEntered = false; cellsReady = false; typed = false
+  pageEntered = false; cellsReady = false; bodyRevealed = false
   strip = null
   destroyTags()
 }

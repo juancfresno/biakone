@@ -60,6 +60,8 @@
 }
 .about__body {
   margin: 0;
+  position: relative;
+  opacity: 0;                          /* revealed on entrance (about.js → .is-in) */
   font-family: var(--font-body);
   font-weight: var(--weight-light);   /* 300 */
   font-size: var(--text-body-md);      /* 16px */
@@ -68,6 +70,21 @@
 }
 .about__body p { margin: 0 0 var(--space-4) 0; }
 .about__body p:last-child { margin-bottom: 0; }
+/* Body copy enters with the SAME VHS glitch reveal the photos use
+   (about-glitch-in + about-scan-flash + #about-rgb), replacing the typewriter. */
+.about__body.is-in {
+  animation: about-glitch-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  will-change: transform, filter, opacity, clip-path;
+}
+.about__body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  opacity: 0;
+}
+.about__body.is-in::after { animation: about-scan-flash 0.56s ease-out both; }
 
 /* Contact line is part of the same copy block in Figma — same font,
    same size, sentence case (NOT a mono label). Only the email is a link. */
@@ -125,15 +142,6 @@ body[data-page="about"] .intro {
 /* ============================================================
    ABOUT — motion + cursor (about.js drives the triggers)
    ============================================================ */
-
-/* ─── Typewriter caret (the body copy types itself in on entry) ─── */
-.about__caret {
-  display: inline-block;
-  margin-left: 0.04em;
-  color: currentColor;
-  animation: about-caret-blink 0.9s steps(1) infinite;
-}
-@keyframes about-caret-blink { 50% { opacity: 0; } }
 
 /* ─── Photo strip glitch-reveal entrance (VHS, staggered L→R) ─── */
 .about-gallery__cell { position: relative; }          /* for the scanline flash */
@@ -196,5 +204,8 @@ body[data-page="about"] .intro {
     transform: none;
   }
   .about-gallery__strip.is-in .about-gallery__cell::after { animation: none; opacity: 0; }
-  .about__caret { display: none; }
+  /* Body copy: plain fade instead of the glitch. */
+  .about__body { transition: opacity 0.5s ease; }
+  .about__body.is-in { animation: none; opacity: 1; }
+  .about__body::after { content: none; }
 }
