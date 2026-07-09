@@ -5,10 +5,13 @@
 // plus the existing click-drag pan and the shared tag marquee + lightbox.
 // Everything cleans up on leave (SPA-safe).
 import { initTags, destroyTags } from './tags.js'
+import { initElasticLines } from './elastic-line.js'
+import { initCharacter } from './pixel-character.js'
 
 let strip, cursorEl, rgbSvg
 let pageEntered = false, cellsReady = false, bodyRevealed = false
 let cursorRaf = 0
+let figCleanup = null, elasticCleanup = null
 let cleanupFns = []
 
 function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }
@@ -131,6 +134,14 @@ export function init () {
       .catch(() => {})
     initCursor()
   }
+
+  // Pixel character (flipped mirror of the home) + the elastic divider line
+  // below the text — the exact portfolio ElasticLine effect (elastic-line.js).
+  figCleanup = initCharacter(document.getElementById('about-figure'))
+  elasticCleanup = initElasticLines(
+    document.querySelectorAll('.about__divider'),
+    { className: 'about-elastic-line', activeClass: 'about__divider--elastic' })
+
   initTags()
 }
 
@@ -144,6 +155,8 @@ export function entered () {
 export function destroy () {
   cancelAnimationFrame(cursorRaf); cursorRaf = 0
   cleanupFns.forEach(fn => fn()); cleanupFns = []
+  if (figCleanup) { figCleanup(); figCleanup = null }
+  if (elasticCleanup) { elasticCleanup(); elasticCleanup = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; cellsReady = false; bodyRevealed = false
   strip = null

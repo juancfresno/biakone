@@ -56,20 +56,64 @@
 .about {
   padding-top: var(--space-10);
   padding-bottom: var(--space-8);
-  max-width: 96ch;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-10);
+  flex-wrap: wrap;
 }
+.about__text { flex: 1 1 auto; max-width: 96ch; min-width: 0; }
 .about__body {
   margin: 0;
   position: relative;
   opacity: 0;                          /* revealed on entrance (about.js → .is-in) */
   font-family: var(--font-body);
   font-weight: var(--weight-light);   /* 300 */
-  font-size: var(--text-body-md);      /* 16px */
+  font-size: var(--text-body-md);      /* first paragraph: 16px */
   line-height: var(--leading-body);    /* 1.4 */
   color: var(--text-primary);
 }
 .about__body p { margin: 0 0 var(--space-4) 0; }
+.about__body p:not(:first-child) { font-size: var(--text-body-sm); }   /* following text: 14px */
 .about__body p:last-child { margin-bottom: 0; }
+
+/* Pixel character — mirror of the home version (flipped). Same idle + hover. */
+.about-figure {
+  position: relative;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 72px;
+  transform: scaleX(-1);               /* horizontal mirror */
+}
+.about-figure__img {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 100%;
+  width: auto;
+  image-rendering: pixelated;
+}
+
+/* Elastic divider below the text — portfolio ElasticLine effect (elastic-line.js);
+   the static border is the mobile / no-JS / reduced-motion fallback. */
+.about__divider {
+  position: relative;
+  height: 1px;
+  margin: var(--space-4) 0 var(--space-10);
+  border-top: 1px solid var(--border-strong);
+  color: var(--border-strong);
+}
+.about__divider--elastic { border-top-color: transparent; }
+.about-elastic-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -1px;
+  height: 1px;
+  width: 100%;
+  overflow: visible;
+  color: var(--border-strong);
+  pointer-events: none;
+}
 /* Body copy enters with the SAME VHS glitch reveal the photos use
    (about-glitch-in + about-scan-flash + #about-rgb), replacing the typewriter. */
 .about__body.is-in {

@@ -261,46 +261,48 @@
   object-fit: cover;
 }
 
-/* Lab preview — reuses the lab-card visual language */
+/* Lab module — two static images stacked (Figma): purple logo (on grey) + the
+   BIAKO glitch (on black). Links to /lab. */
 .hv2-lab {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
-  height: 100%;
-  min-height: 220px;
-  padding: var(--space-6);
-  background: var(--neutral-950);
-  color: var(--neutral-50);
+  gap: var(--space-1);
   text-decoration: none;
-  justify-content: flex-end;
 }
-.hv2-lab__no {
-  font-family: var(--font-ui);
-  font-size: var(--text-ui-sm);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--neutral-400);
+.hv2-lab__img {
+  display: block;
+  aspect-ratio: 901 / 389;
+  overflow: hidden;
 }
-.hv2-lab__title {
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: clamp(24px, 6vw, 40px);
-  line-height: 1;
-  letter-spacing: 0.01em;
-  text-transform: uppercase;
+.hv2-lab__img img { display: block; width: 100%; height: 100%; }
+.hv2-lab__img--top { background: var(--neutral-200); }   /* grey card behind the logo */
+.hv2-lab__img--top img { object-fit: contain; }
+.hv2-lab__img--bot { background: var(--neutral-950); }
+.hv2-lab__img--bot img { object-fit: cover; }
+
+/* Posters module — conveyor reusing the Escale carousel machinery. */
+.hv2-posters {
+  display: block;
+  overflow: hidden;
+  margin-inline: calc(-1 * var(--space-6));
+  text-decoration: none;
 }
-.hv2-lab__tagline {
-  font-family: var(--font-editorial);
-  font-size: var(--text-editorial-md);
-  color: var(--neutral-300);
+.hv2-posters__item {
+  flex: 0 0 auto;
+  margin: 0;
+  height: clamp(240px, 34vw, 380px);       /* poster strip height */
+  overflow: hidden;
+  background: var(--neutral-950);
 }
-.hv2-lab__cta {
-  margin-top: var(--space-3);
-  font-family: var(--font-ui);
-  font-size: var(--text-ui-sm);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--neutral-50);
+.hv2-posters__item img {
+  display: block;
+  width: auto;
+  height: 100%;
+  object-fit: cover;
+}
+@media (hover: hover) and (pointer: fine) {
+  .hv2-posters[data-marquee]:hover .hv2-carousel__track,
+  .hv2-posters[data-marquee]:focus-within .hv2-carousel__track { animation-play-state: paused; }
 }
 
 /* ============================================================

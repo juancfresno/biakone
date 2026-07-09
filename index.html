@@ -106,13 +106,21 @@
 
         <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Lab">
           <div class="hv2-head"><span class="hv2-label">Lab</span></div>
-          <a class="hv2-lab" href="/lab">
-            <span class="hv2-lab__no">LAB / 01</span>
-            <span class="hv2-lab__title">Vandal Rush</span>
-            <span class="hv2-lab__tagline">“No te dejes cazar.”</span>
-            <span class="hv2-lab__cta">Enter the Lab ↘</span>
+          <!-- LAB module — two static images (Figma), links to /lab. -->
+          <a class="hv2-lab" href="/lab" aria-label="Lab">
+            <span class="hv2-lab__img hv2-lab__img--top"><img src="/home/lab/lab-01.webp" alt="" loading="lazy" decoding="async"></span>
+            <span class="hv2-lab__img hv2-lab__img--bot"><img src="/home/lab/lab-02.webp" alt="" loading="lazy" decoding="async"></span>
           </a>
         </div>
+      </section>
+
+      <!-- POSTERS module — conveyor of the /posters images; links to /posters. -->
+      <section class="hv2-section" aria-label="Posters">
+        <div class="hv2-head hv2-reveal" style="--rv-i:0"><span class="hv2-label">Posters</span></div>
+        <a class="hv2-posters hv2-reveal" id="hv2-posters" href="/posters" data-marquee style="--rv-i:1"
+           aria-label="Posters — view all">
+          <div class="hv2-carousel__track" id="hv2-posters-track"><!-- injected --></div>
+        </a>
       </section>
 
       <!-- TAG MARQUEE — shared marquee component (initTags) -->

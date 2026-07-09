@@ -9,6 +9,7 @@
 
 import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
+import { initCharacter } from './pixel-character.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
@@ -171,46 +172,19 @@ function fillCarousel (items) {
   for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
 }
 
-// ─── Pixel character ────────────────────────────────────────────────────────
-// Idle = cycle frames 1–4 (breathe + blink). Hover or cursor proximity → frame 5
-// (arm raised). Reduced-motion: static frame 1, but still raises on hover.
-function initFigure () {
-  const el = document.getElementById('hv2-figure')
-  const img = el && el.querySelector('.hv2-figure__img')
-  if (!img) return
-  const base = '/home/character/'
-  const idle = ['frame-1.svg', 'frame-2.svg', 'frame-3.svg', 'frame-4.svg'].map(f => base + f)
-  const wave = base + 'frame-5.svg'
-  ;[...idle, wave].forEach(src => { const p = new Image(); p.src = src })  // preload
-
-  let i = 0, raised = false, tick = 0
-  img.src = idle[0]
-  const show = () => { img.src = raised ? wave : idle[i] }
-  const raise = () => { if (!raised) { raised = true; show() } }
-  const lower = () => { if (raised) { raised = false; show() } }
-
-  if (!reduceMotion()) {
-    tick = setInterval(() => { if (!raised) { i = (i + 1) % idle.length; show() } }, 380)
-    timers.push(tick)
-  }
-  el.addEventListener('pointerenter', raise)
-  el.addEventListener('pointerleave', lower)
-
-  let onMove = null
-  if (!reduceMotion() && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
-    onMove = (e) => {
-      const r = el.getBoundingClientRect()
-      const near = Math.hypot(e.clientX - (r.left + r.width / 2), e.clientY - (r.top + r.height / 2)) < 120
-      near ? raise() : lower()
-    }
-    window.addEventListener('mousemove', onMove, { passive: true })
-  }
-  figCleanup = () => {
-    if (tick) clearInterval(tick)
-    el.removeEventListener('pointerenter', raise)
-    el.removeEventListener('pointerleave', lower)
-    if (onMove) window.removeEventListener('mousemove', onMove)
-  }
+// Posters module → a seamless conveyor of the /posters images (same manifest as
+// the /posters page); the whole strip links to /posters.
+function fillPosters (items) {
+  const track = document.getElementById('hv2-posters-track')
+  if (!track || !items.length) return
+  const card = (p) =>
+    '<figure class="hv2-posters__item">' +
+      '<img src="' + p.src + '" alt="" loading="lazy" decoding="async" draggable="false">' +
+    '</figure>'
+  const half = items.map(card).join('')
+  track.innerHTML = half + half
+  const all = track.querySelectorAll('.hv2-posters__item')
+  for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -224,11 +198,11 @@ export function init () {
   if (!document.querySelector('.home-v2')) { initTags(); return }
 
   ensureRgbFilter()
-  initFigure()
+  figCleanup = initCharacter(document.getElementById('hv2-figure'))
 
-  // Section dividers (Escale World / Stickers / Lab) get the SAME elastic
-  // drag/bounce line as the Work list rows (shared elastic-line.js). Desktop /
-  // fine-pointer only; the static CSS border is the fallback otherwise.
+  // Section dividers (Escale World / Stickers / Lab / Posters) get the SAME
+  // elastic drag/bounce line as the portfolio's ElasticLine (shared
+  // elastic-line.js). Desktop / fine-pointer only; static CSS border otherwise.
   elasticDestroy = initElasticLines(
     document.querySelectorAll('.hv2-head'),
     { className: 'hv2-elastic-line', activeClass: 'hv2-head--elastic' })
@@ -255,6 +229,12 @@ export function init () {
       const srcs = items.map(s => s.src).filter(Boolean)
       if (els.stickers) slideshow(els.stickers.querySelector('.hv2-stickers__img'), srcs, 2700)
     })
+    .catch(() => {})
+
+  // Posters manifest → Posters module conveyor (same images as /posters).
+  fetch('/posters.json', { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : [])
+    .then(fillPosters)
     .catch(() => {})
 
   initTags()   // shared marquee + lightbox
