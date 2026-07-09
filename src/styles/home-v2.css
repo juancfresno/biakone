@@ -84,7 +84,7 @@ body[data-page="home-v2"] .home-v2 {
 .hv2-tagline { display: flex; flex-direction: column; gap: var(--space-2); }
 
 /* 2 · Welcome block */
-.hv2-welcome-block { display: flex; flex-direction: column; gap: var(--space-1); }
+.hv2-welcome-block { display: flex; flex-direction: column; gap: var(--space-4); }  /* welcome → lead = 16px */
 .hv2-welcome {
   margin: 0;
   font-family: var(--font-body);
@@ -95,10 +95,10 @@ body[data-page="home-v2"] .home-v2 {
 }
 .hv2-lead {
   margin: 0;
-  max-width: 46ch;
+  max-width: 52ch;
   font-family: var(--font-body);
   font-weight: var(--weight-light);
-  font-size: var(--text-body-md);
+  font-size: var(--text-body-sm);          /* 14 */
   line-height: 1.4;
   color: var(--text-secondary);
 }
@@ -108,8 +108,8 @@ body[data-page="home-v2"] .home-v2 {
    without shifting the body. Crisp pixels. */
 .hv2-figure {
   position: relative;
-  width: 64px;
-  height: 92px;
+  width: 48px;
+  height: 72px;                            /* Figma character height */
 }
 .hv2-figure__img {
   position: absolute;
@@ -344,6 +344,7 @@ body[data-page="home-v2"] .home-v2 {
   /* Left-column gutter so the text doesn't butt against the image. */
   .hv2-tophead, .hv2-welcome-block, .hv2-foot { padding-inline-end: var(--space-4); }
   .hv2-tophead       { grid-area: tophead; gap: var(--space-16); }  /* tagline → character */
+  .hv2-figure        { margin-bottom: var(--space-8); }  /* character → welcome = 32px (keeps welcome top = image top) */
   .hv2-welcome-block { grid-area: welcome; align-self: start; }  /* top = image top */
   .hv2-tagbox        { grid-area: tagbox; justify-self: end; }
   .hv2-featured      { grid-area: featured; width: 100%; align-self: start; }
