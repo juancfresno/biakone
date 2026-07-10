@@ -7,7 +7,6 @@
 //  • the work + stickers + tags manifests for all displays.
 // SPA-safe: init() mounts, destroy() tears down every timer / observer / raf.
 
-import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
 import { initCharacter } from './pixel-character.js'
 import { setPendingDeepLink } from './deep-link.js'
@@ -217,7 +216,7 @@ export function init () {
     stickers: document.getElementById('hv2-stickers'),
     carousel: document.getElementById('hv2-carousel'),
   }
-  if (!document.querySelector('.home-v2')) { initTags(); return }
+  if (!document.querySelector('.home-v2')) { return }
 
   ensureRgbFilter()
   figCleanup = initCharacter(document.getElementById('hv2-figure'))
@@ -273,8 +272,6 @@ export function init () {
     .then(r => r.ok ? r.json() : [])
     .then(items => initPosters(items.map(p => p.src).filter(Boolean)))
     .catch(() => {})
-
-  initTags()   // shared marquee + lightbox
 }
 
 // Fires after the page-transition-in completes (or on first load). The reveals
@@ -294,5 +291,4 @@ export function destroy () {
   if (figCleanup) { figCleanup(); figCleanup = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
-  destroyTags()
 }

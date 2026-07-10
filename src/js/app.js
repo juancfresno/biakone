@@ -1,5 +1,5 @@
 // App entry — loaded once on every page. Boots the persistent shell and the
-// barba SPA controller. The shell (nav/footer/grain/theme/clock/scramble) is
+// barba SPA controller. The shell (nav/footer/grain/clock/scramble) is
 // initialised a single time and never re-run; only the barba container (the
 // page content + its overlays) swaps between routes. Each page module exposes
 // init()/destroy() so its effects mount on enter and fully clean up on leave.
@@ -7,6 +7,7 @@
 import barba from '@barba/core'
 import { initShell, getLenis } from './shell.js'
 import { runTransition } from './transition.js'
+import { initTags, destroyTags } from './tags.js'
 
 // ─── Page registry (lazy — each page + its heavy deps code-split so e.g.
 // VFX-JS only loads when you actually visit Stickers) ────────────────────────
@@ -25,13 +26,29 @@ const TITLES = {
 }
 
 // ─── Per-page shell theming ──────────────────────────────────────────────────
-// The fixed nav/footer live OUTSIDE the barba container, so a container's
+// The fixed nav/footer sit OVER each page's surface; on always-dark pages the
 // `data-shell` can't reach them via CSS alone. Mirror it onto <html> — where the
 // [data-shell] token pins live — on first load AND every barba enter (so direct
-// URL entry and every SPA transition both apply it). Absent ⇒ "auto" (ink
+// URLs and route changes both recolor the shell; "auto"/absent ⇒ the ink just
 // follows the theme). Independent of [data-theme], so the ◐ toggle keeps working.
 function applyShell (container) {
   document.documentElement.dataset.shell = (container && container.dataset.shell) || 'auto'
+}
+
+// ─── Tag marquee — lives in the SHELL lifecycle (never page-level init) ───────
+// Init scoped to the current barba container. During a transition BOTH containers
+// coexist, so a document-wide lookup would render into the dying one and leave the
+// new marquee empty; initTags(container) targets the right track. Idempotent.
+function ensureMarquee (container) {
+  if (!container) return
+  // Safety net: if, a beat after the transition, the marquee is still empty (and
+  // it's not the deliberate "no tags" state), re-init once.
+  setTimeout(() => {
+    const track = container.querySelector('.tags__track')
+    if (track && !track.querySelector('.tags__item') && !track.querySelector('.tags__empty')) {
+      initTags(container)
+    }
+  }, 900)
 }
 
 let current = null
@@ -52,8 +69,11 @@ function unmount () {
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 initShell()
-applyShell(document.querySelector('[data-barba="container"]'))   // first load / direct URL
+const firstContainer = document.querySelector('[data-barba="container"]')
+applyShell(firstContainer)     // first load / direct URL
 mount(document.body.dataset.page, true)   // first (already-rendered) page
+initTags(firstContainer)       // marquee — from the shell, scoped to the container
+ensureMarquee(firstContainer)
 
 barba.init({
   debug: false,
@@ -73,24 +93,27 @@ barba.init({
 // then recalc against the new content and resume once it has mounted.
 barba.hooks.beforeLeave(() => {
   unmount()
+  destroyTags()                                        // clean the leaving marquee/lightbox listeners
   getLenis()?.stop()                                   // freeze scroll during the swap
 })
 barba.hooks.beforeEnter(({ next }) => {
   const ns = next.namespace
   document.body.dataset.page = ns
   document.title = TITLES[ns] || 'BIAKO'
-  applyShell(next.container)                 // recolor the shell as the new page enters
+  applyShell(next.container)                  // recolor the shell as the new page enters
   const l = getLenis()
   if (l) l.scrollTo(0, { immediate: true, force: true })  // force: even while stopped
   else window.scrollTo(0, 0)
   mount(ns)
+  initTags(next.container)                    // marquee — scoped to the ENTERING container
 })
 // Fires after the enter transition completes — play the page's entrance now so
 // it runs AFTER the transition-in, never during it. Recalc Lenis against the
 // new (now laid-out) content and resume; further async growth is picked up by
 // Lenis' own ResizeObserver.
-barba.hooks.after(() => {
+barba.hooks.after(({ next }) => {
   if (current && current.entered) current.entered()
   const l = getLenis()
   if (l) { l.resize(); l.start() }
+  ensureMarquee(next.container)               // marquee self-check
 })

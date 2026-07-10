@@ -1,9 +1,13 @@
-// Tag marquee + 3D lightbox — shared component (Home + About).
-// initTags() renders the marquee from /tags.json and wires the floating 3D
-// lightbox; destroyTags() tears down the listeners it put on document/body so
-// nothing leaks across barba transitions. Elements (#tags-track, #lightbox*)
-// live inside the swapped container, so per-element listeners GC with the DOM —
-// we only need to clean up the document/body ones ourselves.
+// Tag marquee + 3D lightbox — shared component (Home + About). Driven from the
+// SHELL lifecycle (app.js), NOT page-level init: initTags(root) renders the
+// marquee inside `root` (the current barba container) and wires the floating 3D
+// lightbox; destroyTags() tears down the document/body listeners it added.
+//
+// Scoping to `root` is essential: during a barba transition BOTH the leaving and
+// entering containers are in the DOM at once, so a document-wide
+// getElementById('tags-track') would grab the OLD (dying) container's track and
+// render into it, leaving the new page's marquee empty. Querying within the
+// entering container fixes that. initTags is idempotent (it tears down first).
 
 let cleanup = []
 
@@ -16,19 +20,22 @@ function itemHtml (item, i) {
   )
 }
 
-export function initTags () {
-  const track = document.getElementById('tags-track')
-  if (!track) return
+export function initTags (root) {
+  destroyTags()                                   // idempotent — never double-bind
+  root = root || document
+  const track = root.querySelector('.tags__track')
+  if (!track) return                              // page has no marquee → nothing to do
 
   // ─── Marquee ───────────────────────────────────────────────
   function render (items) {
-    if (!items.length) {
+    if (!items || !items.length) {
       track.innerHTML = '<div class="tags__empty">No tags yet — drop images in /public/tags</div>'
       track.style.animation = 'none'
       return
     }
     const half = items.map(itemHtml).join('')
     track.innerHTML = half + half
+    track.style.animation = ''                    // restore the CSS marquee (in case a prior empty render killed it)
     const nodes = track.querySelectorAll('.tags__item')
     for (let i = items.length; i < nodes.length; i++) {
       nodes[i].setAttribute('aria-hidden', 'true')
@@ -41,9 +48,9 @@ export function initTags () {
     .catch(() => render([]))
 
   // ─── Lightbox ──────────────────────────────────────────────
-  const lb    = document.getElementById('lightbox')
-  const img   = document.getElementById('lightbox-img')
-  const frame = document.getElementById('lightbox-frame')
+  const lb    = root.querySelector('.lightbox')
+  const img   = lb && lb.querySelector('.lightbox__img')
+  const frame = lb && lb.querySelector('.lightbox__frame')
   if (!lb || !img || !frame) return
 
   const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches

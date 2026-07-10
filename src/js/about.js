@@ -4,7 +4,6 @@
 //  • a BIAKO-wordmark custom cursor (difference-blended) over the strip,
 // plus the existing click-drag pan and the shared tag marquee + lightbox.
 // Everything cleans up on leave (SPA-safe).
-import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
 import { initCharacter } from './pixel-character.js'
 
@@ -158,8 +157,6 @@ export function init () {
   elasticCleanup = initElasticLines(
     document.querySelectorAll('.about__divider'),
     { className: 'about-elastic-line', activeClass: 'about__divider--elastic' })
-
-  initTags()
 }
 
 // Fires after the page-transition-in completes (app.js barba.hooks.after / first load).
@@ -177,5 +174,4 @@ export function destroy () {
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; cellsReady = false; bodyRevealed = false
   strip = null
-  destroyTags()
 }
