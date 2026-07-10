@@ -24,6 +24,16 @@ const TITLES = {
   posters: 'Posters — Biakone', lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
+// ─── Per-page shell theming ──────────────────────────────────────────────────
+// The fixed nav/footer live OUTSIDE the barba container, so a container's
+// `data-shell` can't reach them via CSS alone. Mirror it onto <html> — where the
+// [data-shell] token pins live — on first load AND every barba enter (so direct
+// URL entry and every SPA transition both apply it). Absent ⇒ "auto" (ink
+// follows the theme). Independent of [data-theme], so the ◐ toggle keeps working.
+function applyShell (container) {
+  document.documentElement.dataset.shell = (container && container.dataset.shell) || 'auto'
+}
+
 let current = null
 async function mount (ns, andEnter) {
   const load = PAGES[ns]
@@ -42,6 +52,7 @@ function unmount () {
 
 // ─── Boot ─────────────────────────────────────────────────────────────────
 initShell()
+applyShell(document.querySelector('[data-barba="container"]'))   // first load / direct URL
 mount(document.body.dataset.page, true)   // first (already-rendered) page
 
 barba.init({
@@ -68,6 +79,7 @@ barba.hooks.beforeEnter(({ next }) => {
   const ns = next.namespace
   document.body.dataset.page = ns
   document.title = TITLES[ns] || 'BIAKO'
+  applyShell(next.container)                 // recolor the shell as the new page enters
   const l = getLenis()
   if (l) l.scrollTo(0, { immediate: true, force: true })  // force: even while stopped
   else window.scrollTo(0, 0)

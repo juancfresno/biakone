@@ -57,7 +57,7 @@
 .wordmark {
   display: inline-flex;
   align-items: center;
-  color: var(--logo-wordmark);
+  color: var(--shell-logo);
   text-decoration: none;
   line-height: 0;
   outline-offset: 4px;
@@ -90,7 +90,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  color: var(--text-secondary);
+  color: var(--shell-ink-muted);
   text-decoration: none;
   transition: color 140ms ease-in;
   padding: 0;
@@ -129,7 +129,7 @@ body[data-page="work"]     .nav-link[data-nav="work"],
 body[data-page="stickers"] .nav-link[data-nav="stickers"],
 body[data-page="lab"]      .nav-link[data-nav="lab"],
 body[data-page="about"]    .nav-link[data-nav="about"] {
-  color: var(--neutral-950);
+  color: var(--shell-ink-active);
 }
 body[data-page="work"]     .nav-link[data-nav="work"]::before,
 body[data-page="stickers"] .nav-link[data-nav="stickers"]::before,
@@ -152,7 +152,7 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
 @media (hover: hover) and (pointer: fine) {
   .nav-link:hover,
   .nav-link:focus-visible {
-    color: var(--neutral-950);
+    color: var(--shell-ink-active);
     outline: none;
   }
   .nav-link:hover::before,
@@ -183,12 +183,12 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   padding: 0;
   margin: 0;
   font: inherit;
-  color: var(--text-secondary);
+  color: var(--shell-ink-muted);
   line-height: 1;
   cursor: pointer;
   transition: color 140ms ease, transform 200ms ease;
 }
-.theme-toggle:hover { color: var(--text-primary); }
+.theme-toggle:hover { color: var(--shell-ink); }
 .theme-toggle:active { transform: rotate(180deg); }
 
 /* ================================================================
@@ -211,7 +211,7 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   line-height: 1.4;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--text-primary);
+  color: var(--shell-ink);
 }
 .bottom .clock {
   justify-self: start;
@@ -249,7 +249,7 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   flex-shrink: 0;
   width: 28px;
   height: 34px;
-  color: var(--text-primary);
+  color: var(--shell-ink);
   outline-offset: 4px;
 }
 .fresno-face svg { display: block; width: 100%; height: 100%; }
@@ -258,27 +258,11 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   .fresno-face { width: 32px; height: 38px; }
 }
 
-/* ================================================================
-   HOME shell — cutting-mat photo is dark; force cream text.
-   Uses raw --neutral-50 so it stays cream in both themes.
-   ================================================================ */
-body[data-page="home"] .wordmark,
-body[data-page="home"] .nav-link,
-body[data-page="home"] .theme-toggle,
-body[data-page="home"] .clock,
-body[data-page="home"] .credit,
-body[data-page="home"] .ig,
-body[data-page="home"] .fresno-face {
-  color: var(--neutral-50);
-}
-/* Nav-link hover on Home: chip stays brand-blue, text goes dark for contrast. */
-@media (hover: hover) and (pointer: fine) {
-  body[data-page="home"] .nav-link:hover,
-  body[data-page="home"] .nav-link:focus-visible {
-    color: var(--neutral-950);
-  }
-}
-body[data-page="home"] .theme-toggle:hover { color: #ffffff; }
+/* Home shell ink follows the theme (data-shell="auto"): dark ink over the light
+   default surface, cream over the dark surface when the ◐ toggle flips it — so
+   it stays legible in both, handled entirely by the --shell-* tokens above. The
+   old body[data-page="home"] forced-cream override (a leftover from the dark
+   cutting-mat home) is gone; it was the source of cream-on-light illegibility. */
 
 /* ================================================================
    PAGE INTRO — mono bio label under the fixed nav on non-home pages.
