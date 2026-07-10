@@ -76,6 +76,21 @@ body[data-page="posters"] .intro {
      then (and as the no-WebGL fallback) the plain photo shows. */
 }
 
+/* ─── Desktop: size each poster by HEIGHT — 90% of the viewport (90svh where
+   supported) — with the width AUTO from the image's own aspect ratio. Portrait
+   posters come out narrow, landscape ones wide; centred, never cropped. The
+   max-width cap keeps a very wide landscape from overflowing horizontally. Mobile
+   (≤640px) is untouched — it keeps the full-bleed width rule below. ─── */
+@media (min-width: 641px) {
+  .posters__cell img {
+    height: 90vh;
+    height: 90svh;            /* where supported */
+    width: auto;
+    max-height: none;
+    max-width: 100%;          /* landscape safety — never overflow horizontally */
+  }
+}
+
 /* The WebGL canvas VFX-JS appends is a fixed, full-viewport overlay.
    Keep it from ever eating clicks (shell links sit above it at z 20). */
 body[data-page="posters"] > canvas {
