@@ -418,6 +418,42 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   100% { opacity: 1; }
 }
 
+/* ── CRT power-on / power-off ──────────────────────────────────────────────────
+   Before the glitch, the screen "turns on": a thin bright horizontal line at the
+   vertical centre expands to fill (with a brightness overshoot that normalises),
+   then hands off to the glitch. On close it mirrors — a quick collapse back to
+   the centre line. GPU-friendly: clip-path + filter + opacity only.
+   .drawer__crt is a bright lighting band ABOVE the (hidden) content during the
+   turn-on; the content is revealed by the glitch that follows, so nothing of the
+   sheet shows before the line expands. */
+.drawer__crt {
+  position: absolute;
+  inset: 0;
+  z-index: 2;                        /* over the content, under the chrome (z 5+) */
+  background: var(--neutral-50);     /* bright flash */
+  opacity: 0;
+  pointer-events: none;
+  will-change: clip-path, filter, opacity;
+}
+/* During power-on the content stays hidden — only the CRT band shows. */
+.drawer.is-powering .drawer__stage,
+.drawer.is-powering .drawer__glitch { opacity: 0; }
+
+.drawer.is-powering .drawer__crt { animation: crt-power-on 0.30s cubic-bezier(0.4, 0, 0.2, 1) both; }
+@keyframes crt-power-on {
+  0%   { opacity: 1; clip-path: inset(49.5% 0 49.5% 0); filter: brightness(2.6); }  /* thin bright centre line */
+  50%  { opacity: 1; clip-path: inset(0 0 0 0);         filter: brightness(1.8); }  /* expanded to full + flash */
+  100% { opacity: 0; clip-path: inset(0 0 0 0);         filter: brightness(1);   }  /* fade → glitch takes over */
+}
+
+/* Power-off: the whole panel content collapses back to a bright centre line. */
+.drawer.is-powering-off .drawer__panel { animation: crt-power-off 0.22s cubic-bezier(0.5, 0, 0.75, 0) both; }
+@keyframes crt-power-off {
+  0%   { clip-path: inset(0 0 0 0);         filter: brightness(1);   }
+  55%  { clip-path: inset(0 0 0 0);         filter: brightness(1.8); }  /* flash before the collapse */
+  100% { clip-path: inset(50% 0 50% 0);     filter: brightness(2.6); }  /* collapse to the centre line */
+}
+
 .drawer__glitch {
   --gap-horizontal: 14px;
   --gap-vertical: 22px;
@@ -652,8 +688,9 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   body.drawer-open > *:not(#work-drawer):not(script) { transition: none; }
   .drawer.is-glitching .drawer__stage,
   .drawer.is-glitching .drawer__glitch--c, .drawer.is-glitching-out .drawer__glitch--c,
-  .drawer.is-glitching .drawer__glitch--r, .drawer.is-glitching-out .drawer__glitch--r { animation: none; }
-  .drawer__glitch { display: none; }   /* no glitch clones under reduced motion */
+  .drawer.is-glitching .drawer__glitch--r, .drawer.is-glitching-out .drawer__glitch--r,
+  .drawer.is-powering .drawer__crt, .drawer.is-powering-off .drawer__panel { animation: none; }
+  .drawer__glitch, .drawer__crt { display: none; }   /* no glitch clones / CRT flash under reduced motion */
   .drawer__gallery { cursor: grab; }   /* no custom chip */
   .drawer__cursor { display: none; }
 }

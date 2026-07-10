@@ -512,7 +512,7 @@ function openDrawer (i) {
   if (!historyPushed) { try { history.pushState({ biakoDrawer: true }, '') } catch (e) {} historyPushed = true }
 
   if (openTl) { openTl.kill(); openTl = null }
-  drawer.classList.remove('is-glitching', 'is-glitching-out')
+  drawer.classList.remove('is-glitching', 'is-glitching-out', 'is-powering', 'is-powering-off')
   gsap.killTweensOf([backdrop, stageEl, escHint, closeBtn])
 
   if (reduceMotion()) {
@@ -523,13 +523,22 @@ function openDrawer (i) {
     drawer.style.setProperty('--drawer-gd', '0.62s')
     gsap.set(backdrop, { autoAlpha: 0 })
     gsap.set([escHint, closeBtn], { autoAlpha: 0 })
-    // Restart the one-shot CSS slice animation (stage-in + clone glitch).
+    // PHASE 1 — CRT power-on (0.30s): the content + clones are held hidden by
+    // .is-powering (work.css); only the bright CRT band expands from the centre
+    // line. Nothing of the sheet shows before the line opens (no first-frame flash).
     void drawer.offsetWidth
-    drawer.classList.add('is-glitching')
+    drawer.classList.add('is-powering')
+    const POWER = 0.30
     openTl = gsap.timeline({ onComplete: () => { drawer.classList.remove('is-glitching'); removeGlitchLayers() } })
-      .to(backdrop, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 0)
-      .to(layers, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, 0.5)   // clones fade as the base solidifies
-      .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 0.34)
+      .to(backdrop, { autoAlpha: 1, duration: 0.22, ease: 'power1.out' }, 0)
+      // PHASE 2 — hand off to the EXISTING glitch (base stage-in + clone slices).
+      .add(() => {
+        drawer.classList.remove('is-powering')
+        void drawer.offsetWidth
+        drawer.classList.add('is-glitching')
+      }, POWER)
+      .to(layers, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, POWER + 0.5)   // clones fade as the base solidifies
+      .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, POWER + 0.34)
   }
   if (closeBtn) closeBtn.focus()
 }
@@ -544,7 +553,7 @@ function closeDrawer (opts) {
     if (!closing) return
     closing = false
     drawer.hidden = true
-    drawer.classList.remove('is-glitching', 'is-glitching-out')
+    drawer.classList.remove('is-glitching', 'is-glitching-out', 'is-powering', 'is-powering-off')
     removeGlitchLayers()
     dGallery.innerHTML = ''
     drawer.dataset.mode = 'gallery'
@@ -559,17 +568,24 @@ function closeDrawer (opts) {
 
   if (reduceMotion()) { done() }
   else {
+    // Mirror of the entrance: a brief reverse glitch, then a CRT power-OFF collapse
+    // of the panel content back to the centre line (~0.4s total).
     const layers = buildGlitchLayers()
-    drawer.style.setProperty('--drawer-gd', '0.34s')   // shorter reverse glitch
-    drawer.classList.remove('is-glitching')
+    drawer.style.setProperty('--drawer-gd', '0.30s')   // brief reverse glitch
+    drawer.classList.remove('is-glitching', 'is-powering', 'is-powering-off')
     void drawer.offsetWidth
     drawer.classList.add('is-glitching-out')
     gsap.killTweensOf([panel, backdrop, stageEl])
     openTl = gsap.timeline({ onComplete: done })
-      .to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 0)
-      .to(stageEl, { autoAlpha: 0, duration: 0.26, ease: 'power1.in' }, 0.06)
-      .to(layers, { autoAlpha: 0, duration: 0.12, ease: 'power1.in' }, 0.24)
-      .to([escHint, closeBtn], { autoAlpha: 0, duration: 0.18 }, 0)
+      .to([escHint, closeBtn], { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, 0)
+      .to(layers, { autoAlpha: 0, duration: 0.12, ease: 'power1.in' }, 0.12)
+      // PHASE 2 — collapse the panel content back to the bright centre line (CRT off).
+      .add(() => {
+        drawer.classList.remove('is-glitching-out')
+        void drawer.offsetWidth
+        drawer.classList.add('is-powering-off')
+      }, 0.18)
+      .to(backdrop, { autoAlpha: 0, duration: 0.22, ease: 'power1.in' }, 0.18)
     setTimeout(done, 560)                           // guaranteed finish (fallback)
   }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
