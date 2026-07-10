@@ -99,10 +99,27 @@ function initCursor () {
   cursorEl.innerHTML = '<img src="/biako-wordmark.svg" alt="">'
   document.body.appendChild(cursorEl)
 
-  let x = 0, y = 0
-  const apply = () => { cursorRaf = 0; if (cursorEl) cursorEl.style.transform = 'translate(-50%,-50%) translate(' + x + 'px,' + y + 'px)' }
-  const move = (e) => { x = e.clientX; y = e.clientY; if (!cursorRaf) cursorRaf = requestAnimationFrame(apply) }
-  const enter = () => { if (cursorEl) cursorEl.classList.add('is-visible'); strip.classList.add('cursor-logo') }
+  // The logo LERPS toward the pointer so it trails with lag instead of snapping
+  // (same manual-lerp approach as the site cursor in shell.js; factor in the
+  // 0.12–0.18 range). Only this morphed-logo state gets the delay — the base
+  // .biako-cursor is untouched.
+  const LERP = 0.15
+  let tx = 0, ty = 0, cx = 0, cy = 0
+  const paint = () => { if (cursorEl) cursorEl.style.transform = 'translate(-50%,-50%) translate(' + cx + 'px,' + cy + 'px)' }
+  const draw = () => {
+    cx += (tx - cx) * LERP
+    cy += (ty - cy) * LERP
+    paint()
+    // keep animating until it has caught up, then idle (restarts on next move)
+    cursorRaf = (Math.abs(tx - cx) > 0.1 || Math.abs(ty - cy) > 0.1) ? requestAnimationFrame(draw) : 0
+  }
+  const move = (e) => { tx = e.clientX; ty = e.clientY; if (!cursorRaf) cursorRaf = requestAnimationFrame(draw) }
+  const enter = (e) => {
+    tx = cx = e.clientX; ty = cy = e.clientY   // snap to entry point (no fly-in from 0,0)
+    paint()
+    if (cursorEl) cursorEl.classList.add('is-visible')
+    strip.classList.add('cursor-logo')
+  }
   const leave = () => { if (cursorEl) cursorEl.classList.remove('is-visible'); strip.classList.remove('cursor-logo') }
 
   strip.addEventListener('pointerenter', enter)

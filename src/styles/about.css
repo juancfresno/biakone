@@ -24,6 +24,12 @@
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  /* Figma 6305:1828 — the strip is 333.16 tall at 1392 content width. Keep that
+     proportion LIQUID: the height tracks the content width (viewport minus the
+     two 24px margins) so tiles stay tall and crop responsively (object-cover).
+     Clamped so it never collapses on narrow desktops nor grows absurd on ultra-
+     wide; it hits the exact Figma 333px at 1440. */
+  height: clamp(280px, calc((100vw - 2 * var(--space-6)) * (333.16 / 1392)), 460px);
 }
 .about-gallery__strip::-webkit-scrollbar { display: none; }
 .about-gallery__cell {
@@ -31,7 +37,7 @@
   flex-grow: var(--ar, 1);
   flex-shrink: 1;
   flex-basis: 0;
-  height: 320px;
+  height: 100%;              /* fill the liquid strip height */
   overflow: hidden;
   background: var(--neutral-400);
 }
@@ -52,36 +58,44 @@
   padding: var(--space-8) var(--space-6);
 }
 
-/* ─── About copy — Switzer Light 14px / 1.4, dark (Figma) ─────── */
+/* ─── About copy — Figma 6164:325 text styles ─────────────────── */
 .about {
   padding-top: var(--space-10);
   padding-bottom: var(--space-8);
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-10);
-  flex-wrap: wrap;
 }
-.about__text { flex: 1 1 auto; max-width: 96ch; min-width: 0; }
+/* Body flows the full content width (Figma: node 6305:1832 spans ~1349px). */
+.about__text { max-width: none; min-width: 0; }
 .about__body {
   margin: 0;
   position: relative;
   opacity: 0;                          /* revealed on entrance (about.js → .is-in) */
-  font-family: var(--font-body);
-  font-weight: var(--weight-light);   /* 300 */
-  font-size: var(--text-body-md);      /* first paragraph: 16px */
+  font-family: var(--font-body);       /* Switzer */
+  font-weight: var(--weight-light);    /* 300 — Light */
   line-height: var(--leading-body);    /* 1.4 */
+}
+/* Opening line — Figma 6305:1831: Switzer Light 16 / 1.4, text-primary. */
+.about__lead {
+  margin: 0 0 var(--space-5) 0;        /* 20px down to the body block (Figma) */
+  font-size: var(--text-body-md);      /* 16 */
   color: var(--text-primary);
 }
-.about__body p { margin: 0 0 var(--space-4) 0; }
-.about__body p:not(:first-child) { font-size: var(--text-body-sm); }   /* following text: 14px */
-.about__body p:last-child { margin-bottom: 0; }
+/* Body block — Figma 6305:1832: Switzer Light 12 / 1.4, text-secondary. */
+.about__copy {
+  margin: 0 0 var(--space-2) 0;        /* 8px down to the contact line (Figma) */
+  font-size: var(--text-body-xs);      /* 12 */
+  color: var(--text-secondary);
+}
 
-/* Pixel character — mirror of the home version (flipped). Same idle + hover. */
+/* Pixel character — mirror of the home version (flipped). Same idle + hover.
+   STANDS ON the divider line at the FAR RIGHT (Figma 6294:2113): it's a child of
+   .about__divider, so bottom:100% plants its feet exactly on the line at any
+   width, and right:0 aligns it to the 24px content margin. */
 .about-figure {
-  position: relative;
-  flex: 0 0 auto;
+  position: absolute;
+  right: 0;
+  bottom: 100%;                        /* feet touch the divider's top line */
   width: 48px;
-  height: 72px;
+  height: 72px;                        /* Figma character ≈ 71.25 tall */
   transform: scaleX(-1);               /* horizontal mirror */
 }
 .about-figure__img {
@@ -130,23 +144,21 @@
 }
 .about__body.is-in::after { animation: about-scan-flash 0.56s ease-out both; }
 
-/* Contact line is part of the same copy block in Figma — same font,
-   same size, sentence case (NOT a mono label). Only the email is a link. */
+/* Contact line — part of the same block in Figma (6305:1832): Switzer Light 12 /
+   1.4, text-secondary (font/weight/leading inherited from .about__body). Only the
+   email is a link; a hairline underline gives it affordance. */
 .about__contact {
-  margin: var(--space-6) 0 0;
-  font-family: var(--font-body);
-  font-weight: var(--weight-light);
-  font-size: var(--text-body-md);
-  line-height: var(--leading-body);
-  color: var(--text-primary);
+  margin: 0;
+  font-size: var(--text-body-xs);      /* 12 */
+  color: var(--text-secondary);
 }
 .about__contact a {
-  color: var(--text-primary);
+  color: var(--text-secondary);
   text-decoration: none;
   border-bottom: 1px solid var(--border-strong);
-  transition: border-color 140ms ease;
+  transition: border-color 140ms ease, color 140ms ease;
 }
-.about__contact a:hover { border-bottom-color: var(--text-primary); }
+.about__contact a:hover { color: var(--text-primary); border-bottom-color: var(--text-primary); }
 
 /* ─── Tag marquee — pinned to the bottom, just above the footer ──
    The .intro is a min-viewport-tall flex column; margin-top: auto
@@ -172,13 +184,16 @@ body[data-page="about"] .intro {
    fixed-height images (flex-fill would make 7 thin slivers). ─── */
 @media (max-width: 640px) {
   .about-gallery { margin-top: var(--space-8); }
-  .about-gallery__strip { cursor: grab; }
+  /* Mobile: horizontal scroll of natural-width tiles. The desktop liquid height
+     would be tiny at phone widths, so the strip height comes from taller cells
+     (still liquid via clamp), keeping the Figma portrait proportion. */
+  .about-gallery__strip { cursor: grab; height: auto; }
   .about-gallery__strip.is-dragging { cursor: grabbing; }
   .about-gallery__strip.is-dragging img { pointer-events: none; }
   .about-gallery__cell {
     flex: 0 0 auto;
     width: auto;
-    height: 240px;
+    height: clamp(300px, 76vw, 380px);   /* taller than the old 240px */
   }
   .about-gallery__cell img { width: auto; }
 }
