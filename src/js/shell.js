@@ -1,15 +1,55 @@
 // Shared shell behaviour — initialised ONCE per session (the shell persists
 // across barba transitions, so this must never double-bind). Exposes initShell()
 // called by app.js on first load only.
+// - smooth scroll (Lenis) — single shared instance for the whole session
 // - real-time clock (footer)
 // - theme toggle (◐) with localStorage persistence
 // - nav link letter scramble (desktop hover)
 
+import Lenis from 'lenis'
+import gsap from 'gsap'
+import ScrollTrigger from 'gsap/ScrollTrigger'
+
 let started = false
+
+// The one Lenis instance for the session (null under reduced-motion → native
+// scroll). app.js reads it to reset/recalc scroll across barba transitions.
+let lenis = null
+export function getLenis () { return lenis }
 
 export function initShell () {
   if (started) return
   started = true
+
+  // ─── Smooth scroll — Lenis, one shared instance ──────────────────────────
+  // Subtle inertia (duration 1.1, default easing) on the WHEEL only. Nav/footer
+  // are position:fixed, so only the page content moves. Touch stays NATIVE
+  // (Lenis syncTouch defaults to false) — no artificial smoothing on mobile.
+  // The rAF is driven by gsap.ticker (one loop) and lenis.on('scroll') pumps
+  // ScrollTrigger.update so any GSAP scroll-driven work stays in sync.
+  ;(function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return  // native scroll
+
+    gsap.registerPlugin(ScrollTrigger)
+    lenis = new Lenis({ duration: 1.1, smoothWheel: true })   // syncTouch:false ⇒ native touch
+
+    lenis.on('scroll', ScrollTrigger.update)
+    gsap.ticker.add((time) => lenis.raf(time * 1000))   // ms
+    gsap.ticker.lagSmoothing(0)
+
+    // Overlays (Work drawer / tag lightbox) lock the page via a body class +
+    // overflow:hidden — but Lenis intercepts the wheel globally, so it would
+    // still scroll the page behind them. Pause Lenis while either is open and
+    // resume on close. The instance lives here in the shell, so we watch the
+    // body class centrally instead of threading start/stop through every
+    // overlay open/close/teardown path.
+    const syncLock = () => {
+      const locked = document.body.classList.contains('drawer-open') ||
+                     document.body.classList.contains('lb-open')
+      locked ? lenis.stop() : lenis.start()
+    }
+    new MutationObserver(syncLock).observe(document.body, { attributes: true, attributeFilter: ['class'] })
+  })()
 
   // ─── Real-time clock — DAY.MON.DD — HH:MM (Figma footer).
   ;(function () {

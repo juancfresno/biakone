@@ -5,7 +5,7 @@
 // init()/destroy() so its effects mount on enter and fully clean up on leave.
 
 import barba from '@barba/core'
-import { initShell } from './shell.js'
+import { initShell, getLenis } from './shell.js'
 import { runTransition } from './transition.js'
 
 // ─── Page registry (lazy — each page + its heavy deps code-split so e.g.
@@ -56,15 +56,29 @@ barba.init({
   }],
 })
 
-// Global hooks fire on every route change (not the first load).
-barba.hooks.beforeLeave(() => { unmount() })
+// Global hooks fire on every route change (not the first load). Lenis is a
+// single persistent instance — we never destroy/re-create it (no double
+// instances); instead we pause it for the transition, jump scroll to the top,
+// then recalc against the new content and resume once it has mounted.
+barba.hooks.beforeLeave(() => {
+  unmount()
+  getLenis()?.stop()                                   // freeze scroll during the swap
+})
 barba.hooks.beforeEnter(({ next }) => {
   const ns = next.namespace
   document.body.dataset.page = ns
   document.title = TITLES[ns] || 'BIAKO'
-  window.scrollTo(0, 0)
+  const l = getLenis()
+  if (l) l.scrollTo(0, { immediate: true, force: true })  // force: even while stopped
+  else window.scrollTo(0, 0)
   mount(ns)
 })
 // Fires after the enter transition completes — play the page's entrance now so
-// it runs AFTER the transition-in, never during it.
-barba.hooks.after(() => { if (current && current.entered) current.entered() })
+// it runs AFTER the transition-in, never during it. Recalc Lenis against the
+// new (now laid-out) content and resume; further async growth is picked up by
+// Lenis' own ResizeObserver.
+barba.hooks.after(() => {
+  if (current && current.entered) current.entered()
+  const l = getLenis()
+  if (l) { l.resize(); l.start() }
+})

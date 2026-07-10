@@ -30,6 +30,16 @@ body {
   position: relative;
 }
 
+/* ─── Lenis smooth scroll — required base rules (see shell.js). Native scroll
+   still drives the real position (VFX + reveals read getBoundingClientRect);
+   Lenis only smooths the wheel. Under prefers-reduced-motion Lenis never
+   initialises, so `html` never gets the .lenis class and none of this applies. */
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
 /* GRAIN — film noise overlay, behind content, never blocks input. */
 .grain {
   position: fixed;

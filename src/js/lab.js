@@ -82,6 +82,7 @@ function build () {
 }
 
 function draw () {
+  if (!ctx) return            // torn down (or a stale rAF frame after destroy) → stop
   if (!reduce) t += 0.02
   ctx.clearRect(0, 0, W, H)
   ctx.strokeStyle = color
@@ -140,7 +141,9 @@ export function init () {
   start()
   // Re-render once the heavy display face is ready (first pass uses the fallback).
   if (document.fonts && document.fonts.load) {
-    document.fonts.load('700 80px "Archivo Black"').then(start).catch(() => {})
+    // Guard against the async font settling AFTER a fast navigate-away: destroy()
+    // nulls `canvas`, so a late resolve must not re-run the (torn-down) draw loop.
+    document.fonts.load('700 80px "Archivo Black"').then(() => { if (canvas) start() }).catch(() => {})
   }
 
   if (!reduce) {
