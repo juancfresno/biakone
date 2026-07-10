@@ -128,6 +128,7 @@
 body[data-page="home"]     .nav-link[data-nav="home"],
 body[data-page="work"]     .nav-link[data-nav="work"],
 body[data-page="stickers"] .nav-link[data-nav="stickers"],
+body[data-page="posters"]  .nav-link[data-nav="posters"],
 body[data-page="lab"]      .nav-link[data-nav="lab"],
 body[data-page="about"]    .nav-link[data-nav="about"] {
   color: var(--shell-ink-active);
@@ -135,6 +136,7 @@ body[data-page="about"]    .nav-link[data-nav="about"] {
 body[data-page="home"]     .nav-link[data-nav="home"]::before,
 body[data-page="work"]     .nav-link[data-nav="work"]::before,
 body[data-page="stickers"] .nav-link[data-nav="stickers"]::before,
+body[data-page="posters"]  .nav-link[data-nav="posters"]::before,
 body[data-page="lab"]      .nav-link[data-nav="lab"]::before,
 body[data-page="about"]    .nav-link[data-nav="about"]::before {
   opacity: 1;
@@ -143,11 +145,13 @@ body[data-page="about"]    .nav-link[data-nav="about"]::before {
 body[data-page="home"]     .nav-link[data-nav="home"]     .nav-arrow .shaft,
 body[data-page="work"]     .nav-link[data-nav="work"]     .nav-arrow .shaft,
 body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .shaft,
+body[data-page="posters"]  .nav-link[data-nav="posters"]  .nav-arrow .shaft,
 body[data-page="lab"]      .nav-link[data-nav="lab"]      .nav-arrow .shaft,
 body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .shaft,
 body[data-page="home"]     .nav-link[data-nav="home"]     .nav-arrow .head,
 body[data-page="work"]     .nav-link[data-nav="work"]     .nav-arrow .head,
 body[data-page="stickers"] .nav-link[data-nav="stickers"] .nav-arrow .head,
+body[data-page="posters"]  .nav-link[data-nav="posters"]  .nav-arrow .head,
 body[data-page="lab"]      .nav-link[data-nav="lab"]      .nav-arrow .head,
 body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   stroke-dashoffset: 0;

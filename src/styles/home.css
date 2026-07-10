@@ -493,7 +493,11 @@
 
   .hv2-hero {
     display: grid;
-    grid-template-columns: 1fr auto;        /* text | character */
+    /* text | character(48px). The character column is fixed so the full-bleed
+       image row can't inflate it (which would push the character past the right
+       margin); the text column shrinks to the remaining width (minmax 0) so the
+       two never overlap. The character then sits at the 24px content margin. */
+    grid-template-columns: minmax(0, 1fr) 48px;
     grid-template-areas:
       "tagline  tagline"
       "welcome  figure"
