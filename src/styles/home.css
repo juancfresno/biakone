@@ -372,7 +372,11 @@
    ============================================================ */
 @media (min-width: 900px) and (min-height: 700px) {
   .hv2-hero {
-    --hero-h: calc(100svh - var(--nav-h) - var(--space-4) - var(--space-8));
+    /* Available height between the fixed nav and the fixed footer, with an equal
+       gap on each side: top = nav + space-4 (matches .intro's top padding),
+       bottom = footer + space-4 (mirror). So the hero cluster never touches the
+       footer's date / rights line. */
+    --hero-h: calc(100svh - var(--nav-h) - var(--footer-h) - 2 * var(--space-4));
     height: var(--hero-h);
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;   /* text | image cluster */
@@ -444,19 +448,34 @@
   }
 }
 
-/* Lower row (Stickers + Posters) — desktop, independent of viewport height.
-   Stickers (442) + Posters (fills) side by side, EQUAL height: the Stickers
-   strip's aspect-ratio sets the row height; the Posters stage fills to match. */
+/* Lower row (Stickers + Posters) — desktop. Each module's WIDTH comes from the
+   Figma column proportions (Stickers 442 : Posters 926, either side of the 24px
+   gap), so both scale proportionally with the viewport width — Stickers grows in
+   BOTH width and height, no longer pinned to 442px. Each module's HEIGHT then
+   follows from its OWN aspect ratio (Stickers portrait 442:785, Posters landscape
+   926:785); no shared/locked height — each column is its own height. */
 @media (min-width: 900px) {
   .hv2-lower {
     display: grid;
-    grid-template-columns: 442px minmax(0, 1fr);   /* Figma: stickers 442 · posters */
+    grid-template-columns: 442fr 926fr;    /* Figma column proportions, fluid */
     column-gap: var(--space-6);
-    align-items: stretch;
+    align-items: start;                     /* each column sizes to its own module */
   }
-  .hv2-lower .hv2-col { display: flex; flex-direction: column; }
-  .hv2-lower .hv2-posters-mod { flex: 1 1 auto; min-height: 0; position: relative; }
-  .hv2-posters-mod__stage { position: absolute; inset: 0; aspect-ratio: auto; }  /* fill → = Stickers height */
+  .hv2-lower .hv2-col { display: flex; flex-direction: column; min-width: 0; }
+  .hv2-lower .hv2-stickers__stage {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 442 / 785;               /* portrait — height derived from the width */
+    max-height: none;
+  }
+  .hv2-lower .hv2-posters-mod { position: relative; display: block; }
+  .hv2-lower .hv2-posters-mod__stage {
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 926 / 785;               /* landscape — height derived from the width */
+  }
 }
 
 /* ============================================================
