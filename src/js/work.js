@@ -37,8 +37,12 @@ function buildStage () {
     const defs = document.createElementNS(SVGNS, 'svg')
     defs.setAttribute('class', 'work__stage-defs')
     defs.setAttribute('aria-hidden', 'true')
-    defs.innerHTML =
-      '<filter id="work-rgb" x="-8%" y="-8%" width="116%" height="116%">' +
+    // One RGB-split def under two ids: #work-rgb drives the centre-image + drawer
+    // glitch (work-glitch-in); #about-rgb drives the mosaic entrance, which reuses
+    // the About strip's about-glitch-in keyframe — so the mosaic shares About's
+    // exact effect (same split the About/Home pages inject).
+    const rgbSplit = (id) =>
+      '<filter id="' + id + '" x="-8%" y="-8%" width="116%" height="116%">' +
         '<feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0" result="r"/>' +
         '<feOffset in="r" dx="6" result="ro"/>' +
         '<feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 0 0 0 1 0" result="g"/>' +
@@ -47,6 +51,7 @@ function buildStage () {
         '<feBlend in="ro" in2="g" mode="screen" result="rg"/>' +
         '<feBlend in="rg" in2="bo" mode="screen"/>' +
       '</filter>'
+    defs.innerHTML = rgbSplit('work-rgb') + rgbSplit('about-rgb')
     section.appendChild(defs)
   }
 
@@ -293,10 +298,13 @@ function applyView (view, animate) {
   if (animate) requestAnimationFrame(() => runEntrance(view))
 }
 
-// Glitch the mosaic images in (mobile) — per-cell, staggered, using the shared
-// VHS effect (same as the About photos). Cells are hidden until their first
-// entrance, so reveal them, then run the one-shot glitch on the grid.
+// Mosaic entrance — the SAME effect as the About photo strip: per-cell,
+// staggered, via the shared about-glitch-in keyframe + #about-rgb split (work.css
+// drives it off `.work__grid.is-glitch-in`). Cells are hidden until their first
+// entrance, so reveal them, then run the one-shot glitch on the grid. All
+// viewports. playGlitch is a no-op under reduced-motion, so the cells just appear.
 function glitchGrid () {
+  initGridTooltip()
   const cells = [...grid.querySelectorAll('.work__cell')]
   if (!cells.length) return
   gsap.set(cells, { clearProps: 'opacity,visibility,transform' })
@@ -311,12 +319,11 @@ function maybeEnter () {
   if (pageEntered && rowsReady) requestAnimationFrame(() => runEntrance(currentView))
 }
 export function entered () { pageEntered = true; maybeEnter() }
-// LIST is always a clean stagger. GRID glitches its images in on mobile (the
-// shared VHS entrance); desktop keeps the GSAP mosaic rise.
+// LIST is a clean stagger. GRID/mosaic glitches its images in with the SAME shared
+// entrance as the About photo strip, on every viewport (one implementation, so the
+// two can't diverge).
 function runEntrance (view) {
-  if (view !== 'grid') { enterList(); return }
-  if (window.matchMedia('(max-width: 767px)').matches && !reduceMotion()) glitchGrid()
-  else enterGrid()
+  view === 'grid' ? glitchGrid() : enterList()
 }
 
 // List entrance — staggered fade + short rise, expo-out. Rows rest at 0.5 opacity
@@ -341,18 +348,6 @@ function enterList () {
       onComplete: i === last ? () => list.classList.remove('is-entering') : undefined,
     })
   })
-}
-
-// ─── Grid (mosaic) entrance — staggered rise + fade (index.js port) ─────────
-function enterGrid () {
-  initGridTooltip()
-  const cells = grid.querySelectorAll('.work__cell')
-  if (!cells.length) return
-  if (reduceMotion()) { gsap.set(cells, { clearProps: 'all' }); return }
-  gsap.killTweensOf(cells)
-  gsap.fromTo(cells,
-    { yPercent: 100, autoAlpha: 0 },
-    { yPercent: 0, autoAlpha: 1, duration: 0.9, ease: 'power4', stagger: 0.05, overwrite: true })
 }
 
 function reduceMotion () { return window.matchMedia('(prefers-reduced-motion: reduce)').matches }

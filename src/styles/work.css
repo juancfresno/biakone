@@ -115,18 +115,33 @@
   .work__stage.is-glitch .work__stage-scan { animation: none; }
 }
 
-/* ─── Shared VHS/RGB-shift glitch reused on mobile ──────────────────────────
-   Same keyframes + #work-rgb filter as the centre-image change above (itself
-   the same VHS language as the About photo entrance). The GRID/mosaic images
-   glitch in per-cell, staggered exactly like the About photos; the LIST stays
-   clean. The drawer image area glitches OUT on close (same keyframe reversed).
-   Mobile only for now. */
+/* ─── GRID / mosaic entrance — the SAME shared effect as the About photo strip:
+   the about-glitch-in + about-scan-flash keyframes and the #about-rgb RGB-split
+   filter (injected by work.js, exactly like About / Home). ONE shared entrance
+   implementation, so the mosaic and the About strip can't diverge again. Per-cell,
+   staggered by --i, on EVERY viewport. The LIST keeps its plain stagger; the
+   centre-image + drawer glitches (work-glitch-in / #work-rgb) are untouched. */
+.work__grid.is-glitch-in .work__cell {
+  animation: about-glitch-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+  will-change: transform, filter, opacity, clip-path;
+}
+/* Scanline flicker overlay — identical to .about-gallery__cell::after. */
+.work__cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  opacity: 0;
+}
+.work__grid.is-glitch-in .work__cell::after {
+  animation: about-scan-flash 0.56s ease-out both;
+  animation-delay: calc(var(--i, 0) * 55ms);
+}
+
+/* Drawer image area glitches OUT on close (mobile) — unchanged (own keyframe). */
 @media (max-width: 767px) {
-  .work__grid.is-glitch-in .work__cell {
-    animation: work-glitch-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-    animation-delay: calc(var(--i, 0) * 40ms);
-    will-change: transform, filter, opacity, clip-path;
-  }
   .drawer__gallery.is-glitch-out {
     animation: work-glitch-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) reverse both;
     will-change: transform, filter, opacity, clip-path;
@@ -134,6 +149,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .work__grid.is-glitch-in .work__cell,
+  .work__grid.is-glitch-in .work__cell::after,
   .drawer__gallery.is-glitch-out { animation: none; }
 }
 
