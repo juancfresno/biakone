@@ -135,6 +135,7 @@ function cellHtml (p) {
     '<button class="work__cell" type="button" data-index="' + p._i + '" ' +
         'style="--i:' + p._i + '" aria-label="' + p.code + ' ' + p.name + '">' +
       '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async" draggable="false">' +
+      '<span class="work__cell-vhs" aria-hidden="true"></span>' +
       '<span class="work__cell-label"><span class="work__cell-num">' + p.code + '</span> ' + p.name + '</span>' +
     '</button>'
   )
@@ -291,12 +292,56 @@ function bindToggle () {
     if (btn) applyView(btn.dataset.view, true)   // toggling re-plays the entrance
   })
 }
+// ─── Justified mosaic layout ──────────────────────────────────────────────────
+// Desktop/tablet (≥48em): lay the cells out as JUSTIFIED ROWS — every row spans the
+// full container width at a uniform per-row height, cell widths flexed to fill
+// (Flickr-style for same-ratio cells). Rows are balanced (counts differ by ≤1) so
+// ANY piece count fills fully with no trailing hole; the smaller/taller rows go
+// FIRST. Below 48em we hand back to the simple CSS grid (mobile 2→4 col).
+const MOSAIC_ASPECT   = 0.8    // cell width / height (portrait)
+const MOSAIC_TARGET_W = 200    // px target cell width (≈ desktop 7-col at ~1440)
+function layoutMosaic () {
+  if (!grid) return
+  const cells = grid.querySelectorAll('.work__cell')
+  const justified = window.matchMedia('(min-width: 48em)').matches
+  if (!justified || !cells.length) {                 // mobile / empty → CSS grid
+    grid.classList.remove('is-justified')
+    cells.forEach(c => { c.style.width = ''; c.style.height = '' })
+    return
+  }
+  const W = grid.clientWidth
+  if (!W) return                                     // grid hidden (list view) — runs when shown
+  grid.classList.add('is-justified')
+  const N = cells.length
+  const C = Math.max(2, Math.min(N, Math.round(W / MOSAIC_TARGET_W)))   // target columns
+  const R = Math.ceil(N / C)                         // rows needed
+  const base = Math.floor(N / R), rem = N % R         // the LAST `rem` rows get +1 → smaller rows first
+  let i = 0
+  for (let r = 0; r < R; r++) {
+    const size = base + (r >= R - rem ? 1 : 0)
+    const h = Math.round((W / size) / MOSAIC_ASPECT)  // uniform height for this row
+    let used = 0
+    for (let k = 0; k < size; k++, i++) {
+      const cw = (k === size - 1) ? (W - used) : Math.round(W / size)   // last cell absorbs rounding → exact full width
+      used += cw
+      cells[i].style.width = cw + 'px'
+      cells[i].style.height = h + 'px'
+    }
+  }
+}
+let mosaicResizeT = 0
+function scheduleMosaic () {
+  clearTimeout(mosaicResizeT)
+  mosaicResizeT = setTimeout(() => { mosaicResizeT = 0; layoutMosaic() }, 150)   // debounced
+}
+
 function applyView (view, animate) {
   currentView = view
   section.setAttribute('data-view', view)
   if (toolbar) toolbar.querySelectorAll('.work__view-btn').forEach(b =>
     b.setAttribute('aria-pressed', b.dataset.view === view ? 'true' : 'false'))
   try { sessionStorage.setItem('biako-work-view', view) } catch {}
+  if (view === 'grid') requestAnimationFrame(layoutMosaic)   // justify once the grid is visible
   if (animate) requestAnimationFrame(() => runEntrance(view))
 }
 
@@ -309,6 +354,7 @@ function glitchGrid () {
   initGridTooltip()
   const cells = [...grid.querySelectorAll('.work__cell')]
   if (!cells.length) return
+  layoutMosaic()                                        // justify before revealing (grid is visible now)
   gsap.set(cells, { clearProps: 'opacity,visibility,transform' })
   playGlitch(grid, 'is-glitch-in')
 }
@@ -686,10 +732,11 @@ export function init () {
   bindDrawer()
 
   window.addEventListener('scroll', onScroll, { passive: true })
-  const onResize = () => syncToScroll()
+  const onResize = () => { syncToScroll(); scheduleMosaic() }   // re-justify the mosaic (debounced)
   window.addEventListener('resize', onResize)
   cleanup.push(() => window.removeEventListener('scroll', onScroll))
   cleanup.push(() => window.removeEventListener('resize', onResize))
+  cleanup.push(() => clearTimeout(mosaicResizeT))
 
   fetch('/work.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])

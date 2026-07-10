@@ -216,19 +216,32 @@
   .work__row:hover .work__row-right { transform: translateX(calc(-1 * var(--indent))); }
 }
 
-/* ─── GRID (mosaic) view — ported from crnacura/PlayersClub ─────
-   Tight edge-to-edge mosaic (grid-template-columns of equal fractions,
-   no gaps) with cover images and an aspect-ratio close to the source's
-   0.8. Columns step 2 → 4 → 7 (14 pieces = 7×2 on desktop). The grid
-   clips its own overflow so the staggered rise entrance reads cleanly. */
+/* ─── GRID (mosaic) view ───────────────────────────────────────────────────────
+   Two layouts share the same cells:
+   • MOBILE (< 48em): a simple tight CSS grid (2 → 4 cols), aspect-ratio 0.8.
+   • DESKTOP/TABLET (≥ 48em): JUSTIFIED ROWS driven by work.js layoutMosaic() —
+     every row spans the full container width with a uniform per-row height,
+     cell widths flexed to justify (Flickr-style). Works for ANY piece count,
+     never leaves a trailing hole. work.js adds .is-justified and sets each cell's
+     width/height inline; the CSS just switches the container to flex-wrap. */
 .work__grid {
   position: relative;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   overflow: hidden;
 }
-@media (min-width: 40em)  { .work__grid { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 64em)  { .work__grid { grid-template-columns: repeat(7, 1fr); } }
+@media (min-width: 40em)  { .work__grid:not(.is-justified) { grid-template-columns: repeat(4, 1fr); } }
+
+/* Justified rows — container is flex-wrap; cells are sized by JS (px w/h). */
+.work__grid.is-justified {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+}
+.work__grid.is-justified .work__cell {
+  aspect-ratio: auto;                /* height comes from the inline JS value */
+  flex: 0 0 auto;
+}
 
 .work__cell {
   appearance: none;
@@ -246,16 +259,75 @@
 }
 .work__cell img {
   display: block;
+  position: absolute;
+  left: 0;
   width: 100%;
-  height: 100%;
+  /* Small vertical overscan so the hover tape-jitter never reveals the cell edge. */
+  top: -4px;
+  height: calc(100% + 8px);
   object-fit: cover;
-  transition: transform 550ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 300ms ease;
   will-change: transform;
+  transition: transform 150ms ease;  /* eases the jitter back to rest on hover-out (no snap) */
 }
+
+/* ── Hover — "VHS paused tape" tracking wobble (hover + fine pointer only) ──────
+   Replaces the old scale/zoom. NO glitch (that's reserved for entrances/takeover):
+   a subtle vertical tape-jitter of the image, a soft bright distortion band slowly
+   travelling down, and faint scanlines — all fading in/out ~150ms. GPU-only
+   (transform/opacity), no layout shift (the image has a vertical overscan above). */
+.work__cell-vhs {                    /* faint scanline sheet, shown while hovered */
+  position: absolute;
+  inset: 0;
+  z-index: 1;                        /* over the image, under the label (z 2) */
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  background: repeating-linear-gradient(0deg,
+    rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0.55) 1px, transparent 1px, transparent 3px);
+}
+.work__cell::before {                /* travelling distortion band (~5px bright line) */
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 100%;                      /* full cell; translateY(±100%) sweeps top→bottom at any height */
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(180deg,
+    transparent 49%, rgba(255, 255, 255, 0.5) 50%, transparent 51%);
+  opacity: 0;
+  transition: opacity 150ms ease;
+  will-change: transform, opacity;
+}
+.work__cell-label { z-index: 2; }    /* keep the label above the VHS overlays */
+
 @media (hover: hover) and (pointer: fine) {
-  .work__cell:hover img { transform: scale(1.06); }
-  /* Focus the hovered card — gently dim the rest of the mosaic. */
-  .work__grid:hover .work__cell:not(:hover) img { filter: brightness(0.68); }
+  .work__cell:hover .work__cell-vhs { opacity: 0.07; }
+  .work__cell:hover::before          { animation: vhs-band 2.8s linear infinite; }
+  .work__cell:hover img              { animation: vhs-jitter 0.5s steps(1, end) infinite; }
+}
+
+/* Irregular vertical tape-tracking jitter (±1–2px, uneven keyframe spacing so it
+   reads analog rather than metronomic). steps() = hard jumps, like tape sync loss. */
+@keyframes vhs-jitter {
+  0%   { transform: translate3d(0, 0, 0); }
+  13%  { transform: translate3d(0, -1px, 0); }
+  27%  { transform: translate3d(0, 1px, 0); }
+  36%  { transform: translate3d(0, 0, 0); }
+  51%  { transform: translate3d(0, 2px, 0); }
+  62%  { transform: translate3d(0, -1px, 0); }
+  70%  { transform: translate3d(0, 1px, 0); }
+  85%  { transform: translate3d(0, -2px, 0); }
+  94%  { transform: translate3d(0, 0, 0); }
+  100% { transform: translate3d(0, 1px, 0); }
+}
+/* Soft bright band travelling top → bottom on a slow loop, low opacity. */
+@keyframes vhs-band {
+  0%   { transform: translate3d(0, -100%, 0); opacity: 0; }
+  10%  { opacity: 0.55; }
+  90%  { opacity: 0.55; }
+  100% { transform: translate3d(0, 100%, 0); opacity: 0; }
 }
 .work__cell-label {
   position: absolute;
@@ -300,6 +372,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .work__cell img { transition: none; }
+  /* No tape-jitter, no travelling band — at most the static scanline sheet. */
+  .work__cell:hover img { animation: none; }
+  .work__cell:hover::before { animation: none; opacity: 0; }
 }
 
 .work[data-view="list"] .work__grid  { display: none; }
