@@ -93,7 +93,7 @@
              aria-label="Escale World carousel"><!-- track injected --></div>
       </section>
 
-      <!-- Lower row: Stickers (cycling strip) + Lab preview -->
+      <!-- Lower row: Stickers + Posters — same row, equal height (Figma). -->
       <section class="hv2-lower">
         <div class="hv2-col hv2-reveal" style="--rv-i:0" aria-label="Stickers">
           <div class="hv2-head"><span class="hv2-label">Stickers</span></div>
@@ -104,23 +104,17 @@
           </div>
         </div>
 
-        <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Lab">
-          <div class="hv2-head"><span class="hv2-label">Lab</span></div>
-          <!-- LAB module — two static images (Figma), links to /lab. -->
-          <a class="hv2-lab" href="/lab" aria-label="Lab">
-            <span class="hv2-lab__img hv2-lab__img--top"><img src="/home/lab/lab-01.webp" alt="" loading="lazy" decoding="async"></span>
-            <span class="hv2-lab__img hv2-lab__img--bot"><img src="/home/lab/lab-02.webp" alt="" loading="lazy" decoding="async"></span>
+        <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Posters">
+          <div class="hv2-head"><span class="hv2-label">Posters</span></div>
+          <!-- POSTERS module — cycles the /posters images with a VHS channel-change
+               (static cut) swap; links to /posters. -->
+          <a class="hv2-posters-mod" href="/posters" aria-label="Posters — view all">
+            <div class="hv2-posters-mod__stage" id="hv2-posters" aria-hidden="true">
+              <img class="hv2-posters-mod__img" alt="" decoding="async">
+              <div class="hv2-posters-mod__vhs"><div class="hv2-posters-mod__static"></div></div>
+            </div>
           </a>
         </div>
-      </section>
-
-      <!-- POSTERS module — conveyor of the /posters images; links to /posters. -->
-      <section class="hv2-section" aria-label="Posters">
-        <div class="hv2-head hv2-reveal" style="--rv-i:0"><span class="hv2-label">Posters</span></div>
-        <a class="hv2-posters hv2-reveal" id="hv2-posters" href="/posters" data-marquee style="--rv-i:1"
-           aria-label="Posters — view all">
-          <div class="hv2-carousel__track" id="hv2-posters-track"><!-- injected --></div>
-        </a>
       </section>
 
       <!-- TAG MARQUEE — shared marquee component (initTags) -->

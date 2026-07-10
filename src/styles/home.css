@@ -261,48 +261,51 @@
   object-fit: cover;
 }
 
-/* Lab module — two static images stacked (Figma): purple logo (on grey) + the
-   BIAKO glitch (on black). Links to /lab. */
-.hv2-lab {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  text-decoration: none;
-}
-.hv2-lab__img {
-  display: block;
-  aspect-ratio: 901 / 389;
-  overflow: hidden;
-}
-.hv2-lab__img img { display: block; width: 100%; height: 100%; }
-.hv2-lab__img--top { background: var(--neutral-200); }   /* grey card behind the logo */
-.hv2-lab__img--top img { object-fit: contain; }
-.hv2-lab__img--bot { background: var(--neutral-950); }
-.hv2-lab__img--bot img { object-fit: cover; }
-
-/* Posters module — conveyor reusing the Escale carousel machinery. */
-.hv2-posters {
-  display: block;
-  overflow: hidden;
-  margin-inline: calc(-1 * var(--space-6));
-  text-decoration: none;
-}
-.hv2-posters__item {
-  flex: 0 0 auto;
-  margin: 0;
-  height: clamp(240px, 34vw, 380px);       /* poster strip height */
+/* Posters module — a single image cycling through /posters with a VHS
+   channel-change (static cut) swap. Links to /posters. */
+.hv2-posters-mod { display: block; text-decoration: none; }
+.hv2-posters-mod__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 926 / 785;                 /* Figma ratio (mobile / fallback) */
   overflow: hidden;
   background: var(--neutral-950);
 }
-.hv2-posters__item img {
-  display: block;
-  width: auto;
+.hv2-posters-mod__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
   height: 100%;
   object-fit: cover;
 }
-@media (hover: hover) and (pointer: fine) {
-  .hv2-posters[data-marquee]:hover .hv2-carousel__track,
-  .hv2-posters[data-marquee]:focus-within .hv2-carousel__track { animation-play-state: paused; }
+/* Static / scanline overlay — reuses the page transition's VHS static
+   (transition.css .vhs__static: same noise + vhs-static-shift animation). */
+.hv2-posters-mod__vhs {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 255, 255, 0.05) 0 1px, transparent 1px 2px),
+    repeating-linear-gradient(0deg, rgba(255, 0, 60, 0.05) 1px 2px, transparent 2px 3px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.38) 0 1px, transparent 1px 3px);
+}
+.hv2-posters-mod__static {
+  position: absolute;
+  inset: -10%;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 220 220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='saturate' values='0'/><feComponentTransfer><feFuncA type='discrete' tableValues='1'/></feComponentTransfer></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  background-size: 240px 240px;
+}
+/* One-shot static burst on each swap (added by home.js). */
+.hv2-posters-mod__stage.is-cut .hv2-posters-mod__vhs { animation: posters-vhs-cut 0.42s steps(1) both; }
+.hv2-posters-mod__stage.is-cut .hv2-posters-mod__static { animation: vhs-static-shift 0.12s steps(4) infinite; }
+@keyframes posters-vhs-cut {
+  0%   { opacity: 0; }
+  18%  { opacity: 0.96; }
+  62%  { opacity: 0.9; }
+  100% { opacity: 0; }
 }
 
 /* ============================================================
@@ -368,12 +371,17 @@
     color: var(--text-tertiary);
   }
 
+  /* Stickers (442) + Posters (fills) side by side, EQUAL height: the Stickers
+     strip's aspect-ratio sets the row height; the Posters stage fills to match. */
   .hv2-lower {
     display: grid;
-    grid-template-columns: 442px minmax(0, 1fr);   /* Figma: stickers 442 · lab */
-    column-gap: var(--space-12);
+    grid-template-columns: 442px minmax(0, 1fr);   /* Figma: stickers 442 · posters */
+    column-gap: var(--space-6);
     align-items: stretch;
   }
+  .hv2-lower .hv2-col { display: flex; flex-direction: column; }
+  .hv2-lower .hv2-posters-mod { flex: 1 1 auto; min-height: 0; position: relative; }
+  .hv2-posters-mod__stage { position: absolute; inset: 0; aspect-ratio: auto; }  /* fill → = Stickers height */
 }
 
 /* ============================================================

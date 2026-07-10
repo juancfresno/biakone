@@ -172,19 +172,31 @@ function fillCarousel (items) {
   for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
 }
 
-// Posters module → a seamless conveyor of the /posters images (same manifest as
-// the /posters page); the whole strip links to /posters.
-function fillPosters (items) {
-  const track = document.getElementById('hv2-posters-track')
-  if (!track || !items.length) return
-  const card = (p) =>
-    '<figure class="hv2-posters__item">' +
-      '<img src="' + p.src + '" alt="" loading="lazy" decoding="async" draggable="false">' +
-    '</figure>'
-  const half = items.map(card).join('')
-  track.innerHTML = half + half
-  const all = track.querySelectorAll('.hv2-posters__item')
-  for (let i = items.length; i < all.length; i++) all[i].setAttribute('aria-hidden', 'true')
+// Posters module → cycles the /posters images. Each swap uses the VHS
+// channel-change (static cut) — the same static/noise language as the barba
+// page transition (transition.css .vhs__static), NOT the glitch the Stickers
+// module next to it uses. Scoped to the small module → performant.
+function initPosters (srcs) {
+  const stage = document.getElementById('hv2-posters')
+  const img = stage && stage.querySelector('.hv2-posters-mod__img')
+  if (!img || !srcs.length) return
+  let i = 0
+  img.src = srcs[0]
+  if (srcs.length < 2) return
+  const swap = () => {
+    i = (i + 1) % srcs.length
+    const next = srcs[i]
+    const pre = new Image()
+    pre.onload = pre.onerror = () => {
+      if (reduceMotion()) { img.src = next; return }   // plain swap
+      stage.classList.remove('is-cut')
+      void stage.offsetWidth                           // reflow → restart the cut
+      stage.classList.add('is-cut')
+      setTimeout(() => { img.src = next }, 170)         // swap hidden behind the static peak
+    }
+    pre.src = next
+  }
+  timers.push(setInterval(swap, 3000))
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────
@@ -231,10 +243,10 @@ export function init () {
     })
     .catch(() => {})
 
-  // Posters manifest → Posters module conveyor (same images as /posters).
+  // Posters manifest → Posters module (VHS-cut cycle, same images as /posters).
   fetch('/posters.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(fillPosters)
+    .then(items => initPosters(items.map(p => p.src).filter(Boolean)))
     .catch(() => {})
 
   initTags()   // shared marquee + lightbox
