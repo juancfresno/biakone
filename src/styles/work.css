@@ -140,17 +140,9 @@
   animation-delay: calc(var(--i, 0) * 55ms);
 }
 
-/* Drawer image area glitches OUT on close (mobile) — unchanged (own keyframe). */
-@media (max-width: 767px) {
-  .drawer__gallery.is-glitch-out {
-    animation: work-glitch-in 0.4s cubic-bezier(0.2, 0.7, 0.2, 1) reverse both;
-    will-change: transform, filter, opacity, clip-path;
-  }
-}
 @media (prefers-reduced-motion: reduce) {
   .work__grid.is-glitch-in .work__cell,
-  .work__grid.is-glitch-in .work__cell::after,
-  .drawer__gallery.is-glitch-out { animation: none; }
+  .work__grid.is-glitch-in .work__cell::after { animation: none; }
 }
 
 /* ─── LIST VIEW ─── */
@@ -396,29 +388,89 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   transition: filter 360ms ease;
 }
 
-/* The sliding panel — full-width on mobile, exactly the right 50% on desktop. */
+/* The takeover panel — FULLSCREEN (100vw × 100svh), opaque. No slide: the entrance
+   is the glitch below. Covers the fixed shell (the whole .drawer is re-parented to
+   <body> and sits at z 9995). */
 .drawer__panel {
   position: absolute;
-  top: 0;
-  right: 0;
-  height: 100%;
+  inset: 0;
   width: 100%;
+  height: 100%;
   overflow: hidden;
   background: var(--neutral-950);
-  will-change: transform;
-}
-@media (min-width: 768px) {
-  .drawer__panel { width: 50%; }
 }
 
-/* Light VHS glitch accent as the panel lands (one-shot, toggled in work.js). */
-.drawer__panel.is-glitch { animation: drawer-glitch 0.34s steps(2, end) 1; }
-@keyframes drawer-glitch {
-  0%   { transform: translate3d(0, 0, 0); filter: none; }
-  20%  { transform: translate3d(-2px, 0, 0); filter: brightness(1.25) contrast(1.1); }
-  40%  { transform: translate3d(3px, 0, 0); filter: brightness(0.9); }
-  60%  { transform: translate3d(-1px, 0, 0); filter: brightness(1.15); }
-  100% { transform: translate3d(0, 0, 0); filter: none; }
+/* ── Glitch takeover — Codrops "Glitch Slideshow" technique, ported ────────────
+   On open, work.js clones .drawer__stage into 1–2 transient .drawer__glitch
+   layers, offsets + RGB-tints them, and runs the clip-path SLICE keyframes; the
+   base stage resolves underneath so the content "appears through" the glitch.
+   The clones are removed once settled → a single clean layer (no permanent
+   triple-render). --gap-* are the horizontal/vertical channel offsets. */
+.drawer__stage {
+  position: absolute;
+  inset: 0;
+}
+/* Content "resolves" under the glitch on open (base layer). */
+.drawer.is-glitching .drawer__stage { animation: drawer-stage-in 0.34s linear both; }
+@keyframes drawer-stage-in {
+  0%   { opacity: 0; }
+  45%  { opacity: 0.55; }
+  100% { opacity: 1; }
+}
+
+.drawer__glitch {
+  --gap-horizontal: 14px;
+  --gap-vertical: 22px;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;                         /* over the base stage, under the chrome (z 5+) */
+  will-change: transform, clip-path, opacity;
+}
+/* RGB channel tint per layer — a solid colour screened over the cloned content,
+   the DOM analogue of Codrops' background-blend-mode channel shift. */
+.drawer__glitch::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.drawer__glitch--c::after { background: #14e0ff; }   /* cyan channel */
+.drawer__glitch--r::after { background: #ff2d3d; }   /* red channel  */
+.drawer.is-glitching .drawer__glitch--c,
+.drawer.is-glitching-out .drawer__glitch--c { animation: drawer-glitch-1 var(--drawer-gd, 0.62s) linear both; }
+.drawer.is-glitching .drawer__glitch--r,
+.drawer.is-glitching-out .drawer__glitch--r { animation: drawer-glitch-2 var(--drawer-gd, 0.62s) linear both; }
+
+/* Ported slice keyframes (glitch-anim-1/2 from glitch-slideshow.css): the transform
+   offset is constant per layer; the clip-path polygon jumps between thin horizontal
+   slices each step → the rapid slice glitch. */
+@keyframes drawer-glitch-1 {
+  0%, 100% { transform: translate3d(var(--gap-horizontal), 0, 0); clip-path: polygon(0 2%, 100% 2%, 100% 5%, 0 5%); }
+  20% { clip-path: polygon(0 15%, 100% 15%, 100% 15%, 0 15%); }
+  30% { clip-path: polygon(0 10%, 100% 10%, 100% 20%, 0 20%); }
+  40% { clip-path: polygon(0 1%, 100% 1%, 100% 2%, 0 2%); }
+  50% { clip-path: polygon(0 33%, 100% 33%, 100% 33%, 0 33%); }
+  55% { clip-path: polygon(0 44%, 100% 44%, 100% 44%, 0 44%); }
+  60% { clip-path: polygon(0 50%, 100% 50%, 100% 20%, 0 20%); }
+  65% { clip-path: polygon(0 70%, 100% 70%, 100% 70%, 0 70%); }
+  70% { clip-path: polygon(0 80%, 100% 80%, 100% 80%, 0 80%); }
+  80% { clip-path: polygon(0 50%, 100% 50%, 100% 55%, 0 55%); }
+  85% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
+  95% { clip-path: polygon(0 72%, 100% 72%, 100% 78%, 0 78%); }
+}
+@keyframes drawer-glitch-2 {
+  0%, 100% { transform: translate3d(calc(-1 * var(--gap-horizontal)), 0, 0); clip-path: polygon(0 25%, 100% 25%, 100% 30%, 0 30%); }
+  15% { clip-path: polygon(0 3%, 100% 3%, 100% 3%, 0 3%); }
+  25% { clip-path: polygon(0 5%, 100% 5%, 100% 20%, 0 20%); }
+  30% { clip-path: polygon(0 20%, 100% 20%, 100% 20%, 0 20%); }
+  45% { clip-path: polygon(0 40%, 100% 40%, 100% 40%, 0 40%); }
+  50% { clip-path: polygon(0 52%, 100% 52%, 100% 59%, 0 59%); }
+  65% { clip-path: polygon(0 75%, 100% 75%, 100% 75%, 0 75%); }
+  75% { clip-path: polygon(0 65%, 100% 65%, 100% 40%, 0 40%); }
+  90% { clip-path: polygon(0 45%, 100% 45%, 100% 50%, 0 50%); }
 }
 
 /* Horizontal gallery — full-height images, drag/scroll right. */
@@ -597,9 +649,11 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawer__panel { transition: none; }
-  .drawer__panel.is-glitch { animation: none; }
   body.drawer-open > *:not(#work-drawer):not(script) { transition: none; }
+  .drawer.is-glitching .drawer__stage,
+  .drawer.is-glitching .drawer__glitch--c, .drawer.is-glitching-out .drawer__glitch--c,
+  .drawer.is-glitching .drawer__glitch--r, .drawer.is-glitching-out .drawer__glitch--r { animation: none; }
+  .drawer__glitch { display: none; }   /* no glitch clones under reduced motion */
   .drawer__gallery { cursor: grab; }   /* no custom chip */
   .drawer__cursor { display: none; }
 }

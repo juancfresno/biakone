@@ -54,50 +54,62 @@
       </section>
     </main>
 
-    <!-- Detail drawer — slides in from the right over a blurred backdrop. Phase 1:
-         gallery + info. data-mode is the hook Phase 2 flips to "slider". -->
+    <!-- Detail takeover — FULLSCREEN glitch entrance. On open it clip-path-slice
+         glitches in (Codrops "Glitch Slideshow" technique, ported in work.js +
+         work.css: stacked clones of .drawer__stage, RGB-tinted + offset, animated
+         clip-path slices, then removed → one clean layer). Covers the fixed shell.
+         data-mode kept as the Phase-2 hook. -->
     <div class="drawer" id="work-drawer" role="dialog" aria-modal="true" aria-label="Project detail" data-mode="gallery" hidden>
       <div class="drawer__backdrop" data-drawer-close aria-hidden="true"></div>
+
+      <!-- Cloneable content: the glitch-in duplicates THIS stage into transient
+           layers, then removes them (no permanent triple-render). The chrome below
+           lives OUTSIDE the stage so it's never cloned or glitched. -->
       <div class="drawer__panel" id="drawer-panel">
-        <span class="overlay-esc-hint" aria-hidden="true">Press Esc to close</span>
-        <button class="nav-link overlay-close" type="button" data-drawer-close aria-label="Close">
-          <span>Close</span>
-          <svg class="nav-arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
-            <path class="shaft" d="M 2 2 L 7 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
-            <path class="head"  d="M 7 2 L 2 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
-          </svg>
-        </button>
+        <div class="drawer__stage" id="drawer-stage">
+          <!-- Horizontal gallery: full-height images, drag/scroll; edge zones act as
+               prev/next image (see work.js). Each slide carries data-img-index so
+               Phase 2 can promote one to a full-height slider without a rebuild. -->
+          <div class="drawer__gallery" id="drawer-gallery">
+            <!-- slides injected per project -->
+          </div>
 
-        <!-- Horizontal gallery: full-height images, drag/scroll; edge zones act as
-             prev/next image (see work.js). Each slide carries data-img-index so
-             Phase 2 can promote one to a full-height slider without a rebuild. -->
-        <div class="drawer__gallery" id="drawer-gallery">
-          <!-- slides injected per project -->
+          <!-- Floating dark info box — Figma 6214:4165. Header (↘ NN. name · type
+               | year), divider, description + Materials/Scale/Status, divider,
+               Previous / Next between PROJECTS. -->
+          <aside class="drawer__info" id="drawer-info">
+            <div class="drawer__info-head">
+              <span class="drawer__title">
+                <span class="drawer__arrow" aria-hidden="true">↘</span>
+                <span class="drawer__code" data-code></span>
+                <span class="drawer__name" data-name></span>
+                <span class="drawer__type" data-type></span>
+              </span>
+              <span class="drawer__year" data-year></span>
+            </div>
+            <div class="drawer__info-body">
+              <p class="drawer__desc" data-desc></p>
+              <dl class="drawer__details" data-details></dl>
+            </div>
+            <div class="drawer__pager">
+              <button class="nav-link drawer__pg" type="button" data-prev>← Previous</button>
+              <button class="nav-link drawer__pg" type="button" data-next>Next →</button>
+            </div>
+          </aside>
         </div>
-
-        <!-- Floating dark info box — Figma 6214:4165. Header (↘ NN. name · type
-             | year), divider, description + Materials/Scale/Status, divider,
-             Previous / Next between PROJECTS. -->
-        <aside class="drawer__info" id="drawer-info">
-          <div class="drawer__info-head">
-            <span class="drawer__title">
-              <span class="drawer__arrow" aria-hidden="true">↘</span>
-              <span class="drawer__code" data-code></span>
-              <span class="drawer__name" data-name></span>
-              <span class="drawer__type" data-type></span>
-            </span>
-            <span class="drawer__year" data-year></span>
-          </div>
-          <div class="drawer__info-body">
-            <p class="drawer__desc" data-desc></p>
-            <dl class="drawer__details" data-details></dl>
-          </div>
-          <div class="drawer__pager">
-            <button class="nav-link drawer__pg" type="button" data-prev>← Previous</button>
-            <button class="nav-link drawer__pg" type="button" data-next>Next →</button>
-          </div>
-        </aside>
       </div>
+
+      <!-- Chrome — direct children of .drawer so they pin to the viewport corners
+           and sit ABOVE the glitch layers (never cloned). ESC label top-left, ✕
+           top-right (shared overlay controls, cream ink on the dark takeover). -->
+      <span class="overlay-esc-hint" aria-hidden="true">Esc to exit</span>
+      <button class="nav-link overlay-close" type="button" data-drawer-close aria-label="Close">
+        <span>Close</span>
+        <svg class="nav-arrow" width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden="true">
+          <path class="shaft" d="M 2 2 L 7 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+          <path class="head"  d="M 7 2 L 2 7" stroke="currentColor" stroke-width="1.15" stroke-linecap="round"/>
+        </svg>
+      </button>
 
       <!-- Drag affordance — a pill that replaces the cursor over the gallery.
            Direct child of .drawer (which has no transform) so its fixed

@@ -14,9 +14,11 @@ import gsap from 'gsap'
 
 let list, grid, stage, section, drawer, dGallery, dInfo
 let panel, backdrop, toolbar, gridTip
+let stageEl, escHint, closeBtn                 // takeover stage + chrome (glitch)
 let projects = [], rows = [], activeIndex = -1
 let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
+let historyPushed = false, glitchLayers = []   // browser-back binding + transient glitch clones
 let cleanup = []
 let elasticRafId = 0, scrollRafId = 0
 let tipBound = false
@@ -466,69 +468,109 @@ function fillDrawer (i) {
 }
 
 let closing = false, openTl = null
-function glitchPanel () {
-  if (reduceMotion() || !panel) return
-  panel.classList.remove('is-glitch')
-  void panel.offsetWidth                 // reflow so the animation can restart
-  panel.classList.add('is-glitch')
+
+// ─── Glitch layers — transient clones of the takeover stage ──────────────────
+// Codrops "Glitch Slideshow" technique: stack copies of the SAME content, offset
+// + RGB-tint them (work.css .drawer__glitch--c/--r) and run the clip-path SLICE
+// keyframes. They exist ONLY during the ~0.6s entrance/exit; removeGlitchLayers()
+// tears them down so the settled takeover is a single clean layer.
+function buildGlitchLayers () {
+  removeGlitchLayers()
+  if (!stageEl || !panel) return []
+  const mk = (mod) => {
+    const layer = document.createElement('div')
+    layer.className = 'drawer__glitch drawer__glitch--' + mod
+    layer.setAttribute('aria-hidden', 'true')
+    layer.innerHTML = stageEl.innerHTML          // same content; images are cached (no refetch)
+    layer.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'))   // no duplicate ids
+    panel.appendChild(layer)
+    return layer
+  }
+  glitchLayers = [mk('c'), mk('r')]
+  return glitchLayers
 }
+function removeGlitchLayers () {
+  if (glitchLayers.length) gsap.killTweensOf(glitchLayers)
+  glitchLayers.forEach(l => l.remove())
+  glitchLayers = []
+}
+
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
   lastFocused = document.activeElement
   fillDrawer(i)
-  // Re-parent the drawer to <body> so it paints ABOVE the fixed nav/footer and,
-  // being the one <body> child excluded from the page blur, stays sharp.
+  // Re-parent the drawer to <body> so the fullscreen takeover paints ABOVE the
+  // fixed nav/footer and, being the one <body> child excluded from the page blur,
+  // stays sharp behind the glitch slices.
   if (drawer.parentElement !== document.body) document.body.appendChild(drawer)
   drawer.hidden = false
   closing = false                              // cancel any pending close
-  document.body.classList.add('drawer-open')   // → blurs the page (work.css)
+  document.body.classList.add('drawer-open')   // → shell.js observer stops Lenis + blurs page
   document.body.style.overflow = 'hidden'
+  // Bind a history entry so the browser Back button closes the takeover instead
+  // of leaving /work (once per open; stepping between pieces keeps the same entry).
+  if (!historyPushed) { try { history.pushState({ biakoDrawer: true }, '') } catch (e) {} historyPushed = true }
 
-  const content = panel.querySelectorAll('.drawer__info-head, .drawer__info-body, .drawer__pager')
-  if (openTl) openTl.kill()
-  gsap.killTweensOf([panel, backdrop, dGallery, ...content])
+  if (openTl) { openTl.kill(); openTl = null }
+  drawer.classList.remove('is-glitching', 'is-glitching-out')
+  gsap.killTweensOf([backdrop, stageEl, escHint, closeBtn])
+
   if (reduceMotion()) {
-    gsap.set(backdrop, { autoAlpha: 1 })
-    gsap.set(panel, { xPercent: 0 })
-    gsap.set([dGallery, ...content], { clearProps: 'all' })
+    removeGlitchLayers()
+    gsap.set([backdrop, stageEl, escHint, closeBtn], { clearProps: 'all', autoAlpha: 1 })
   } else {
-    openTl = gsap.timeline()
-      .set(backdrop, { autoAlpha: 0 })
-      .set(panel, { xPercent: 100 })
-      .set(dGallery, { autoAlpha: 0 })
-      .set(content, { autoAlpha: 0, y: 16 })
-      .to(backdrop, { autoAlpha: 1, duration: 0.35, ease: 'power1.out' }, 0)
-      .to(panel, { xPercent: 0, duration: 0.55, ease: 'expo.out' }, 0)
-      // content reveals with a subtle stagger as the panel lands
-      .to(dGallery, { autoAlpha: 1, duration: 0.45, ease: 'power2.out' }, 0.18)
-      .to(content, { autoAlpha: 1, y: 0, duration: 0.5, ease: 'expo.out', stagger: 0.07, clearProps: 'transform,opacity' }, 0.26)
-      .add(glitchPanel, 0.42)            // light VHS accent on landing
+    const layers = buildGlitchLayers()
+    drawer.style.setProperty('--drawer-gd', '0.62s')
+    gsap.set(backdrop, { autoAlpha: 0 })
+    gsap.set([escHint, closeBtn], { autoAlpha: 0 })
+    // Restart the one-shot CSS slice animation (stage-in + clone glitch).
+    void drawer.offsetWidth
+    drawer.classList.add('is-glitching')
+    openTl = gsap.timeline({ onComplete: () => { drawer.classList.remove('is-glitching'); removeGlitchLayers() } })
+      .to(backdrop, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 0)
+      .to(layers, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, 0.5)   // clones fade as the base solidifies
+      .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 0.34)
   }
-  drawer.querySelector('.overlay-close').focus()
+  if (closeBtn) closeBtn.focus()
 }
-function closeDrawer () {
-  if (!drawer || drawer.hidden) return
+
+function closeDrawer (opts) {
+  if (!drawer || drawer.hidden || closing) return
+  const viaPop = !!(opts && opts.viaPop)
   closing = true
   // Guarded so a re-open (openDrawer sets closing=false) cancels a pending finish,
-  // and so the drawer always closes even if a tween's onComplete is dropped.
+  // and so the takeover always closes even if a tween's onComplete is dropped.
   const done = () => {
     if (!closing) return
     closing = false
-    drawer.hidden = true; dGallery.innerHTML = ''; drawer.dataset.mode = 'gallery'
-    dGallery.classList.remove('is-glitch-out')
+    drawer.hidden = true
+    drawer.classList.remove('is-glitching', 'is-glitching-out')
+    removeGlitchLayers()
+    dGallery.innerHTML = ''
+    drawer.dataset.mode = 'gallery'
+    gsap.set([stageEl, escHint, closeBtn], { clearProps: 'opacity,visibility' })
   }
-  if (openTl) { openTl.kill(); openTl = null }    // stop the open timeline fighting the close
-  document.body.classList.remove('drawer-open')   // → un-blurs the page
+  if (openTl) { openTl.kill(); openTl = null }
+  document.body.classList.remove('drawer-open')   // → shell.js resumes Lenis + un-blurs
   document.body.style.overflow = ''
+  // Consume our pushed history entry, unless this close was itself triggered BY a
+  // popstate (Back button) — in which case the entry is already gone.
+  if (historyPushed) { historyPushed = false; if (!viaPop) { try { history.back() } catch (e) {} } }
+
   if (reduceMotion()) { done() }
   else {
-    gsap.killTweensOf([panel, backdrop])
-    gsap.to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' })
-    // Mobile: glitch the image area OUT as the panel leaves — symmetric with the
-    // subtle glitch it enters with, same shared VHS/RGB-shift effect (reversed).
-    if (window.matchMedia('(max-width: 767px)').matches) playGlitch(dGallery, 'is-glitch-out')
-    gsap.to(panel, { xPercent: 100, duration: 0.4, ease: 'expo.in', onComplete: done })
-    setTimeout(done, 460)                          // guaranteed finish (fallback)
+    const layers = buildGlitchLayers()
+    drawer.style.setProperty('--drawer-gd', '0.34s')   // shorter reverse glitch
+    drawer.classList.remove('is-glitching')
+    void drawer.offsetWidth
+    drawer.classList.add('is-glitching-out')
+    gsap.killTweensOf([panel, backdrop, stageEl])
+    openTl = gsap.timeline({ onComplete: done })
+      .to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 0)
+      .to(stageEl, { autoAlpha: 0, duration: 0.26, ease: 'power1.in' }, 0.06)
+      .to(layers, { autoAlpha: 0, duration: 0.12, ease: 'power1.in' }, 0.24)
+      .to([escHint, closeBtn], { autoAlpha: 0, duration: 0.18 }, 0)
+    setTimeout(done, 560)                           // guaranteed finish (fallback)
   }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
 }
@@ -553,6 +595,11 @@ function bindDrawer () {
   }
   document.addEventListener('keydown', onKey)
   cleanup.push(() => document.removeEventListener('keydown', onKey))
+
+  // Browser Back closes the takeover (it consumed the entry openDrawer pushed).
+  const onPop = () => { if (drawer && !drawer.hidden) closeDrawer({ viaPop: true }) }
+  window.addEventListener('popstate', onPop)
+  cleanup.push(() => window.removeEventListener('popstate', onPop))
 
   const mobileLayout = () => window.matchMedia('(max-width: 767px)').matches
   const hoverFine   = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches
@@ -610,8 +657,11 @@ export function init () {
   drawer  = document.getElementById('work-drawer')
   panel   = document.getElementById('drawer-panel')
   backdrop = drawer && drawer.querySelector('.drawer__backdrop')
+  stageEl = document.getElementById('drawer-stage')
   dGallery = document.getElementById('drawer-gallery')
   dInfo   = drawer && drawer.querySelector('#drawer-info')
+  escHint = drawer && drawer.querySelector('.overlay-esc-hint')
+  closeBtn = drawer && drawer.querySelector('.overlay-close')
   if (!list || !grid || !stage || !section) return
 
   bindCursor()
@@ -640,11 +690,13 @@ export function destroy () {
   if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }
   if (openTl) { openTl.kill(); openTl = null }
   closing = false
+  removeGlitchLayers()
+  historyPushed = false                                   // drop the back-button binding state
   document.body.style.overflow = ''
-  document.body.classList.remove('drawer-open')          // drop the page blur
+  document.body.classList.remove('drawer-open')          // drop the page blur + resume Lenis
   // The drawer was re-parented to <body>; remove it so it doesn't outlive the page.
   if (drawer && drawer.parentElement === document.body) drawer.remove()
-  drawer = panel = backdrop = dGallery = dInfo = null
+  drawer = panel = backdrop = stageEl = dGallery = dInfo = escHint = closeBtn = null
   projects = []; rows = []; activeIndex = -1
   stageImg = null; currentSrc = null
   drawerIndex = -1; lastFocused = null
