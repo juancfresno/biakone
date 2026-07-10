@@ -1,27 +1,10 @@
 /* ============================================================
    LAB — Figma 6221:4693.
-   Dark page (#141414 / cream) like Stickers: re-point the semantic
-   tokens to their dark values scoped to the page so the shared shell
-   renders cream with no hardcoded hex. Hero = the animated wavy-line
+   Dark page (#141414 / cream) like Stickers. Its theme is FIXED via the
+   container's data-theme="dark" (applied by app.js), so the dark tokens (page
+   bg/text + shell ink) come from the theme. Hero = the animated wavy-line
    "BIAKO" canvas (lab.js), within the site's 24px side margins.
    ============================================================ */
-
-body[data-page="lab"] {
-  --text-primary:           var(--neutral-50);
-  --text-secondary:         var(--neutral-300);
-  --text-tertiary:          var(--neutral-400);
-  --text-inverse-primary:   var(--neutral-950);
-  --bg-page:                var(--neutral-900);
-  --bg-surface:             var(--neutral-950);
-  --bg-home:                var(--neutral-950); /* #141414 */
-  --logo-wordmark:          var(--brand-yellow);
-  --border-default:         var(--neutral-700);
-  --icon-default:           var(--neutral-50);
-  --icon-muted:             var(--neutral-400);
-
-  background: var(--neutral-950);
-  color: var(--neutral-50);
-}
 
 /* Hero canvas — full content width (inside the .intro 24px padding),
    starts just below the bio (Figma: y≈144). */

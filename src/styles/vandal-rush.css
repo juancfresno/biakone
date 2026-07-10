@@ -1,19 +1,13 @@
 /* ============================================================
    VANDAL RUSH — LAB / 01. Full-viewport portrait pixel-art runner.
-   Dark page: re-points semantic tokens (like Lab/Stickers) so the
-   shell renders via tokens, no hardcoded hex. Canvas = the game
-   world; this file owns the DOM HUD / menu overlay.
+   Dark page: theme is FIXED via the container's data-theme="dark" (applied by
+   app.js), so the dark tokens come from the theme. Canvas = the game world; this
+   file owns the DOM HUD / menu overlay.
    Mobile-first: safe-area insets, no scroll/zoom/pull-to-refresh on
    the play surface, tap targets ≥ 44px.
    ============================================================ */
 
 body[data-page="vandal-rush"] {
-  --text-primary:   var(--neutral-50);
-  --text-secondary: var(--neutral-300);
-  --bg-page:        var(--neutral-950);
-  --logo-wordmark:  var(--brand-yellow);
-  background: var(--neutral-950);
-  color: var(--neutral-50);
   height: 100dvh;
   overflow: hidden;
   overscroll-behavior: none;

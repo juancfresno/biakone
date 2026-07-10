@@ -40,14 +40,3 @@
   <link rel="stylesheet" href="/src/styles/about.css">
   <link rel="stylesheet" href="/src/styles/contact.css">
   <link rel="stylesheet" href="/src/styles/transition.css">
-  <script>
-    // Theme bootstrap — set BEFORE first paint to avoid flash.
-    (function () {
-      try {
-        var saved = localStorage.getItem('biako-theme');
-        if (saved === 'dark' || saved === 'light') {
-          document.documentElement.setAttribute('data-theme', saved);
-        }
-      } catch (e) { /* ignore — defaults to light (no attr) */ }
-    })();
-  </script>

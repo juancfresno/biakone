@@ -3,8 +3,11 @@
 // called by app.js on first load only.
 // - smooth scroll (Lenis) — single shared instance for the whole session
 // - real-time clock (footer)
-// - theme toggle (◐) with localStorage persistence
 // - nav link letter scramble (desktop hover)
+//
+// Theme is FIXED per page (declared as data-theme on each container, applied by
+// app.js) — there is no longer a runtime toggle. The old ◐ toggle was removed;
+// it's recoverable from git history if ever needed.
 
 import Lenis from 'lenis'
 import gsap from 'gsap'
@@ -68,20 +71,10 @@ export function initShell () {
     setInterval(tick, 15000)
   })()
 
-  // ─── Theme toggle ◐ — instant swap, persisted in localStorage.
-  ;(function () {
-    const toggle = document.getElementById('theme-toggle')
-    if (!toggle) return
-    function applyTheme (theme) {
-      if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
-      else                  document.documentElement.removeAttribute('data-theme')
-      try { localStorage.setItem('biako-theme', theme) } catch (e) {}
-    }
-    toggle.addEventListener('click', () => {
-      const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'
-      applyTheme(current === 'dark' ? 'light' : 'dark')
-    })
-  })()
+  // ─── Clear any stored theme preference from the old ◐ toggle ───────────────
+  // Themes are now fixed per page; a leftover 'biako-theme' from a previous
+  // visit must not linger. (The bootstrap that read it is also gone.)
+  try { localStorage.removeItem('biako-theme') } catch (e) {}
 
   // ─── Custom cursor — RGB-glitch arrow ─────────────────────────────────────
   // Faithful port of the portfolio's Cursor.tsx

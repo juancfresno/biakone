@@ -122,15 +122,13 @@
   --icon-disabled: var(--neutral-400);
   --icon-inverse:  var(--neutral-50);
 
-  /* shell ink — the FIXED nav + footer, drawn OVER the page surface. Defaults
-     follow the active theme (dark ink in light, cream ink in dark) so a
-     theme-driven surface (home, work, about, contact) stays legible under the
-     ◐ toggle. A page whose surface is a FIXED tone regardless of theme pins the
-     ink with [data-shell] below (applied to <html> by the shell on every barba
-     enter). Rule holds: never hardcode a hex — the shell reads only these. */
+  /* shell ink — the FIXED nav + footer, drawn OVER the page surface. These follow
+     the page's theme: light pages → dark ink, dark pages (data-theme="dark") →
+     cream ink, because they derive from the theme tokens below. Rule holds: never
+     hardcode a hex — the shell reads only these. */
   --shell-logo:       var(--logo-wordmark);   /* wordmark */
   --shell-ink:        var(--text-primary);    /* footer + fresno-face */
-  --shell-ink-muted:  var(--text-secondary);  /* nav links + theme toggle (rest) */
+  --shell-ink-muted:  var(--text-secondary);  /* nav links (rest) */
   --shell-ink-active: var(--neutral-950);     /* active / hover nav (on the blue chip) */
 
   /* ==========================================================
@@ -243,32 +241,8 @@
   --icon-disabled: var(--neutral-600);
   --icon-inverse:  var(--neutral-950);
 
-  /* shell ink follows the theme by default → cream in dark (same names above). */
-}
-
-/* ------------------------------------------------------------
-   SHELL INK MODES — pin the fixed nav/footer ink independent of
-   the page theme. Applied to <html data-shell="…"> by the shell
-   (app.js) on first load + every barba transition, from each
-   container's data-shell. Placed AFTER the theme block so a pin
-   wins over the theme-following defaults.
-   - light-ink : cream ink for an always-DARK page surface
-                 (stickers, posters, lab, vandal-rush). Values
-                 mirror those pages' own token re-points exactly.
-   - dark-ink  : dark ink for an always-LIGHT page surface.
-   - auto / none ⇒ ink follows the theme (home, work, about, contact).
-   ------------------------------------------------------------ */
-[data-shell="light-ink"] {
-  --shell-logo:       var(--brand-yellow);
-  --shell-ink:        var(--neutral-50);
-  --shell-ink-muted:  var(--neutral-300);
-  --shell-ink-active: var(--neutral-950);
-}
-[data-shell="dark-ink"] {
-  --shell-logo:       var(--neutral-950);
-  --shell-ink:        var(--neutral-950);
-  --shell-ink-muted:  var(--neutral-700);
-  --shell-ink-active: var(--neutral-950);
+  /* shell ink follows the theme → cream in dark (the --shell-* above derive from
+     the theme tokens, so a dark page's nav/footer render cream automatically). */
 }
 
 /* ------------------------------------------------------------

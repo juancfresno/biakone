@@ -183,22 +183,6 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   }
 }
 
-/* THEME TOGGLE ◐ */
-.theme-toggle {
-  appearance: none;
-  background: none;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: var(--shell-ink-muted);
-  line-height: 1;
-  cursor: pointer;
-  transition: color 140ms ease, transform 200ms ease;
-}
-.theme-toggle:hover { color: var(--shell-ink); }
-.theme-toggle:active { transform: rotate(180deg); }
-
 /* ================================================================
    FOOTER — fixed to viewport bottom, 3-column grid so the IG icon
    stays visually centered regardless of side widths.
@@ -266,11 +250,11 @@ body[data-page="about"]    .nav-link[data-nav="about"]    .nav-arrow .head {
   .fresno-face { width: 32px; height: 38px; }
 }
 
-/* Home shell ink follows the theme (data-shell="auto"): dark ink over the light
-   default surface, cream over the dark surface when the ◐ toggle flips it — so
-   it stays legible in both, handled entirely by the --shell-* tokens above. The
-   old body[data-page="home"] forced-cream override (a leftover from the dark
-   cutting-mat home) is gone; it was the source of cream-on-light illegibility. */
+/* Home shell ink follows the page theme: dark ink over the light home surface,
+   cream over a dark surface — handled entirely by the --shell-* tokens above,
+   which derive from the theme. The old body[data-page="home"] forced-cream
+   override (a leftover from the dark cutting-mat home) is gone; it was the
+   source of cream-on-light illegibility. */
 
 /* ================================================================
    PAGE INTRO — mono bio label under the fixed nav on non-home pages.

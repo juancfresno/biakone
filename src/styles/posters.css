@@ -1,41 +1,14 @@
 /* ============================================================
    POSTERS — full-bleed vertical photo stack, Figma home posters.
-   The page runs DARK (#141414 / cream) regardless of the global
-   theme toggle, matching the Figma frame. We re-point the SEMANTIC
-   tokens to their dark values here (scoped to the page) so the
-   shared shell (wordmark, nav, footer, icons) renders cream with
-   zero hardcoded hex — every value still flows through a token.
+   The page runs DARK (#141414 / cream), matching the Figma frame. Its theme is
+   FIXED: the container declares data-theme="dark" (applied by app.js), so the
+   dark tokens (page bg/text + shell ink) come from the theme — no per-page token
+   re-pointing needed.
 
    The VHS/CRT + fisheye effect is WebGL (VFX-JS), hydrated in
    src/js/posters.js. Markup stays plain <img> so the page works
    with no JS / no WebGL / reduced-motion (progressive enhancement).
    ============================================================ */
-
-body[data-page="posters"] {
-  /* text */
-  --text-primary:           var(--neutral-50);
-  --text-secondary:         var(--neutral-300);
-  --text-tertiary:          var(--neutral-400);
-  --text-inverse-primary:   var(--neutral-950);
-  --text-inverse-secondary: var(--neutral-700);
-  --text-brand:             var(--brand-blue-300);
-
-  /* background */
-  --bg-page:            var(--neutral-900);
-  --bg-surface:         var(--neutral-950);
-  --bg-subtle:          var(--neutral-800);
-  --bg-home:            var(--neutral-950); /* #141414 */
-
-  /* logo + borders + icons → cream */
-  --logo-wordmark:      var(--brand-yellow);
-  --border-default:     var(--neutral-700);
-  --border-subtle:      var(--neutral-800);
-  --icon-default:       var(--neutral-50);
-  --icon-muted:         var(--neutral-400);
-
-  background: var(--neutral-950);
-  color: var(--neutral-50);
-}
 
 /* ─── Layout: full-bleed stack ─────────────────────────────────
    The .intro wrapper clears the fixed nav/footer and pads the

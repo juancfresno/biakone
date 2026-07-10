@@ -25,14 +25,16 @@ const TITLES = {
   posters: 'Posters — Biakone', lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
-// ─── Per-page shell theming ──────────────────────────────────────────────────
-// The fixed nav/footer sit OVER each page's surface; on always-dark pages the
-// `data-shell` can't reach them via CSS alone. Mirror it onto <html> — where the
-// [data-shell] token pins live — on first load AND every barba enter (so direct
-// URLs and route changes both recolor the shell; "auto"/absent ⇒ the ink just
-// follows the theme). Independent of [data-theme], so the ◐ toggle keeps working.
-function applyShell (container) {
-  document.documentElement.dataset.shell = (container && container.dataset.shell) || 'auto'
+// ─── Per-page theme ──────────────────────────────────────────────────────────
+// Each page declares its FIXED theme via `data-theme` on its barba container
+// (dark pages = "dark"; light pages set nothing). Mirror it onto <html> on first
+// load AND every barba enter, so the semantic tokens (page bg/text AND the shell
+// ink, which derive from them) plus the grain follow the current page. There is
+// no user toggle — themes are fixed per page.
+function applyTheme (container) {
+  const theme = container && container.dataset.theme
+  if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark')
+  else document.documentElement.removeAttribute('data-theme')
 }
 
 // ─── Tag marquee — lives in the SHELL lifecycle (never page-level init) ───────
@@ -70,7 +72,7 @@ function unmount () {
 // ─── Boot ─────────────────────────────────────────────────────────────────
 initShell()
 const firstContainer = document.querySelector('[data-barba="container"]')
-applyShell(firstContainer)     // first load / direct URL
+applyTheme(firstContainer)     // first load / direct URL
 mount(document.body.dataset.page, true)   // first (already-rendered) page
 initTags(firstContainer)       // marquee — from the shell, scoped to the container
 ensureMarquee(firstContainer)
@@ -100,7 +102,7 @@ barba.hooks.beforeEnter(({ next }) => {
   const ns = next.namespace
   document.body.dataset.page = ns
   document.title = TITLES[ns] || 'BIAKO'
-  applyShell(next.container)                  // recolor the shell as the new page enters
+  applyTheme(next.container)                  // fix the theme for the entering page
   const l = getLenis()
   if (l) l.scrollTo(0, { immediate: true, force: true })  // force: even while stopped
   else window.scrollTo(0, 0)
