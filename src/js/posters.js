@@ -14,6 +14,7 @@
 //   biakoPosters.tune
 
 import { VFX } from '@vfx-js/core'
+import { scrollToDeepLink } from './deep-link.js'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
 const TUNE = {
@@ -185,6 +186,11 @@ function initEffect (imgs) {
   }
 }
 
+// Deep-link (#p-<n> from the home Posters module) scroll — runs once the page has
+// entered AND the cells are rendered.
+let pageEntered = false, cellsReady = false
+function maybeDeepLink () { if (pageEntered && cellsReady) scrollToDeepLink('p', '.posters__cell') }
+
 export function init () {
   const mount = document.getElementById('posters-grid')
   if (!mount) return
@@ -194,9 +200,14 @@ export function init () {
       if (!items.length) { mount.innerHTML = '<p class="posters__empty">No posters yet — drop images in /public/posters</p>'; return }
       mount.innerHTML = items.map(cellHtml).join('')
       initEffect([...mount.querySelectorAll('.posters__cell img')])
+      cellsReady = true; maybeDeepLink()
     })
     .catch(() => {})
 }
+
+// Fires after the barba transition-in (or first load) — jump to the deep-linked
+// poster now that the page has arrived.
+export function entered () { pageEntered = true; maybeDeepLink() }
 
 export function destroy () {
   // Tear down the WebGL context + rAF and remove the fixed canvas VFX appended
@@ -205,5 +216,6 @@ export function destroy () {
     try { vfx.destroy() } catch {}
     vfx = null
   }
+  pageEntered = false; cellsReady = false
   delete window.biakoPosters
 }

@@ -10,6 +10,7 @@
 import { initTags, destroyTags } from './tags.js'
 import { initElasticLines } from './elastic-line.js'
 import { initCharacter } from './pixel-character.js'
+import { setPendingDeepLink } from './deep-link.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
@@ -83,16 +84,19 @@ function initReveals () {
 }
 
 // ─── Auto-playing slideshow with the shared glitch on each swap ─────────────
-function slideshow (img, srcs, interval) {
+// onShow(i) fires with the index of the item currently displayed (initial + each
+// swap) — used to keep a module's deep-link href in sync with what it shows.
+function slideshow (img, srcs, interval, onShow) {
   if (!img || !srcs || !srcs.length) return
   let i = 0
   img.src = srcs[0]
+  if (onShow) onShow(0)
   if (srcs.length < 2) return
   const swap = () => {
     i = (i + 1) % srcs.length
     const next = srcs[i]
     const pre = new Image()
-    const apply = () => { img.src = next; glitch(img) }
+    const apply = () => { img.src = next; glitch(img); if (onShow) onShow(i) }
     pre.onload = apply; pre.onerror = apply; pre.src = next
   }
   timers.push(setInterval(swap, interval))
@@ -180,19 +184,25 @@ function initPosters (srcs) {
   const stage = document.getElementById('hv2-posters')
   const img = stage && stage.querySelector('.hv2-posters-mod__img')
   if (!img || !srcs.length) return
+  // Keep the module's link pointed at the poster it's currently showing (href for
+  // new-tab/direct entry; click records the intent for the barba SPA nav).
+  const link = stage.closest('.hv2-posters-mod')
+  const setHref = (idx) => { if (link) link.setAttribute('href', '/posters#p-' + idx) }
   let i = 0
+  if (link) link.addEventListener('click', () => setPendingDeepLink('p-' + i))
   img.src = srcs[0]
+  setHref(0)
   if (srcs.length < 2) return
   const swap = () => {
     i = (i + 1) % srcs.length
     const next = srcs[i]
     const pre = new Image()
     pre.onload = pre.onerror = () => {
-      if (reduceMotion()) { img.src = next; return }   // plain swap
+      if (reduceMotion()) { img.src = next; setHref(i); return }   // plain swap
       stage.classList.remove('is-cut')
       void stage.offsetWidth                           // reflow → restart the cut
       stage.classList.add('is-cut')
-      setTimeout(() => { img.src = next }, 170)         // swap hidden behind the static peak
+      setTimeout(() => { img.src = next; setHref(i) }, 170)   // swap hidden behind the static peak
     }
     pre.src = next
   }
@@ -246,7 +256,15 @@ export function init () {
     .then(r => r.ok ? r.json() : [])
     .then(items => {
       const srcs = items.map(s => s.src).filter(Boolean)
-      if (els.stickers) slideshow(els.stickers.querySelector('.hv2-stickers__img'), srcs, 2700)
+      if (els.stickers) {
+        // Keep the module's link pointed at the sticker it's currently showing;
+        // record the click intent for the barba SPA nav (hash gets stripped).
+        const link = els.stickers.closest('.hv2-stickers')
+        let curIdx = 0
+        if (link) link.addEventListener('click', () => setPendingDeepLink('s-' + curIdx))
+        slideshow(els.stickers.querySelector('.hv2-stickers__img'), srcs, 2700,
+          (i) => { curIdx = i; if (link) link.setAttribute('href', '/stickers#s-' + i) })
+      }
     })
     .catch(() => {})
 

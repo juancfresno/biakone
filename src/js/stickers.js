@@ -14,6 +14,7 @@
 //   biakoStickers.tune
 
 import { VFX } from '@vfx-js/core'
+import { scrollToDeepLink } from './deep-link.js'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
 const TUNE = {
@@ -185,6 +186,11 @@ function initEffect (imgs) {
   }
 }
 
+// Deep-link (#s-<n> from the home Stickers module) scroll — runs once the page
+// has entered AND the cells are rendered.
+let pageEntered = false, cellsReady = false
+function maybeDeepLink () { if (pageEntered && cellsReady) scrollToDeepLink('s', '.stickers__cell') }
+
 export function init () {
   const mount = document.getElementById('stickers-grid')
   if (!mount) return
@@ -194,9 +200,14 @@ export function init () {
       if (!items.length) { mount.innerHTML = '<p class="stickers__empty">No stickers yet — drop images in /public/stickers</p>'; return }
       mount.innerHTML = items.map(cellHtml).join('')
       initEffect([...mount.querySelectorAll('.stickers__cell img')])
+      cellsReady = true; maybeDeepLink()
     })
     .catch(() => {})
 }
+
+// Fires after the barba transition-in (or first load) — jump to the deep-linked
+// sticker now that the page has arrived.
+export function entered () { pageEntered = true; maybeDeepLink() }
 
 export function destroy () {
   // Tear down the WebGL context + rAF and remove the fixed canvas VFX appended
@@ -205,5 +216,6 @@ export function destroy () {
     try { vfx.destroy() } catch {}
     vfx = null
   }
+  pageEntered = false; cellsReady = false
   delete window.biakoStickers
 }

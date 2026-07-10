@@ -99,11 +99,13 @@
       <section class="hv2-lower">
         <div class="hv2-col hv2-reveal" style="--rv-i:0" aria-label="Stickers">
           <div class="hv2-head"><span class="hv2-label">Stickers</span></div>
-          <div class="hv2-stickers">
+          <!-- STICKERS module — cycles the /stickers images (glitch swap); links to
+               /stickers at the currently-shown sticker (home.js updates the hash). -->
+          <a class="hv2-stickers" href="/stickers" aria-label="Stickers — view all">
             <div class="hv2-stickers__stage" id="hv2-stickers" aria-hidden="true">
               <img class="hv2-stickers__img" alt="" decoding="async">
             </div>
-          </div>
+          </a>
         </div>
 
         <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Posters">

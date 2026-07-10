@@ -282,6 +282,7 @@
 }
 @keyframes hv2-smile-spin { to { transform: rotate(360deg); } }
 
+.hv2-stickers { display: block; text-decoration: none; color: inherit; }
 .hv2-stickers__stage {
   position: relative;
   width: 100%;
