@@ -94,11 +94,11 @@
 }
 .hv2-lead {
   margin: 0;
-  max-width: 52ch;
+  max-width: 62ch;
   font-family: var(--font-body);
   font-weight: var(--weight-light);
-  font-size: var(--text-body-sm);          /* 14 */
-  line-height: 1.4;
+  font-size: var(--text-body-xs);          /* 12 — Figma reduced (Switzer Light) */
+  line-height: var(--leading-body);        /* 1.4 */
   color: var(--text-secondary);
 }
 
@@ -119,12 +119,24 @@
   image-rendering: pixelated;
 }
 
-/* 2 · Featured piece — vertical slideshow image */
-.hv2-featured { position: relative; margin: 0; width: 100%; }
+/* 2 · Featured piece — vertical slideshow image.
+   Base (mobile / fallback): the cluster stacks — tag box (order:-1, above the
+   image, current behavior), image, then the piece name. Desktop overrides this
+   into a height-driven cluster (see the min-height media query). */
+.hv2-cluster { width: 100%; }
+.hv2-featured {
+  position: relative;
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.hv2-tagbox { order: -1; }                  /* mobile: dark tag box above the image */
 .hv2-featured__stage {
   position: relative;
   width: 100%;
-  aspect-ratio: 442 / 787;                 /* Figma featured ratio */
+  aspect-ratio: 439 / 779;                 /* Figma featured ratio */
   overflow: hidden;
   background: var(--neutral-950);
 }
@@ -148,11 +160,11 @@
 .hv2-featured-info { display: flex; flex-direction: column; gap: var(--space-4); }
 .hv2-featured__desc {
   margin: 0;
-  max-width: 46ch;
+  max-width: 54ch;
   font-family: var(--font-body);
-  font-weight: var(--weight-regular);
-  font-size: var(--text-body-sm);
-  line-height: 1.5;
+  font-weight: var(--weight-light);        /* Figma: Switzer Light */
+  font-size: var(--text-body-xs);          /* 12 — Figma reduced */
+  line-height: var(--leading-body);        /* 1.4 */
   color: var(--text-secondary);
 }
 .hv2-featured__meta {
@@ -162,14 +174,14 @@
   gap: var(--space-1);
   font-family: var(--font-body);           /* body, like the description */
   font-weight: var(--weight-light);
-  font-size: var(--text-body-sm);          /* 14, matches the description */
-  line-height: 1.5;
-  color: var(--text-tertiary);             /* a touch lower tone than the description */
+  font-size: var(--text-body-xs);          /* 12, matches the description (Figma) */
+  line-height: var(--leading-body);        /* 1.4 */
+  color: var(--text-secondary);
 }
 .hv2-featured__meta div { display: flex; gap: var(--space-2); }
-.hv2-featured__meta dt { color: var(--text-tertiary); }
+.hv2-featured__meta dt { color: var(--text-secondary); }
 .hv2-featured__meta dt::after { content: " —"; }
-.hv2-featured__meta dd { margin: 0; color: var(--text-tertiary); }
+.hv2-featured__meta dd { margin: 0; color: var(--text-secondary); }
 
 /* 5 · Bottom-left — BIAKO sticker cluster + the piece meta */
 .hv2-foot { display: flex; align-items: flex-end; gap: var(--space-6); flex-wrap: wrap; }
@@ -242,8 +254,33 @@
 /* ============================================================
    5 · Lower row — Stickers + Lab
    ============================================================ */
-.hv2-lower { display: flex; flex-direction: column; gap: var(--space-10); }
+.hv2-lower { position: relative; display: flex; flex-direction: column; gap: var(--space-10); }
 .hv2-col { min-width: 0; }
+
+/* BIAKO smile — rotating mark overlapping the Posters module's bottom-right edge
+   (Figma 6263:1782: it straddles the module edge, over it in z). Themed via a
+   token-coloured CSS mask so it stays legible in both themes; the mark rotates
+   independently of the straddle offset. */
+.hv2-smile {
+  position: absolute;
+  right: var(--space-6);
+  bottom: 0;
+  transform: translateY(46%);          /* straddle the module's bottom edge */
+  z-index: 3;
+  width: clamp(84px, 8.5vw, 116px);    /* Figma ≈ 115.7 */
+  aspect-ratio: 1;
+  pointer-events: none;
+}
+.hv2-smile__mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-color: var(--text-primary);
+  -webkit-mask: url(/home/biako-smile.svg) center / contain no-repeat;
+          mask: url(/home/biako-smile.svg) center / contain no-repeat;
+  animation: hv2-smile-spin 8s linear infinite;   /* steady 360°/8s */
+}
+@keyframes hv2-smile-spin { to { transform: rotate(360deg); } }
 
 .hv2-stickers__stage {
   position: relative;
@@ -325,54 +362,92 @@
 .hv2-glitch { animation: about-glitch-in 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
 /* ============================================================
-   DESKTOP — Figma composition (frame 6217:4587)
-   Left column: tagline + character (top) → welcome (top-aligned with the
-   image top) → BIAKO stickers + right-aligned piece meta (bottom).
-   Right: tag box top-right at the margin; the big image tucked under it
-   (right edge at the tag box's LEFT edge, gap kept on the right); the
-   vertical piece title sits in that gap, bottom-aligned, 16px from the edge.
+   DESKTOP HERO — fits the first viewport (Figma frame 6217:4587).
+   The hero box is exactly `100svh − nav − intro-top-pad − breathing`, and the
+   big image is sized by that AVAILABLE HEIGHT (aspect-ratio derives its width),
+   so it grows on tall screens and shrinks on short ones without ever needing
+   scroll. The tag box + vertical name are anchored to the image, so the whole
+   cluster moves/scales as one. Guarded by min-height so short screens fall back
+   to the natural stacked flow (with scroll) instead of crushing the type.
    ============================================================ */
-@media (min-width: 900px) {
+@media (min-width: 900px) and (min-height: 700px) {
   .hv2-hero {
+    --hero-h: calc(100svh - var(--nav-h) - var(--space-4) - var(--space-8));
+    height: var(--hero-h);
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 439px) 192px;
-    grid-template-areas:
-      "tophead   .         tagbox"
-      "welcome   featured  ."
-      "foot      featured  name";
+    grid-template-columns: minmax(0, 1fr) auto;   /* text | image cluster */
     grid-template-rows: auto auto 1fr;
-    column-gap: 0;                     /* image col touches the gap/tag-box col */
+    grid-template-areas:
+      "tophead  cluster"
+      "welcome  cluster"
+      "foot     cluster";
+    column-gap: var(--space-10);
     row-gap: 0;
     align-items: start;
   }
-  /* Left-column gutter so the text doesn't butt against the image. */
   .hv2-tophead, .hv2-welcome-block, .hv2-foot { padding-inline-end: var(--space-4); }
   .hv2-tophead       { grid-area: tophead; gap: var(--space-16); }  /* tagline → character */
-  .hv2-figure        { margin-bottom: var(--space-8); }  /* character → welcome = 32px (keeps welcome top = image top) */
-  .hv2-welcome-block { grid-area: welcome; align-self: start; }  /* top = image top */
-  .hv2-tagbox        { grid-area: tagbox; justify-self: end; }
-  .hv2-featured      { grid-area: featured; width: 100%; align-self: start; }
+  .hv2-figure        { margin-bottom: var(--space-8); }
+  .hv2-welcome-block { grid-area: welcome; align-self: start; }
   .hv2-foot          { grid-area: foot; align-self: end; }
 
-  /* Piece meta — right-aligned, its right edge 16px from the image's left edge. */
+  /* Piece meta — right-aligned, its right edge against the image's left gutter. */
   .hv2-foot .hv2-featured-info { flex: 1 1 auto; text-align: right; }
   .hv2-foot .hv2-featured__desc { max-width: none; margin-left: auto; }
   .hv2-foot .hv2-featured__meta div { justify-content: flex-end; }
 
-  /* Vertical piece title — in the gap right of the image, bottom-aligned,
-     16px from the right margin (relates to the image row, not the edge). */
-  .hv2-featured__name {
-    grid-area: name;
-    align-self: end;
-    justify-self: end;
-    margin: 0 var(--space-4) var(--space-1) 0;
+  /* Right column — the image CLUSTER (image + glued tag box + vertical name). */
+  .hv2-cluster {
+    grid-area: cluster;
+    align-self: stretch;
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;                 /* image bottom = hero bottom */
+    justify-content: flex-end;             /* image against the right gutter */
+    padding-right: calc(var(--hero-h) * 0.13);   /* gutter the tag box occupies */
+  }
+  .hv2-cluster .hv2-featured {
+    position: relative;
+    flex: 0 0 auto;
+    width: auto;
+    height: 84%;                           /* image height; the band above holds the tag box */
+    gap: 0;
+  }
+  .hv2-cluster .hv2-featured__stage {
+    position: relative;
+    width: auto;
+    height: 100%;
+    aspect-ratio: 439 / 779;               /* width DERIVED from the available height */
+  }
+  /* Tag box — glued to the image's top-right corner (its bottom-left corner meets
+     it), sized off the hero height so it scales together with the image. */
+  .hv2-cluster .hv2-tagbox {
+    order: 0;
+    position: absolute;
+    bottom: 100%;                          /* sits above the image top edge */
+    left: 100%;                            /* sits right of the image right edge */
+    width: calc(var(--hero-h) * 0.13);
+    max-width: none;
+    z-index: 2;
+  }
+  .hv2-cluster .hv2-tagbox__stage { width: 100%; }
+  /* Vertical piece title — in the gap right of the image, bottom-aligned. */
+  .hv2-cluster .hv2-featured__name {
+    position: absolute;
+    left: 100%;
+    bottom: 0;
+    margin: 0 0 0 var(--space-2);
     writing-mode: vertical-rl;
     white-space: nowrap;
     color: var(--text-tertiary);
   }
+}
 
-  /* Stickers (442) + Posters (fills) side by side, EQUAL height: the Stickers
-     strip's aspect-ratio sets the row height; the Posters stage fills to match. */
+/* Lower row (Stickers + Posters) — desktop, independent of viewport height.
+   Stickers (442) + Posters (fills) side by side, EQUAL height: the Stickers
+   strip's aspect-ratio sets the row height; the Posters stage fills to match. */
+@media (min-width: 900px) {
   .hv2-lower {
     display: grid;
     grid-template-columns: 442px minmax(0, 1fr);   /* Figma: stickers 442 · posters */
@@ -393,6 +468,7 @@
   .hv2-reveal.is-in { opacity: 1; animation: none; }
   .hv2-reveal::after, .hv2-reveal.is-in::after { content: none; animation: none; }
   .hv2-glitch { animation: none; }
+  .hv2-smile__mark { animation: none; }   /* smile holds still */
   /* Stop the conveyor; let the strip be scrolled manually instead. */
   .hv2-carousel { overflow-x: auto; scrollbar-width: none; }
   .hv2-carousel::-webkit-scrollbar { display: none; }

@@ -222,7 +222,14 @@ export function init () {
   // Work manifest → featured slideshow + Escale World carousel.
   fetch('/work.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(items => { fillFeatured(items); fillCarousel(items) })
+    .then(items => {
+      fillFeatured(items); fillCarousel(items)
+      // The meta block grows once populated; on the viewport-fit hero it can
+      // start below the reveal cutoff (empty → no text), so the initial check
+      // misses it and there's no scroll to retrigger. Re-run the reveal check
+      // now that it has its real height.
+      window.dispatchEvent(new Event('resize'))
+    })
     .catch(() => {})
 
   // Tags manifest → glitch tag box (offset interval so it doesn't sync w/ others).

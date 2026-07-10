@@ -9,7 +9,9 @@
    ============================================================ */
 
 .tags__track {
-  --tag-scale: 1;                 /* per-page size multiplier (About sets 0.75) */
+  /* Global marquee size multiplier (0.75 = graphics at ¾ so more tags fit per
+     row). Gaps AND duration scale off it too → same perceived scroll speed. */
+  --tag-scale: 0.75;
   --tag-gap: calc(10px * var(--tag-scale));        /* Figma: 10.2px */
   --tags-duration: calc(100s * var(--tag-scale));  /* scale w/ size → same speed feel */
   display: flex;
@@ -78,12 +80,6 @@
   .tags__track { --tag-gap: calc(8px * var(--tag-scale)); --tags-duration: calc(70s * var(--tag-scale)); }
   .tags__item img { height: calc(clamp(30px, 5vh, 44px) * var(--tag-scale, 1)); }
 }
-
-/* About: tags render at 0.75 of the shared size (Figma 6320:2282 — smaller tiles,
-   tighter gaps, more per row). One knob scales the graphics, the gaps AND the
-   marquee duration together, so the scroll speed feels the same. Home is
-   untouched (--tag-scale stays 1 there). */
-body[data-page="about"] .tags__track { --tag-scale: 0.75; }
 
 /* ============================================================
    LIGHTBOX — floats a tag PNG over a blurred + dimmed page.
