@@ -70,13 +70,10 @@
 }
 
 /* ============================================================
-   HERO
+   HERO — two states only: desktop composition (@min-width 900) and the mobile
+   hero (@max-width 899.98). `.hv2-hero` is fully defined in each; no base layout
+   here (the old intermediate stacked layout was removed).
    ============================================================ */
-.hv2-hero {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-6);
-}
 
 /* 1 · Tagline + character (top-left) */
 .hv2-tophead { display: flex; flex-direction: column; gap: var(--space-8); }
@@ -119,20 +116,15 @@
   image-rendering: pixelated;
 }
 
-/* 2 · Featured piece — vertical slideshow image.
-   Base (mobile / fallback): the cluster stacks — tag box (order:-1, above the
-   image, current behavior), image, then the piece name. Desktop overrides this
-   into a height-driven cluster (see the min-height media query). */
+/* 2 · Featured piece — vertical slideshow image. Layout (cluster / tag box /
+   name placement) is set per-state in the two media queries below; here only the
+   shared box defaults. */
 .hv2-cluster { width: 100%; }
 .hv2-featured {
   position: relative;
   margin: 0;
   width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
 }
-.hv2-tagbox { order: -1; }                  /* mobile: dark tag box above the image */
 .hv2-featured__stage {
   position: relative;
   width: 100%;
@@ -368,10 +360,14 @@
    big image is sized by that AVAILABLE HEIGHT (aspect-ratio derives its width),
    so it grows on tall screens and shrinks on short ones without ever needing
    scroll. The tag box + vertical name are anchored to the image, so the whole
-   cluster moves/scales as one. Guarded by min-height so short screens fall back
-   to the natural stacked flow (with scroll) instead of crushing the type.
+   cluster moves/scales as one.
+
+   ONE breakpoint: the home has exactly TWO states — this desktop composition at
+   ≥900px, then DIRECTLY the mobile hero below (≤899.98px). No intermediate/stacked
+   stage (the old one was removed). 900 is where the text column + image + tag box
+   still read without collapsing.
    ============================================================ */
-@media (min-width: 900px) and (min-height: 700px) {
+@media (min-width: 900px) {
   .hv2-hero {
     /* Available height between the fixed nav and the fixed footer, with an equal
        gap on each side: top = nav + space-4 (matches .intro's top padding),
@@ -480,15 +476,16 @@
 }
 
 /* ============================================================
-   MOBILE HERO — Figma frame 6328:2512 (≤640px). Desktop untouched.
+   MOBILE HERO — Figma frame 6328:2512. The SECOND (and only other) state,
+   directly below the desktop breakpoint (≤899.98px — no intermediate stage).
    A grid puts the pixel character to the RIGHT of the text (flipped,
    bottom-aligned), then a FULL-BLEED image row: big image left, tag box
-   top-right, vertical piece name bottom-right, BIAKO stickers over the
+   top-right, vertical piece name under the tag box, BIAKO stickers over the
    image's bottom-left. No meta block. tophead + foot use display:contents
    so their children place directly in this grid — the DOM is unchanged, so
    the desktop layout can't be affected. Module gap drops to 80px.
    ============================================================ */
-@media (max-width: 640px) {
+@media (max-width: 899.98px) {
   .home-v2 { gap: var(--space-20); }        /* 160 → 80 between modules (req 7) */
 
   .hv2-hero {
@@ -558,11 +555,16 @@
     width: 100%;
     aspect-ratio: 110 / 160;                /* Figma box ratio */
   }
-  /* Vertical piece name — bottom-right, bottom-aligned with the image (synced). */
+  /* Vertical piece name — hangs UNDER the tag box, top-right (synced). The gap
+     from the tag box bottom to the name top equals the name's right-margin
+     distance (both var(--space-4)). Tag box height = featured-width × 160/394
+     (its 110:160 ratio in the 110/394 column of the full-bleed 100vw row), so it
+     starts just below the box and no longer covers the lower photo. */
   .hv2-featured__name {
     position: absolute;
+    top: calc(100vw * 160 / 394 + var(--space-4));
     right: var(--space-4);
-    bottom: 0;
+    bottom: auto;
     margin: 0;
     writing-mode: vertical-rl;
     white-space: nowrap;
