@@ -479,6 +479,103 @@
 }
 
 /* ============================================================
+   MOBILE HERO — Figma frame 6328:2512 (≤640px). Desktop untouched.
+   A grid puts the pixel character to the RIGHT of the text (flipped,
+   bottom-aligned), then a FULL-BLEED image row: big image left, tag box
+   top-right, vertical piece name bottom-right, BIAKO stickers over the
+   image's bottom-left. No meta block. tophead + foot use display:contents
+   so their children place directly in this grid — the DOM is unchanged, so
+   the desktop layout can't be affected. Module gap drops to 80px.
+   ============================================================ */
+@media (max-width: 640px) {
+  .home-v2 { gap: var(--space-20); }        /* 160 → 80 between modules (req 7) */
+
+  .hv2-hero {
+    display: grid;
+    grid-template-columns: 1fr auto;        /* text | character */
+    grid-template-areas:
+      "tagline  tagline"
+      "welcome  figure"
+      "media    media";
+    column-gap: var(--space-4);
+    row-gap: var(--space-8);                /* 32px: tagline→welcome & text→image (Figma) */
+    align-items: start;
+  }
+  /* Unwrap tophead + foot → their children become direct grid items (DOM
+     unchanged → desktop untouched). */
+  .hv2-tophead,
+  .hv2-foot { display: contents; }
+
+  .hv2-tagline { grid-area: tagline; }
+  .hv2-welcome-block { grid-area: welcome; }
+
+  /* Pixel character — right of the text, flipped, bottom-aligned with it. */
+  .hv2-figure {
+    grid-area: figure;
+    align-self: end;
+    justify-self: end;
+    margin: 0;
+    transform: scaleX(-1);                  /* face the text, like About */
+  }
+
+  /* Image row — full-bleed (breaks out of the .intro 24px side padding). */
+  .hv2-cluster {
+    grid-area: media;
+    width: 100vw;
+    min-width: 0;                           /* don't let the 100vw span inflate the auto column */
+    margin-left: calc(-1 * var(--space-6));
+  }
+  .hv2-featured {
+    position: relative;
+    display: block;                         /* override the base flex */
+    width: 100%;
+    aspect-ratio: 394 / 505;                /* Figma full-bleed row : image height */
+  }
+  /* Big image — left, full height (Figma 284 of 394 ≈ 72%). */
+  .hv2-featured__stage {
+    position: absolute;
+    inset: 0 auto 0 0;                      /* left, full height */
+    width: calc(284 / 394 * 100%);
+    height: auto;
+    aspect-ratio: auto;
+    max-height: none;
+  }
+  /* Tag glitch box — top-right beside the image (Figma 110 of 394 ≈ 28%). */
+  .hv2-tagbox {
+    order: 0;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: calc(110 / 394 * 100%);
+    max-width: none;
+  }
+  .hv2-tagbox__stage {
+    width: 100%;
+    aspect-ratio: 110 / 160;                /* Figma box ratio */
+  }
+  /* Vertical piece name — bottom-right, bottom-aligned with the image (synced). */
+  .hv2-featured__name {
+    position: absolute;
+    right: var(--space-4);
+    bottom: 0;
+    margin: 0;
+    writing-mode: vertical-rl;
+    white-space: nowrap;
+  }
+  /* BIAKO stickers — overlap the image's bottom-left corner, above it (req 6). */
+  .hv2-stickers-deco {
+    grid-area: media;                       /* same cell as the image → overlaps it */
+    align-self: end;
+    justify-self: start;
+    z-index: 3;
+    transform: translateY(58%);             /* straddle the image's bottom edge */
+    pointer-events: none;
+  }
+  /* Meta / details block — not rendered on mobile (req 5). */
+  .hv2-featured-info { display: none; }
+}
+
+/* ============================================================
    REDUCED MOTION — reveals + swaps become plain, marquee calmer
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
