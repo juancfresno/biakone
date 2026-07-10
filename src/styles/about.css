@@ -24,12 +24,13 @@
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
-  /* Figma 6305:1828 — the strip is 333.16 tall at 1392 content width. Keep that
-     proportion LIQUID: the height tracks the content width (viewport minus the
-     two 24px margins) so tiles stay tall and crop responsively (object-cover).
-     Clamped so it never collapses on narrow desktops nor grows absurd on ultra-
-     wide; it hits the exact Figma 333px at 1440. */
-  height: clamp(280px, calc((100vw - 2 * var(--space-6)) * (333.16 / 1392)), 460px);
+  /* Figma 6305:1828 — the strip is 333.16 tall at 1392 content width. Height is
+     PURELY proportional to the container width (viewport minus the two 24px
+     margins), so the whole strip scales with the viewport — bigger tiles on wide
+     screens, smaller on narrow ones — with the composition (and each tile's
+     crop) constant at every resolution. No clamp → no fixed-height range where
+     the masking would differ. Resolves to the exact Figma 333px at 1440. */
+  height: calc((100vw - 2 * var(--space-6)) * (333.16 / 1392));
 }
 .about-gallery__strip::-webkit-scrollbar { display: none; }
 .about-gallery__cell {
