@@ -18,7 +18,7 @@ let stageEl, escHint, closeBtn                 // takeover stage + chrome (glitc
 let projects = [], rows = [], activeIndex = -1
 let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
-let historyPushed = false, glitchLayers = []   // browser-back binding + transient glitch clones
+let historyPushed = false, bands = []          // browser-back binding + transient slice-band clones
 let cleanup = []
 let elasticRafId = 0, scrollRafId = 0
 let tipBound = false
@@ -469,30 +469,44 @@ function fillDrawer (i) {
 
 let closing = false, openTl = null
 
-// ─── Glitch layers — transient clones of the takeover stage ──────────────────
-// Codrops "Glitch Slideshow" technique: stack copies of the SAME content, offset
-// + RGB-tint them (work.css .drawer__glitch--c/--r) and run the clip-path SLICE
-// keyframes. They exist ONLY during the ~0.6s entrance/exit; removeGlitchLayers()
-// tears them down so the settled takeover is a single clean layer.
-function buildGlitchLayers () {
-  removeGlitchLayers()
+// ─── Slice bands — transient clones of the takeover stage, one per strip ──────
+// Progressive reveal (work.css .drawer__band): the stage is cloned into N layers,
+// each clip-path'd to ONE horizontal strip and offset + RGB-tinted, then animated
+// in a shuffled, staggered order so the content arrives "line by line" like a
+// signal coming in. They exist ONLY during the ~0.8s entrance / ~0.4s exit;
+// removeBands() tears them down so the settled takeover is a single clean layer.
+const BAND_COUNT = 7
+function buildBands (stagger) {
+  removeBands()
   if (!stageEl || !panel) return []
-  const mk = (mod) => {
+  const html = stageEl.innerHTML                 // same content; images are cached (no refetch)
+  // Shuffled reveal order — swap adjacent pairs (…1,0,3,2,5,4… reads more analog
+  // than a clean top-to-bottom wipe). rank[band] = its position in that order.
+  const order = []
+  for (let k = 0; k < BAND_COUNT; k++) order.push(k)
+  for (let k = 0; k + 1 < BAND_COUNT; k += 2) { const t = order[k]; order[k] = order[k + 1]; order[k + 1] = t }
+  const rank = []
+  order.forEach((band, pos) => { rank[band] = pos })
+  for (let k = 0; k < BAND_COUNT; k++) {
+    const top = (k / BAND_COUNT) * 100
+    const bot = ((BAND_COUNT - k - 1) / BAND_COUNT) * 100
     const layer = document.createElement('div')
-    layer.className = 'drawer__glitch drawer__glitch--' + mod
+    layer.className = 'drawer__band drawer__band--' + (k % 2 ? 'r' : 'c')   // alternating cyan/red channels
     layer.setAttribute('aria-hidden', 'true')
-    layer.innerHTML = stageEl.innerHTML          // same content; images are cached (no refetch)
-    layer.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'))   // no duplicate ids
+    layer.style.clipPath = 'inset(' + top + '% 0 ' + bot + '% 0)'           // this band's horizontal strip
+    layer.style.setProperty('--band-delay', (rank[k] * stagger) + 'ms')     // shuffled stagger
+    layer.style.setProperty('--bx', ((k % 2 ? -1 : 1) * (8 + (k % 3) * 4)) + 'px')   // ±8–16px slide-in
+    layer.innerHTML = html
+    layer.querySelectorAll('[id]').forEach(n => n.removeAttribute('id'))    // no duplicate ids
     panel.appendChild(layer)
-    return layer
+    bands.push(layer)
   }
-  glitchLayers = [mk('c'), mk('r')]
-  return glitchLayers
+  return bands
 }
-function removeGlitchLayers () {
-  if (glitchLayers.length) gsap.killTweensOf(glitchLayers)
-  glitchLayers.forEach(l => l.remove())
-  glitchLayers = []
+function removeBands () {
+  if (bands.length) gsap.killTweensOf(bands)
+  bands.forEach(l => l.remove())
+  bands = []
 }
 
 function openDrawer (i) {
@@ -501,7 +515,7 @@ function openDrawer (i) {
   fillDrawer(i)
   // Re-parent the drawer to <body> so the fullscreen takeover paints ABOVE the
   // fixed nav/footer and, being the one <body> child excluded from the page blur,
-  // stays sharp behind the glitch slices.
+  // stays sharp behind the slice bands.
   if (drawer.parentElement !== document.body) document.body.appendChild(drawer)
   drawer.hidden = false
   closing = false                              // cancel any pending close
@@ -512,24 +526,30 @@ function openDrawer (i) {
   if (!historyPushed) { try { history.pushState({ biakoDrawer: true }, '') } catch (e) {} historyPushed = true }
 
   if (openTl) { openTl.kill(); openTl = null }
-  drawer.classList.remove('is-glitching', 'is-glitching-out')
+  drawer.classList.remove('is-opening', 'is-closing')
   gsap.killTweensOf([backdrop, stageEl, escHint, closeBtn])
 
   if (reduceMotion()) {
-    removeGlitchLayers()
+    removeBands()
     gsap.set([backdrop, stageEl, escHint, closeBtn], { clearProps: 'all', autoAlpha: 1 })
   } else {
-    const layers = buildGlitchLayers()
-    drawer.style.setProperty('--drawer-gd', '0.62s')
+    buildBands(72)                             // ~0.8s total (6 × 72ms stagger + 0.34s band)
+    // Base hidden until the last band lands → the bands ARE the content during the
+    // reveal. Set synchronously (no paint yet) so there's no first-frame flash of
+    // the full sheet: bands start clipped + opacity 0 (CSS), base is autoAlpha 0.
+    gsap.set(stageEl, { autoAlpha: 0 })
     gsap.set(backdrop, { autoAlpha: 0 })
     gsap.set([escHint, closeBtn], { autoAlpha: 0 })
-    // Restart the one-shot CSS slice animation (stage-in + clone glitch).
-    void drawer.offsetWidth
-    drawer.classList.add('is-glitching')
-    openTl = gsap.timeline({ onComplete: () => { drawer.classList.remove('is-glitching'); removeGlitchLayers() } })
-      .to(backdrop, { autoAlpha: 1, duration: 0.2, ease: 'power1.out' }, 0)
-      .to(layers, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, 0.5)   // clones fade as the base solidifies
-      .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, 0.34)
+    void drawer.offsetWidth                    // commit the reset, then start the band animations
+    drawer.classList.add('is-opening')
+    // Reveal the clean base and drop the bands in the SAME frame once all have
+    // landed (they show identical content, so the swap is invisible).
+    const settle = () => { gsap.set(stageEl, { autoAlpha: 1 }); removeBands(); drawer.classList.remove('is-opening') }
+    openTl = gsap.timeline()
+      .to(backdrop, { autoAlpha: 1, duration: 0.25, ease: 'power1.out' }, 0)
+      .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.28, ease: 'power2.out' }, 0.34)
+      .add(settle, 0.80)
+    setTimeout(() => { if (!drawer.hidden && bands.length) settle() }, 1000)   // fallback
   }
   if (closeBtn) closeBtn.focus()
 }
@@ -544,8 +564,8 @@ function closeDrawer (opts) {
     if (!closing) return
     closing = false
     drawer.hidden = true
-    drawer.classList.remove('is-glitching', 'is-glitching-out')
-    removeGlitchLayers()
+    drawer.classList.remove('is-opening', 'is-closing')
+    removeBands()
     dGallery.innerHTML = ''
     drawer.dataset.mode = 'gallery'
     gsap.set([stageEl, escHint, closeBtn], { clearProps: 'opacity,visibility' })
@@ -559,18 +579,20 @@ function closeDrawer (opts) {
 
   if (reduceMotion()) { done() }
   else {
-    const layers = buildGlitchLayers()
-    drawer.style.setProperty('--drawer-gd', '0.34s')   // shorter reverse glitch
-    drawer.classList.remove('is-glitching')
+    // Rebuild the bands from the (currently clean) base, hide the base, and drop
+    // them back out staggered + faster. The bands start at the landed state (band-out
+    // 0%), showing identical content, so hiding the base in the same frame is seamless.
+    buildBands(38)                             // ~0.4s total (6 × 38ms stagger + 0.22s band)
+    gsap.set(stageEl, { autoAlpha: 0 })
+    drawer.classList.remove('is-opening')
     void drawer.offsetWidth
-    drawer.classList.add('is-glitching-out')
-    gsap.killTweensOf([panel, backdrop, stageEl])
+    drawer.classList.add('is-closing')
+    gsap.killTweensOf([panel, backdrop])
     openTl = gsap.timeline({ onComplete: done })
       .to(backdrop, { autoAlpha: 0, duration: 0.3, ease: 'power1.in' }, 0)
-      .to(stageEl, { autoAlpha: 0, duration: 0.26, ease: 'power1.in' }, 0.06)
-      .to(layers, { autoAlpha: 0, duration: 0.12, ease: 'power1.in' }, 0.24)
-      .to([escHint, closeBtn], { autoAlpha: 0, duration: 0.18 }, 0)
-    setTimeout(done, 560)                           // guaranteed finish (fallback)
+      .to([escHint, closeBtn], { autoAlpha: 0, duration: 0.16 }, 0)
+      .to({}, { duration: 0.44 })              // hold for the band-out stagger to finish
+    setTimeout(done, 640)                       // guaranteed finish (fallback)
   }
   if (lastFocused && lastFocused.focus) lastFocused.focus()
 }
@@ -690,7 +712,7 @@ export function destroy () {
   if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }
   if (openTl) { openTl.kill(); openTl = null }
   closing = false
-  removeGlitchLayers()
+  removeBands()
   historyPushed = false                                   // drop the back-button binding state
   document.body.style.overflow = ''
   document.body.classList.remove('drawer-open')          // drop the page blur + resume Lenis

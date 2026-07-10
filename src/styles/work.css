@@ -400,77 +400,66 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   background: var(--neutral-950);
 }
 
-/* ── Glitch takeover — Codrops "Glitch Slideshow" technique, ported ────────────
-   On open, work.js clones .drawer__stage into 1–2 transient .drawer__glitch
-   layers, offsets + RGB-tints them, and runs the clip-path SLICE keyframes; the
-   base stage resolves underneath so the content "appears through" the glitch.
-   The clones are removed once settled → a single clean layer (no permanent
-   triple-render). --gap-* are the horizontal/vertical channel offsets. */
+/* ── Progressive slice reveal — the takeover enters "line by line" ────────────
+   Instead of glitching in place, work.js builds N transient band layers (clones
+   of .drawer__stage, each clip-path'd to ONE horizontal strip). Each band opens
+   staggered in a shuffled order, sliding in from a small ±X offset with a
+   cyan/red RGB tint that fades as it lands (like a signal coming in). The base
+   stage is hidden until the last band lands, then revealed as the bands are
+   removed → a single clean layer (Codrops "Glitch Slideshow" layer strategy).
+   Per-band geometry (clip-path strip, --band-delay, --bx) is set inline in JS. */
 .drawer__stage {
   position: absolute;
   inset: 0;
 }
-/* Content "resolves" under the glitch on open (base layer). */
-.drawer.is-glitching .drawer__stage { animation: drawer-stage-in 0.34s linear both; }
-@keyframes drawer-stage-in {
-  0%   { opacity: 0; }
-  45%  { opacity: 0.55; }
-  100% { opacity: 1; }
-}
 
-.drawer__glitch {
-  --gap-horizontal: 14px;
-  --gap-vertical: 22px;
+.drawer__band {
   position: absolute;
   inset: 0;
   overflow: hidden;
   pointer-events: none;
-  z-index: 1;                         /* over the base stage, under the chrome (z 5+) */
-  will-change: transform, clip-path, opacity;
+  opacity: 0;                        /* hidden at t=0 → no first-frame flash of full content */
+  z-index: 1;                        /* over the base stage, under the chrome (z 5+) */
+  will-change: transform, opacity;
 }
-/* RGB channel tint per layer — a solid colour screened over the cloned content,
-   the DOM analogue of Codrops' background-blend-mode channel shift. */
-.drawer__glitch::after {
+/* RGB channel tint per band — a solid colour screened over the cloned strip,
+   the DOM analogue of Codrops' background-blend-mode channel shift. It fades to
+   0 as the band lands (inherited group opacity keeps it invisible until then). */
+.drawer__band::after {
   content: "";
   position: absolute;
   inset: 0;
   mix-blend-mode: screen;
+  opacity: 0;
   pointer-events: none;
 }
-.drawer__glitch--c::after { background: #14e0ff; }   /* cyan channel */
-.drawer__glitch--r::after { background: #ff2d3d; }   /* red channel  */
-.drawer.is-glitching .drawer__glitch--c,
-.drawer.is-glitching-out .drawer__glitch--c { animation: drawer-glitch-1 var(--drawer-gd, 0.62s) linear both; }
-.drawer.is-glitching .drawer__glitch--r,
-.drawer.is-glitching-out .drawer__glitch--r { animation: drawer-glitch-2 var(--drawer-gd, 0.62s) linear both; }
+.drawer__band--c::after { background: #14e0ff; }   /* cyan channel */
+.drawer__band--r::after { background: #ff2d3d; }   /* red channel  */
 
-/* Ported slice keyframes (glitch-anim-1/2 from glitch-slideshow.css): the transform
-   offset is constant per layer; the clip-path polygon jumps between thin horizontal
-   slices each step → the rapid slice glitch. */
-@keyframes drawer-glitch-1 {
-  0%, 100% { transform: translate3d(var(--gap-horizontal), 0, 0); clip-path: polygon(0 2%, 100% 2%, 100% 5%, 0 5%); }
-  20% { clip-path: polygon(0 15%, 100% 15%, 100% 15%, 0 15%); }
-  30% { clip-path: polygon(0 10%, 100% 10%, 100% 20%, 0 20%); }
-  40% { clip-path: polygon(0 1%, 100% 1%, 100% 2%, 0 2%); }
-  50% { clip-path: polygon(0 33%, 100% 33%, 100% 33%, 0 33%); }
-  55% { clip-path: polygon(0 44%, 100% 44%, 100% 44%, 0 44%); }
-  60% { clip-path: polygon(0 50%, 100% 50%, 100% 20%, 0 20%); }
-  65% { clip-path: polygon(0 70%, 100% 70%, 100% 70%, 0 70%); }
-  70% { clip-path: polygon(0 80%, 100% 80%, 100% 80%, 0 80%); }
-  80% { clip-path: polygon(0 50%, 100% 50%, 100% 55%, 0 55%); }
-  85% { clip-path: polygon(0 60%, 100% 60%, 100% 65%, 0 65%); }
-  95% { clip-path: polygon(0 72%, 100% 72%, 100% 78%, 0 78%); }
+/* Entrance: each band slides in + de-tints, staggered by its inline --band-delay. */
+.drawer.is-opening .drawer__band        { animation: band-in       0.34s cubic-bezier(0.2, 0.7, 0.2, 1) var(--band-delay, 0ms) both; }
+.drawer.is-opening .drawer__band::after { animation: band-tint-in  0.34s ease-out                       var(--band-delay, 0ms) both; }
+/* Exit: reverse — bands drop out staggered, faster (shorter delays set in JS). */
+.drawer.is-closing .drawer__band        { animation: band-out      0.22s cubic-bezier(0.4, 0, 0.7, 0.3) var(--band-delay, 0ms) both; }
+.drawer.is-closing .drawer__band::after { animation: band-tint-out 0.22s ease-in                        var(--band-delay, 0ms) both; }
+
+@keyframes band-in {
+  0%   { opacity: 0; transform: translate3d(var(--bx, 0), 0, 0); }
+  35%  { opacity: 1; }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
 }
-@keyframes drawer-glitch-2 {
-  0%, 100% { transform: translate3d(calc(-1 * var(--gap-horizontal)), 0, 0); clip-path: polygon(0 25%, 100% 25%, 100% 30%, 0 30%); }
-  15% { clip-path: polygon(0 3%, 100% 3%, 100% 3%, 0 3%); }
-  25% { clip-path: polygon(0 5%, 100% 5%, 100% 20%, 0 20%); }
-  30% { clip-path: polygon(0 20%, 100% 20%, 100% 20%, 0 20%); }
-  45% { clip-path: polygon(0 40%, 100% 40%, 100% 40%, 0 40%); }
-  50% { clip-path: polygon(0 52%, 100% 52%, 100% 59%, 0 59%); }
-  65% { clip-path: polygon(0 75%, 100% 75%, 100% 75%, 0 75%); }
-  75% { clip-path: polygon(0 65%, 100% 65%, 100% 40%, 0 40%); }
-  90% { clip-path: polygon(0 45%, 100% 45%, 100% 50%, 0 50%); }
+@keyframes band-tint-in {
+  0%   { opacity: 0.85; }
+  100% { opacity: 0; }
+}
+@keyframes band-out {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0); }
+  100% { opacity: 0; transform: translate3d(var(--bx, 0), 0, 0); }
+}
+@keyframes band-tint-out {
+  0%   { opacity: 0; }
+  50%  { opacity: 0.7; }
+  100% { opacity: 0; }
 }
 
 /* Horizontal gallery — full-height images, drag/scroll right. */
@@ -650,10 +639,9 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
 
 @media (prefers-reduced-motion: reduce) {
   body.drawer-open > *:not(#work-drawer):not(script) { transition: none; }
-  .drawer.is-glitching .drawer__stage,
-  .drawer.is-glitching .drawer__glitch--c, .drawer.is-glitching-out .drawer__glitch--c,
-  .drawer.is-glitching .drawer__glitch--r, .drawer.is-glitching-out .drawer__glitch--r { animation: none; }
-  .drawer__glitch { display: none; }   /* no glitch clones under reduced motion */
+  .drawer.is-opening .drawer__band, .drawer.is-closing .drawer__band,
+  .drawer.is-opening .drawer__band::after, .drawer.is-closing .drawer__band::after { animation: none; }
+  .drawer__band { display: none; }     /* no slice bands under reduced motion */
   .drawer__gallery { cursor: grab; }   /* no custom chip */
   .drawer__cursor { display: none; }
 }
