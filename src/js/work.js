@@ -746,6 +746,15 @@ function bindDrawer () {
   const hoverFine   = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches
   const cursorChip  = document.getElementById('drawer-cursor')
 
+  // Everything below is the DESKTOP interaction layer — the VHS REW/FF cursor,
+  // click-zone paging, drag-to-scroll momentum and wheel→horizontal mapping. On
+  // touch / coarse-pointer devices NONE of it attaches: the gallery is a plain
+  // native vertical-scrolling stack (CSS handles the mobile layout). This keeps
+  // desktop handlers off touch entirely — no pointer/wheel listeners to fight the
+  // native scroll. (The scroll-freeze root cause — a stopped Lenis — is handled
+  // separately by data-lenis-prevent on #drawer-gallery / #drawer-info.)
+  if (!hoverFine()) return
+
   // ── VHS-language navigation over the gallery ──────────────────────────────
   // The custom cursor reads ◀◀ REW on the left half / FF ▶▶ on the right, and a
   // click on that half steps to the previous / next IMAGE. The wheel maps vertical

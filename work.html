@@ -70,14 +70,19 @@
           <!-- Horizontal gallery: full-height images, drag/scroll; edge zones act as
                prev/next image (see work.js). Each slide carries data-img-index so
                Phase 2 can promote one to a full-height slider without a rebuild. -->
-          <div class="drawer__gallery" id="drawer-gallery">
+          <!-- data-lenis-prevent: the drawer's own scroll containers. While the
+               takeover is open Lenis is stopped to lock the BACKGROUND page, but a
+               stopped Lenis preventDefault()s every touchmove — which would freeze
+               this gallery's native vertical scroll on touch. The attribute tells
+               Lenis to leave native scrolling here alone. -->
+          <div class="drawer__gallery" id="drawer-gallery" data-lenis-prevent>
             <!-- slides injected per project -->
           </div>
 
           <!-- Floating dark info box — Figma 6214:4165. Header (↘ NN. name · type
                | year), divider, description + Materials/Scale/Status, divider,
                Previous / Next between PROJECTS. -->
-          <aside class="drawer__info" id="drawer-info">
+          <aside class="drawer__info" id="drawer-info" data-lenis-prevent>
             <div class="drawer__info-head">
               <span class="drawer__title">
                 <span class="drawer__arrow" aria-hidden="true">↘</span>
