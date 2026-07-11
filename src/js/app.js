@@ -17,12 +17,13 @@ const PAGES = {
   stickers: () => import('./stickers.js'),
   posters:  () => import('./posters.js'),
   lab:      () => import('./lab.js'),
+  'lab-tags': () => import('./lab-tags.js'),
   'vandal-rush': () => import('./vandal-rush.js'),
   about:    () => import('./about.js'),
 }   // contact is static — no module
 const TITLES = {
   home: 'Biakone — Urban Objects, Graffiti & Scale Work', work: 'Work — Biakone', stickers: 'Stickers — Biakone',
-  posters: 'Posters — Biakone', lab: 'Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
+  posters: 'Posters — Biakone', lab: 'Lab — Biakone', 'lab-tags': 'Tags — Lab — Biakone', 'vandal-rush': 'Vandal Rush — Lab — Biakone', about: 'About — Biakone', contact: 'Contact — Biakone',
 }
 
 // ─── Per-page theme ──────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ public/tags.json
 public/about.json
 public/feed.json
 public/posters.json
+public/lab/tags.json
 
 # Local-only: Instagram promo graphics moved out of the stickers gallery
 stickers-promo/

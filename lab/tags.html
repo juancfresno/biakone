@@ -2,14 +2,13 @@
 <html lang="en" data-theme="dark">
 <head>
   <title>Tags — Lab — Biakone</title>
-  <meta name="robots" content="noindex, follow">
-  <meta name="description" content="Tags — hand-painted graffiti tag textures. A Biakone lab experiment.">
+  <meta name="description" content="An infinite, draggable canvas of Biako's hand-painted graffiti tags. Pan in any direction through the archive. A Biakone lab experiment.">
   <link rel="canonical" href="https://biakone.com/lab/tags">
   <meta property="og:title" content="Tags — Lab — Biakone">
-  <meta property="og:description" content="Hand-painted graffiti tag textures. A Biakone lab experiment.">
+  <meta property="og:description" content="An infinite, draggable canvas of Biako's hand-painted graffiti tags. A Biakone lab experiment.">
   <meta property="og:url" content="https://biakone.com/lab/tags">
   <meta name="twitter:title" content="Tags — Lab — Biakone">
-  <meta name="twitter:description" content="Hand-painted graffiti tag textures. A Biakone lab experiment.">
+  <meta name="twitter:description" content="An infinite, draggable canvas of Biako's hand-painted graffiti tags. A Biakone lab experiment.">
   <!-- @include partials/head.html -->
 </head>
 <body data-page="lab-tags" data-barba="wrapper">
@@ -17,21 +16,16 @@
   <!-- @include partials/nav.html -->
 
   <div data-barba="container" data-barba-namespace="lab-tags" data-theme="dark">
-    <main class="intro">
-      <p class="intro__bio">
-        Visual Artist — Designer<br>
-        ↘ Urban Objects, graffiti &amp; scale work
-      </p>
+    <main class="tags" aria-label="Tags — infinite canvas">
+      <h1 class="sr-only">Tags — an infinite canvas of Biako's hand-painted graffiti tags</h1>
 
-      <section class="lab-stub" aria-label="Tags">
-        <span class="lab-entry__head">
-          <span class="lab-entry__no">01</span>
-          <span class="lab-entry__label">Tags</span>
-        </span>
-        <h1 class="lab-stub__title">Tags</h1>
-        <p class="lab-stub__note">Coming soon — this experiment is still in the lab.</p>
-        <a class="lab-stub__back" href="/lab">↖ Back to Lab</a>
-      </section>
+      <!-- Infinite parallax plane (lab-tags.js). data-lenis-prevent: while this
+           page is open Lenis must not intercept touch/wheel over the plane, so the
+           custom drag/wheel pan owns the gesture (same guard as the Work gallery). -->
+      <div class="tags-plane" id="tags-plane" data-lenis-prevent role="application"
+           aria-label="Draggable infinite tag canvas — drag or scroll to explore"></div>
+
+      <p class="tags-hint" aria-hidden="true">Drag to explore ↔ ↕</p>
     </main>
   </div>
 
