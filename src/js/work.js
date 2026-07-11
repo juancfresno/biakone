@@ -522,8 +522,8 @@ function fillDrawer (i) {
   const imgs = p.images || []
   dGallery.innerHTML = imgs
     .map((im, n) => {
-      const ar = (im.w && im.h) ? (im.w + '/' + im.h) : '3/4'   // native frame aspect (portrait fallback)
-      return '<figure class="drawer__slide" data-img-index="' + n + '" style="aspect-ratio:' + ar + '">' +
+      const ar = (im.w && im.h) ? (im.w + '/' + im.h) : '3/4'   // native aspect — used by the DESKTOP frame only
+      return '<figure class="drawer__slide" data-img-index="' + n + '" style="--ar:' + ar + '">' +
         '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async"></figure>'
     })
     .join('')
@@ -606,7 +606,8 @@ function applyParallax () {
 }
 function startParallax () {
   stopParallax()
-  if (reduceMotion()) return                                 // no parallax under reduced motion
+  // Desktop only, and not under reduced motion — mobile has no parallax at all.
+  if (reduceMotion() || window.matchMedia('(max-width: 767px)').matches) return
   const tick = () => { applyParallax(); parallaxRaf = requestAnimationFrame(tick) }
   parallaxRaf = requestAnimationFrame(tick)
 }
