@@ -295,12 +295,17 @@ function bindToggle () {
   })
 }
 // ─── Justified mosaic layout ──────────────────────────────────────────────────
-// Desktop/tablet (≥48em): lay the cells out as JUSTIFIED ROWS — every row spans the
-// full container width at a uniform per-row height, cell widths flexed to fill
-// (Flickr-style for same-ratio cells). Rows are balanced (counts differ by ≤1) so
-// ANY piece count fills fully with no trailing hole; the smaller/taller rows go
-// FIRST. Below 48em we hand back to the simple CSS grid (mobile 2→4 col).
-const MOSAIC_MIN_H = 180    // px — readable floor; below this the mosaic scrolls instead of shrinking
+// Desktop/tablet (≥48em): JUSTIFIED ROWS at the images' NATURAL portrait size.
+// Priority is natural size, NOT viewport fill:
+//  • Each row fills the full width with cells at their native aspect → the row's
+//    height = W / Σaspect (Flickr-style justify by HEIGHT → essentially zero crop).
+//  • A natural target height (≈0.30·W, ~420px at 1440, scaling with width) only
+//    picks the ROW COUNT (12 pieces → 2 rows of ~6).
+//  • Viewport height is a CAP, not a goal: shorter than the viewport is fine
+//    (bottom whitespace). Taller → shrink rows up to 15% to fit; past that, scroll.
+// Below 48em we hand back to the simple CSS grid (mobile 2→4 col).
+const MOSAIC_TARGET_K   = 0.30   // natural cell height ≈ K · grid width (~420px @1440)
+const MOSAIC_MIN_SHRINK = 0.85   // shrink rows at most 15% to fit before allowing scroll
 function layoutMosaic () {
   if (!grid) return
   const cells = [...grid.querySelectorAll('.work__cell')]
@@ -315,45 +320,49 @@ function layoutMosaic () {
   grid.classList.add('is-justified')
   const N = cells.length
   const aspects = cells.map(c => parseFloat(c.dataset.aspect) || 0.75)   // native w/h per cell
-  const avgA = aspects.reduce((s, a) => s + a, 0) / N
+  const sumA = aspects.reduce((s, a) => s + a, 0)
 
-  // Fill the available viewport height (same feel as the home hero): available =
-  // viewport − everything above the grid (nav + intro header) − the fixed footer −
-  // a little breathing. Rows share that height uniformly (H = available / R) so the
-  // mosaic is edge-to-edge on BOTH axes with no dead zone below.
+  // Row count from the NATURAL target height (not from viewport fill): the total
+  // content width at targetH ÷ W. targetH scales with width so cells stay generous
+  // on wider screens. 12 portrait pieces → ~2 rows of 6.
+  const targetH = MOSAIC_TARGET_K * W
+  const R = Math.max(1, Math.min(N, Math.round(sumA * targetH / W)))   // = round(sumA · K)
+
+  // Balanced rows (counts differ by ≤1, smaller/taller rows first).
+  const base = Math.floor(N / R), rem = N % R
+  const rows = []
+  let idx = 0
+  for (let r = 0; r < R; r++) {
+    const size = base + (r >= R - rem ? 1 : 0)
+    let sa = 0
+    for (let k = 0; k < size; k++) sa += aspects[idx + k]
+    rows.push({ size, sumA: sa, start: idx })
+    idx += size
+  }
+  // Natural justified height per row = W / Σaspect (native aspect, fills width, ~zero crop).
+  const natH = rows.map(row => W / row.sumA)
+  const naturalTotal = natH.reduce((s, h) => s + h, 0)
+
+  // Viewport is a CAP. Shorter than available → leave it (whitespace ok). Taller →
+  // shrink uniformly, but no more than 15% (below that it scrolls rather than
+  // over-crop). Shrinking height keeps the justified widths → a little vertical crop.
   const gridTop = grid.getBoundingClientRect().top + window.scrollY
   const footer  = document.querySelector('.bottom')
   const footerH = footer ? footer.getBoundingClientRect().height : 74
-  const availH  = Math.max(MOSAIC_MIN_H, window.innerHeight - gridTop - footerH - 24)
+  const availH  = window.innerHeight - gridTop - footerH - 24    // 24px breathing above footer
+  let f = 1
+  if (availH > 0 && naturalTotal > availH) f = Math.max(availH / naturalTotal, MOSAIC_MIN_SHRINK)
 
-  // Row count that fills BOTH axes at the images' native aspect (minimises the
-  // justify crop): R ≈ √(N · avgAspect · availH / W). Cells keep height availH/R,
-  // width from their ratio. If that height would drop below the readable floor
-  // (too many pieces), pin to MIN_H and let the page scroll instead.
-  let R = Math.min(N, Math.max(1, Math.round(Math.sqrt(N * avgA * availH / W))))
-  let H = availH / R
-  if (H < MOSAIC_MIN_H) {
-    H = MOSAIC_MIN_H
-    const perRow = Math.max(1, Math.round(W / (avgA * H)))
-    R = Math.max(1, Math.ceil(N / perRow))
-  }
-  H = Math.round(H)
-
-  // Balanced rows (counts differ by ≤1, smaller/taller rows first). Each row: cells
-  // at height H take their width from their native aspect, then the row is justified
-  // to fill W exactly — flexing widths a touch (object-fit cover absorbs the few-% crop).
-  const base = Math.floor(N / R), rem = N % R
   let i = 0
   for (let r = 0; r < R; r++) {
-    const size = base + (r >= R - rem ? 1 : 0)
-    let sumA = 0
-    for (let k = 0; k < size; k++) sumA += aspects[i + k]
+    const row = rows[r]
+    const h = Math.round(natH[r] * f)                 // natural (or ≤15%-shrunk-to-fit) row height
     let used = 0
-    for (let k = 0; k < size; k++, i++) {
-      const cw = (k === size - 1) ? (W - used) : Math.round(aspects[i] * W / sumA)   // last cell → exact full width
+    for (let k = 0; k < row.size; k++, i++) {
+      const cw = (k === row.size - 1) ? (W - used) : Math.round(aspects[i] * W / row.sumA)   // native width, justified to fill W
       used += cw
       cells[i].style.width = cw + 'px'
-      cells[i].style.height = H + 'px'
+      cells[i].style.height = h + 'px'
     }
   }
 }
