@@ -74,27 +74,27 @@ body[data-page="lab"] .intro { position: relative; z-index: 1; }
    Per exercise: a hairline divider + Geist-Mono label, then a dark CRT "screen"
    panel holding the preview render. Whole entry links to its route. */
 .lab-index {
-  margin-top: var(--space-10);
+  margin-top: var(--space-20);         /* Figma: 80px hero → first divider */
   display: flex;
   flex-direction: column;
-  gap: var(--space-10);
+  gap: var(--space-20);                /* Figma: 80px between the two panels */
 }
 .lab-entry {
   display: block;
   text-decoration: none;
-  color: var(--neutral-50);
+  color: var(--neutral-50);            /* = Figma text/inverse-primary #f4f2ea */
   opacity: 0;                          /* revealed on entrance (lab.js → .is-in) */
 }
 .lab-entry__head {
   display: flex;
   align-items: baseline;
   gap: var(--space-4);
-  border-top: 1px solid var(--border-strong);   /* Figma: hairline divider above the label */
-  padding-top: var(--space-3);
-  margin-bottom: var(--space-5);
-  font-family: var(--font-ui);
+  border-top: 1px solid var(--neutral-400);   /* Figma divider = border/strong #a9aea9 */
+  padding-top: var(--space-4);         /* Figma: 16px divider → label */
+  margin-bottom: var(--space-12);      /* Figma: 48px label → panel */
+  font-family: var(--font-ui);         /* Geist Mono, 11px, weight 400 (Desktop/ui/sm) */
   font-size: var(--text-ui-sm);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.08em;              /* site mono-label tracking (frame nominal 0) */
   text-transform: uppercase;
 }
 .lab-entry__no    { color: var(--brand-blue); }
@@ -103,22 +103,25 @@ body[data-page="lab"] .intro { position: relative; z-index: 1; }
 
 .lab-entry__screen {
   position: relative;
-  aspect-ratio: 1392 / 800;            /* Figma screen proportions */
+  aspect-ratio: 1392 / 800;            /* Figma panel proportions (1392×800) */
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  background: var(--neutral-950);      /* the black "screen" */
-  border: 1px solid var(--neutral-900);
+  background: var(--neutral-1000);     /* Figma bg-black — pure #000, no border */
 }
+/* Per-render preview size (Figma: colourful render ≈ 663/800 ≈ 83% h; tag
+   ≈ 261/800 ≈ 33% h). Centred inside the panel. */
 .lab-entry__preview {
-  max-width: 56%;
-  max-height: 78%;
+  max-width: var(--pv-w, 52%);
+  max-height: var(--pv-h, 83%);
   width: auto;
   height: auto;
   object-fit: contain;
   transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
 }
+.lab-entry--tags { --pv-w: 31%; --pv-h: 33%; }   /* white handstyle tag (small) */
+.lab-entry--ia   { --pv-w: 52%; --pv-h: 83%; }   /* colourful 3D render (large) */
 @media (hover: hover) {
   .lab-entry:hover .lab-entry__preview { transform: scale(1.03); }
   .lab-entry:hover .lab-entry__cta     { transform: translate(2px, 2px); }
@@ -152,10 +155,14 @@ body[data-page="lab"] .intro { position: relative; z-index: 1; }
   20%      { opacity: 0.5; }
 }
 
+/* No mobile frame in Figma — adapt proportionally: a taller panel so the previews
+   read on a narrow screen, keeping the colourful-large / tag-small relationship. */
 @media (max-width: 640px) {
-  .lab-index { margin-top: var(--space-8); gap: var(--space-8); }
-  .lab-entry__screen  { aspect-ratio: 4 / 3; }
-  .lab-entry__preview { max-width: 74%; max-height: 76%; }
+  .lab-index { margin-top: var(--space-12); gap: var(--space-12); }
+  .lab-entry__head { margin-bottom: var(--space-6); }
+  .lab-entry__screen { aspect-ratio: 4 / 3; }
+  .lab-entry--tags { --pv-w: 46%; --pv-h: 50%; }
+  .lab-entry--ia   { --pv-w: 74%; --pv-h: 80%; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -43,6 +43,7 @@
   --neutral-800: #373737;
   --neutral-900: #242625;
   --neutral-950: #141414;
+  --neutral-1000: #000000;   /* pure black — the Lab "screen" panels (Figma bg-black) */
 
   /* brand */
   --brand-blue-50:  #F0F5FE;
