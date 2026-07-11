@@ -5,21 +5,24 @@
 // init()/destroy() so its effects mount on enter and fully clean up on leave.
 
 import barba from '@barba/core'
-import { inject as injectAnalytics, pageview } from '@vercel/analytics'
+import { inject as injectAnalytics } from '@vercel/analytics'
 import { injectSpeedInsights } from '@vercel/speed-insights'
 import { initShell, getLenis } from './shell.js'
 import { runTransition } from './transition.js'
 import { initTags, destroyTags } from './tags.js'
 
 // ─── Vercel Web Analytics + Speed Insights ───────────────────────────────────
-// Vanilla/SPA wiring: inject() loads the beacon script once (it fires the FIRST
-// pageview on load). barba swaps the URL via pushState but only settles the new
-// route ~one transition later, so we DISABLE the script's pushState auto-track and
-// fire the pageview ourselves from barba's `after` hook (the docs' recommended
-// "route updated after pushState" path) — exactly one pageview per navigation, no
-// double count. Localhost runs in debug mode (console, no real beacon); on Vercel
-// it POSTs to /_vercel/insights/*. Ad blockers can suppress the beacon.
-injectAnalytics({ mode: 'auto', disableAutoTrack: true })
+// Vanilla/SPA wiring: inject() loads the beacon script once. The script sends the
+// FIRST pageview on load AND patches history.pushState — which is exactly how
+// barba navigates (it pushState's the new URL), so SPA route changes are tracked
+// automatically (the script reads the URL barba passes to pushState); popstate
+// (back/forward) is handled too. So no manual pageview is needed — and adding one
+// would double-count. (Do NOT set disableAutoTrack: it makes the script return
+// before sending the initial view or patching pushState → zero pageviews.)
+// The script no-ops for headless/webdriver browsers by design. Localhost = debug
+// (console, no real beacon); on Vercel it POSTs to /_vercel/insights/*. Ad
+// blockers can suppress the beacon.
+injectAnalytics()
 injectSpeedInsights()
 
 // ─── Page registry (lazy — each page + its heavy deps code-split so e.g.
@@ -133,6 +136,4 @@ barba.hooks.after(({ next }) => {
   const l = getLenis()
   if (l) { l.resize(); l.start() }
   ensureMarquee(next.container)               // marquee self-check
-  // Count the SPA route change (auto-track is off — see the inject() note above).
-  pageview({ route: location.pathname, path: location.pathname + location.search })
 })
