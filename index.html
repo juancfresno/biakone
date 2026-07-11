@@ -125,6 +125,30 @@
         <div class="hv2-smile" aria-hidden="true"><span class="hv2-smile__mark"></span></div>
       </section>
 
+      <!-- LAB row (Figma 6217:4587): two 50/50 modules. Left → the AI experiments
+           (colorful renders, → /lab/ia); right → the tag archive (handstyle tags,
+           → /lab/tags). Same chrome as Stickers/Posters: elastic divider header,
+           reveal stagger, dark panel with a cycling centred preview. -->
+      <section class="hv2-labmods" aria-label="Lab">
+        <div class="hv2-col hv2-reveal" style="--rv-i:0" aria-label="IA experiments">
+          <div class="hv2-head"><span class="hv2-label">Tag textures — IA experiment</span></div>
+          <a class="hv2-lab" href="/lab/ia" aria-label="IA experiments — explore">
+            <div class="hv2-lab__stage" id="hv2-lab-ia" aria-hidden="true">
+              <img class="hv2-lab__img" alt="" decoding="async">
+            </div>
+          </a>
+        </div>
+
+        <div class="hv2-col hv2-reveal" style="--rv-i:1" aria-label="Tags">
+          <div class="hv2-head"><span class="hv2-label">Hello, my name is</span></div>
+          <a class="hv2-lab" href="/lab/tags" aria-label="Tags — explore">
+            <div class="hv2-lab__stage" id="hv2-lab-tags" aria-hidden="true">
+              <img class="hv2-lab__img" alt="" decoding="async">
+            </div>
+          </a>
+        </div>
+      </section>
+
       <!-- TAG MARQUEE — shared marquee component (initTags) -->
       <section class="hv2-marquee" aria-label="Handstyle tags" data-marquee>
         <div class="tags__track" id="tags-track" role="list"><!-- injected --></div>

@@ -348,6 +348,42 @@
 }
 
 /* ============================================================
+   LAB row — two 50/50 modules (Figma 6217:4587). Dark panel with a centred,
+   cycling preview render; header divider + reveal reuse the shared module chrome
+   (.hv2-head / .hv2-reveal), so the elastic line + entrance come for free.
+   ============================================================ */
+.hv2-labmods { position: relative; display: flex; flex-direction: column; gap: var(--space-10); }
+.hv2-lab { display: block; text-decoration: none; color: inherit; }
+.hv2-lab__stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 684 / 800;             /* Figma module ratio */
+  max-height: 78vh;
+  overflow: hidden;
+  background: var(--neutral-950);      /* the dark "screen" the render floats on */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hv2-lab__img {
+  max-width: 62%;
+  max-height: 62%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+/* Desktop: side-by-side 50/50 with the standard 24px gutter. */
+@media (min-width: 900px) {
+  .hv2-labmods {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-6);
+    row-gap: 0;
+  }
+  .hv2-labmods .hv2-col { display: flex; flex-direction: column; min-width: 0; }
+}
+
+/* ============================================================
    6 · Tag marquee — full-bleed, in flow (shared .tags__track)
    ============================================================ */
 .hv2-marquee {

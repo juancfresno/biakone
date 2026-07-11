@@ -276,6 +276,26 @@ export function init () {
     .then(r => r.ok ? r.json() : [])
     .then(items => initPosters(newestFirst(items).map(p => p.src).filter(Boolean)))   // lead with the newest
     .catch(() => {})
+
+  // Lab modules — a centred preview render cycling (glitch swap) through each
+  // Lab page's own manifest; the module links straight to that page. Offset
+  // intervals so they don't beat in sync with each other / the stickers strip.
+  fetch('/lab/ia.json', { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : [])
+    .then(items => {
+      const srcs = items.map(t => t.src).filter(Boolean)      // colourful AI renders → /lab/ia
+      const stage = document.getElementById('hv2-lab-ia')
+      if (stage) slideshow(stage.querySelector('.hv2-lab__img'), srcs, 3200)
+    })
+    .catch(() => {})
+  fetch('/lab/tags.json', { cache: 'no-cache' })
+    .then(r => r.ok ? r.json() : [])
+    .then(items => {
+      const srcs = items.map(t => t.src).filter(Boolean)      // handstyle tags → /lab/tags
+      const stage = document.getElementById('hv2-lab-tags')
+      if (stage) slideshow(stage.querySelector('.hv2-lab__img'), srcs, 2900)
+    })
+    .catch(() => {})
 }
 
 // Fires after the page-transition-in completes (or on first load). The reveals
