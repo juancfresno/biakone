@@ -107,6 +107,11 @@
   width: auto;
   image-rendering: pixelated;
 }
+/* ¡YEPA! click sprite (see home.css). About's figure is always scaleX(-1), so the
+   flipped sprite is counter-mirrored for readable text; natural size keeps the 72px
+   character + bottom-left anchor so the feet don't move. */
+.about-figure.is-click .about-figure__img { width: auto; height: auto; }
+.about-figure.is-click--flip .about-figure__img { transform: scaleX(-1); }
 
 /* Elastic divider below the text — portfolio ElasticLine effect (elastic-line.js);
    the static border is the mobile / no-JS / reduced-motion fallback. */

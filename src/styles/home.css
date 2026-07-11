@@ -115,6 +115,15 @@
   width: auto;
   image-rendering: pixelated;
 }
+/* ¡YEPA! click sprite — the PNG is larger (bubbles extend beyond the character).
+   Render it at NATURAL size so the 72px character matches the idle frames, keeping
+   the existing bottom-left anchor → the feet don't move; the sprite grows toward
+   its bubbles + up. */
+.hv2-figure.is-click .hv2-figure__img { width: auto; height: auto; }
+/* Mirrored host (mobile hero, figure scaleX(-1)): the flipped sprite is
+   counter-mirrored so the "YEPA!" text reads correctly (feet stay bottom-right,
+   bubbles extend left). */
+.hv2-figure.is-click--flip .hv2-figure__img { transform: scaleX(-1); }
 
 /* 2 · Featured piece — vertical slideshow image. Layout (cluster / tag box /
    name placement) is set per-state in the two media queries below; here only the
