@@ -740,6 +740,8 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   text-transform: uppercase;
   color: var(--neutral-50);
   white-space: nowrap;
+  text-align: center;
+  min-width: 5.5em;                            /* stable width as REW ⇄ FF swap */
   pointer-events: none;
   opacity: 0;
   transform: translate3d(-200px, -200px, 0) translate(-50%, -50%);
@@ -780,6 +782,5 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   .drawer.is-glitching .drawer__glitch--r, .drawer.is-glitching-out .drawer__glitch--r,
   .drawer.is-powering .drawer__crt, .drawer.is-powering-off .drawer__panel { animation: none; }
   .drawer__glitch, .drawer__crt { display: none; }   /* no glitch clones / CRT flash under reduced motion */
-  .drawer__gallery { cursor: grab; }   /* no custom chip */
-  .drawer__cursor { display: none; }
+  /* The REW/FF cursor is a static navigation affordance (no motion) — keep it. */
 }

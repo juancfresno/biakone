@@ -692,7 +692,49 @@ function bindDrawer () {
   const hoverFine   = () => window.matchMedia('(hover: hover) and (pointer: fine)').matches
   const cursorChip  = document.getElementById('drawer-cursor')
 
-  // ── Drag-to-scroll with momentum + a "DRAG" chip that replaces the cursor ──
+  // ── VHS-language navigation over the gallery ──────────────────────────────
+  // The custom cursor reads ◀◀ REW on the left half / FF ▶▶ on the right, and a
+  // click on that half steps to the previous / next IMAGE. The wheel maps vertical
+  // scroll → horizontal (down = forward). The drag physics below are unchanged —
+  // the cursor just no longer advertises them.
+  const midX = () => { const r = dGallery.getBoundingClientRect(); return r.left + r.width / 2 }
+  const moveChip = (x, y) => {
+    if (!cursorChip) return
+    cursorChip.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) translate(-50%,-50%)'
+    cursorChip.textContent = x < midX() ? '◀◀ REW' : 'FF ▶▶'   // swaps instantly at the midline
+  }
+  const showChip = () => { if (cursorChip && hoverFine() && !mobileLayout()) cursorChip.classList.add('is-visible') }
+  const hideChip = () => { if (cursorChip) cursorChip.classList.remove('is-visible') }
+
+  // Smoothly scroll the gallery to a target scrollLeft (eased; instant under
+  // reduced-motion). Shared by the click zones and the wheel mapping.
+  let navRaf = 0
+  const clampX = (x) => Math.max(0, Math.min(x, dGallery.scrollWidth - dGallery.clientWidth))
+  const smoothTo = (target) => {
+    cancelAnimationFrame(navRaf); navRaf = 0
+    target = clampX(target)
+    if (reduceMotion()) { dGallery.scrollLeft = target; return }
+    const start = dGallery.scrollLeft, dist = target - start, t0 = performance.now(), dur = 460
+    const ease = (t) => 1 - Math.pow(1 - t, 3)
+    const tick = (now) => {
+      const p = Math.min((now - t0) / dur, 1)
+      dGallery.scrollLeft = start + dist * ease(p)
+      if (p < 1) navRaf = requestAnimationFrame(tick); else navRaf = 0
+    }
+    navRaf = requestAnimationFrame(tick)
+  }
+  // Step to the prev/next image (the slide whose left edge is nearest the scroll).
+  const gotoImage = (dir) => {
+    const slides = [...dGallery.querySelectorAll('.drawer__slide')]
+    if (slides.length < 2) return
+    const sl = dGallery.scrollLeft
+    let cur = 0, best = Infinity
+    slides.forEach((s, n) => { const d = Math.abs(s.offsetLeft - sl); if (d < best) { best = d; cur = n } })
+    const target = Math.max(0, Math.min(cur + dir, slides.length - 1))
+    smoothTo(slides[target].offsetLeft)
+  }
+
+  // ── Drag-to-scroll with momentum (unchanged physics) ──
   let down = false, startX = 0, startScroll = 0, moved = 0
   let velX = 0, lastX = 0, inertiaId = 0
   const stopInertia = () => { if (inertiaId) { cancelAnimationFrame(inertiaId); inertiaId = 0 } }
@@ -701,13 +743,9 @@ function bindDrawer () {
     dGallery.scrollLeft -= velX
     inertiaId = Math.abs(velX) > 0.4 ? requestAnimationFrame(inertia) : 0
   }
-  const moveChip = (x, y) => { if (cursorChip) cursorChip.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) translate(-50%,-50%)' }
-  const showChip = () => { if (cursorChip && hoverFine() && !reduceMotion() && !mobileLayout()) cursorChip.classList.add('is-visible') }
-  const hideChip = () => { if (cursorChip) cursorChip.classList.remove('is-visible') }
-
   dGallery.addEventListener('pointerdown', (e) => {
     if (e.pointerType !== 'mouse' || mobileLayout()) return
-    stopInertia()
+    stopInertia(); cancelAnimationFrame(navRaf); navRaf = 0
     down = true; moved = 0; startX = e.clientX; lastX = e.clientX; velX = 0
     startScroll = dGallery.scrollLeft
     dGallery.setPointerCapture(e.pointerId)
@@ -731,7 +769,38 @@ function bindDrawer () {
   dGallery.addEventListener('pointercancel', end)
   dGallery.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') { moveChip(e.clientX, e.clientY); showChip() } })
   dGallery.addEventListener('pointerleave', hideChip)
-  cleanup.push(stopInertia)
+
+  // Click a half → prev/next image (skip if it was actually a drag).
+  dGallery.addEventListener('click', (e) => {
+    if (mobileLayout() || moved > 6) return
+    gotoImage(e.clientX < midX() ? -1 : 1)
+  })
+
+  // Wheel → horizontal. Vertical-dominant scroll maps to horizontal (down =
+  // forward); eased toward a target like the drag. Horizontal-dominant gestures
+  // fall through to native horizontal scroll. Only over the gallery (the info
+  // box, being a sibling on top, keeps its own wheel/scroll).
+  let wheelTarget = null, wheelRaf = 0
+  const wheelTick = () => {
+    const cur = dGallery.scrollLeft, diff = wheelTarget - cur
+    if (Math.abs(diff) < 0.5) { dGallery.scrollLeft = wheelTarget; wheelTarget = null; wheelRaf = 0; return }
+    dGallery.scrollLeft = cur + diff * 0.18                 // lerp — drag-like easing
+    wheelRaf = requestAnimationFrame(wheelTick)
+  }
+  const onWheel = (e) => {
+    if (mobileLayout()) return
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return     // horizontal gesture → native
+    if (!e.deltaY) return
+    e.preventDefault()
+    stopInertia()
+    if (reduceMotion()) { dGallery.scrollLeft = clampX(dGallery.scrollLeft + e.deltaY); return }
+    const base = wheelTarget == null ? dGallery.scrollLeft : wheelTarget
+    wheelTarget = clampX(base + e.deltaY)
+    if (!wheelRaf) wheelRaf = requestAnimationFrame(wheelTick)
+  }
+  dGallery.addEventListener('wheel', onWheel, { passive: false })
+
+  cleanup.push(() => { stopInertia(); cancelAnimationFrame(navRaf); cancelAnimationFrame(wheelRaf) })
 }
 
 // ─── Lifecycle ──────────────────────────────────────────────────────────────

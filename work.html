@@ -115,10 +115,11 @@
         </svg>
       </button>
 
-      <!-- Drag affordance — a pill that replaces the cursor over the gallery.
-           Direct child of .drawer (which has no transform) so its fixed
+      <!-- REW/FF navigation cursor — a pill that replaces the cursor over the
+           gallery; its label (◀◀ REW / FF ▶▶) and left/right click zones are set
+           in work.js. Direct child of .drawer (no transform) so its fixed
            positioning maps to viewport clientX/clientY. -->
-      <div class="drawer__cursor" id="drawer-cursor" aria-hidden="true">Drag</div>
+      <div class="drawer__cursor" id="drawer-cursor" aria-hidden="true"></div>
     </div>
   </div>
 
