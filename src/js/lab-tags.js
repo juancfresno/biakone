@@ -1,26 +1,41 @@
-// TAGS — infinite parallax canvas (/lab/tags).
+// TAGS — true 3D infinite canvas (/lab/tags).
 //
-// Technique ported from Codrops "Building an Infinite Parallax Grid with GSAP and
-// seamless tiling" (tympanus.net, 2025-06-11): a base tile of scattered tags is
-// duplicated 2×2, then each frame lerps a scroll target toward its current value
-// and wraps every tile by the doubled tile size — so the plane pans infinitely in
-// BOTH axes with no seams. Drag + wheel pan; depth layers parallax against scroll
-// velocity and (desktop) the cursor. The tags float scattered at varied sizes /
-// rotations over the shared AMBIENT CRT backdrop (crt.js).
+// Ported from Codrops "Infinite Canvas: Building a Seamless, Pan-Anywhere Image
+// Space" (tympanus.net, 2026-01-07), in PLAIN Three.js: tags are distributed
+// across cubic CHUNKS in 3D space and streamed in a fixed neighbourhood around
+// the camera. Each chunk's layout is DETERMINISTIC (seeded by its coords) so it
+// recreates identically after being culled — travel is unbounded, cost is
+// constant. Pan on X/Y (drag), fly-through on Z (wheel / pinch), all inertia-
+// driven; planes fade by grid- AND depth-distance so they appear/disappear
+// gracefully (and are culled from drawing once invisible). A finite tag set
+// repeats via modulo, so it reads as endless.
 //
-// SPA-safe: init()/entered()/destroy() own the rAF loop + all listeners.
+// The AMBIENT CRT/scanlines backdrop (crt.js) shows through the transparent WebGL
+// canvas; nav/footer sit above. SPA-safe: destroy() disposes every geometry,
+// material, texture and the renderer, cancels the rAF and kills all listeners —
+// no GPU-memory creep across repeated visits.
 
+import * as THREE from 'three'
 import { createCRT, CRT_AMBIENT, CRT_AMBIENT_MOBILE } from './crt.js'
 
-// ─── Tunables ────────────────────────────────────────────────────────────────
-const EASE       = 0.075        // scroll lerp — smaller = heavier glide
-const WHEEL_MULT  = 0.5         // wheel delta → pan
-const PARALLAX_V  = 4.0         // depth parallax vs scroll velocity
-const PARALLAX_M  = 0.45        // depth parallax vs cursor (desktop)
-const GRID_COLS   = 6           // base-tile scatter grid (36 tags → 6×6)
-const CELL        = 360         // logical cell size (px) → tile = COLS*CELL
+// ── Tunables ──────────────────────────────────────────────────────────────
+const CHUNK = 40                // cubic chunk edge (world units)
+const PER_CHUNK = 6             // tags per chunk
+const RENDER_DIST = 1           // 3×3×3 active neighbourhood around the camera
+const SIZE_MIN = 9, SIZE_MAX = 20
+const HFADE_START = 22, HFADE_END = 40    // xy fade (< CHUNK → faded before cull, no pop)
+const ZFADE_START = 18, ZFADE_END = 40    // depth fade (< CHUNK, same reason)
+const INVIS = 0.02              // opacity below which a mesh stops drawing
+const VEL_LERP = 0.12, VEL_DECAY = 0.9    // inertia
+const DRAG_ACCEL = 0.05, ZOOM_ACCEL = 0.012, PINCH_ACCEL = 0.05
+const FADE_LERP = 0.16
 
-// Deterministic PRNG (mulberry32) so the scatter is identical every load / SSR.
+// Deterministic PRNG (mulberry32) + a small integer hash of chunk coords.
+function hash3 (x, y, z) {
+  let h = 2166136261 >>> 0
+  for (const v of [x, y, z]) { h = Math.imul(h ^ (v & 0xffff), 16777619); h = Math.imul(h ^ ((v >> 16) & 0xffff), 16777619) }
+  return h >>> 0
+}
 function mulberry32 (a) {
   return function () {
     a |= 0; a = (a + 0x6D2B79F5) | 0
@@ -32,106 +47,99 @@ function mulberry32 (a) {
 
 let plane = null
 let crt = null, crtSrc = null
-let items = []
-let raf = 0
-let winW = 0, winH = 0
-let tileW = 0, tileH = 0
-let reduce = false
-const scroll = { current: { x: 0, y: 0 }, target: { x: 0, y: 0 }, last: { x: 0, y: 0 } }
-const mouse  = { x: 0.5, y: 0.5 }
-const drag   = { active: false, id: null, startX: 0, startY: 0, baseX: 0, baseY: 0, moved: 0 }
-let onDown, onMove, onUp, onWheel, onPointerMove, onResize
+let renderer = null, scene = null, camera = null, unitGeo = null
+let textures = []               // { texture, aspect }
+let chunks = new Map()          // key → { meshes: [] }
+let raf = 0, winW = 0, winH = 0
+let reduce = false, revealed = false
+const vel = { x: 0, y: 0, z: 0 }
+const tvel = { x: 0, y: 0, z: 0 }
+const pointers = new Map()
+let dragLast = null, pinchLast = 0
+let onDown, onMove, onUp, onWheel, onResize
 
-// ─── Build the scattered base tile, then 2×2-duplicate for seamless wrap ──────
-function build (tags) {
-  const rnd = mulberry32(0x1AB5)          // fixed seed → stable layout
-  const cols = GRID_COLS
-  const rows = Math.ceil(tags.length / cols)
-  const tileWSingle = cols * CELL
-  const tileHSingle = rows * CELL
-
-  // One tag per jittered grid cell — varied size, rotation, depth.
-  const base = tags.map((t, i) => {
-    const cx = (i % cols) * CELL
-    const cy = Math.floor(i / cols) * CELL
-    const ar = (t.w && t.h) ? t.w / t.h : 1.4
-    const w  = 150 + rnd() * 150                     // 150–300px displayed width
-    const h  = w / ar
-    const x  = cx + rnd() * (CELL - w) * 0.9
-    const y  = cy + (rnd() * (CELL - h) * 0.9)
-    const rot  = (rnd() - 0.5) * 34                  // −17°…17°
-    const ease = 0.5 + rnd() * 0.5                   // depth 0.5–1.0
-    return { src: t.src, x, y, w, h, rot, ease }
-  })
-
-  // 2×2 duplication (Codrops): 4 instances offset by the single-tile size, then
-  // double the tile so wrapping happens over the duplicated span.
-  const repsX = [0, tileWSingle]
-  const repsY = [0, tileHSingle]
-  const frag = document.createDocumentFragment()
-  items = []
-  let n = 0
-  base.forEach((b, bi) => {
-    repsX.forEach(ox => {
-      repsY.forEach(oy => {
-        const el = document.createElement('div')
-        el.className = 'tags-tile'
-        el.style.setProperty('--rv-i', String(bi))          // staggered reveal by base index
-        el.style.width = b.w + 'px'
-        el.style.height = b.h + 'px'
-        const img = document.createElement('img')
-        img.className = 'tags-tile__img'
-        img.src = b.src
-        img.alt = ''
-        img.draggable = false
-        img.decoding = 'async'
-        img.loading = 'lazy'
-        el.appendChild(img)
-        frag.appendChild(el)
-        items.push({ el, x: b.x + ox, y: b.y + oy, w: b.w, h: b.h, rot: b.rot, ease: b.ease, extraX: 0, extraY: 0 })
-        n++
-      })
+// ── Chunk streaming ──────────────────────────────────────────────────────────
+function layout (cx, cy, cz) {
+  const rnd = mulberry32(hash3(cx, cy, cz))
+  const out = []
+  for (let i = 0; i < PER_CHUNK; i++) {
+    out.push({
+      x: cx * CHUNK + rnd() * CHUNK,
+      y: cy * CHUNK + rnd() * CHUNK,
+      z: cz * CHUNK + rnd() * CHUNK,
+      size: SIZE_MIN + rnd() * (SIZE_MAX - SIZE_MIN),
+      rot: (rnd() - 0.5) * 0.5,
+      media: Math.floor(rnd() * textures.length),
     })
-  })
-  plane.appendChild(frag)
-  tileW = tileWSingle * 2
-  tileH = tileHSingle * 2
-
-  // Start roughly centred on the plane.
-  scroll.current.x = scroll.target.x = scroll.last.x = -tileW / 4 + winW / 2
-  scroll.current.y = scroll.target.y = scroll.last.y = -tileH / 4 + winH / 2
-  position(true)   // place once immediately (before reveal)
-}
-
-// ─── Per-frame position with parallax + infinite wrap ─────────────────────────
-function position (instant) {
-  const dx = scroll.current.x - scroll.last.x
-  const dy = scroll.current.y - scroll.last.y
-  for (let i = 0; i < items.length; i++) {
-    const it = items[i]
-    const parX = PARALLAX_V * dx * it.ease + (mouse.x - 0.5) * it.w * PARALLAX_M
-    const parY = PARALLAX_V * dy * it.ease + (mouse.y - 0.5) * it.h * PARALLAX_M
-    let posX = it.x + scroll.current.x + it.extraX + parX
-    let posY = it.y + scroll.current.y + it.extraY + parY
-    // Wrap: as a tile leaves one edge, shift it a full (doubled) tile so its
-    // duplicate seamlessly fills the opposite side.
-    if (posX > winW)          { it.extraX -= tileW; posX -= tileW }
-    else if (posX + it.w < 0) { it.extraX += tileW; posX += tileW }
-    if (posY > winH)          { it.extraY -= tileH; posY -= tileH }
-    else if (posY + it.h < 0) { it.extraY += tileH; posY += tileH }
-    it.el.style.transform = 'translate3d(' + posX + 'px,' + posY + 'px,0) rotate(' + it.rot + 'deg)'
   }
-  if (!instant) { scroll.last.x = scroll.current.x; scroll.last.y = scroll.current.y }
+  return out
+}
+function createChunk (cx, cy, cz, key) {
+  const meshes = []
+  for (const p of layout(cx, cy, cz)) {
+    const t = textures[p.media]
+    const mat = new THREE.MeshBasicMaterial({ map: t.texture, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide })
+    const mesh = new THREE.Mesh(unitGeo, mat)
+    mesh.scale.set(p.size * t.aspect, p.size, 1)
+    mesh.position.set(p.x, p.y, p.z)
+    mesh.rotation.z = p.rot
+    mesh.userData.op = 0
+    scene.add(mesh)
+    meshes.push(mesh)
+  }
+  chunks.set(key, { meshes })
+}
+function disposeChunk (chunk) {
+  for (const m of chunk.meshes) { scene.remove(m); m.material.dispose() }   // geometry + textures are shared
+}
+function updateChunks () {
+  const ccx = Math.floor(camera.position.x / CHUNK)
+  const ccy = Math.floor(camera.position.y / CHUNK)
+  const ccz = Math.floor(camera.position.z / CHUNK)
+  const need = new Set()
+  for (let dx = -RENDER_DIST; dx <= RENDER_DIST; dx++)
+    for (let dy = -RENDER_DIST; dy <= RENDER_DIST; dy++)
+      for (let dz = -RENDER_DIST; dz <= RENDER_DIST; dz++) {
+        const key = (ccx + dx) + ',' + (ccy + dy) + ',' + (ccz + dz)
+        need.add(key)
+        if (!chunks.has(key)) createChunk(ccx + dx, ccy + dy, ccz + dz, key)
+      }
+  for (const [key, chunk] of chunks) if (!need.has(key)) { disposeChunk(chunk); chunks.delete(key) }
 }
 
+// ── Frame ────────────────────────────────────────────────────────────────────
+const clamp01 = (v) => v < 0 ? 0 : v > 1 ? 1 : v
 function tick () {
-  scroll.current.x += (scroll.target.x - scroll.current.x) * EASE
-  scroll.current.y += (scroll.target.y - scroll.current.y) * EASE
-  position(false)
+  // Inertia: velocity chases the accumulated target, which decays (a fling).
+  vel.x += (tvel.x - vel.x) * VEL_LERP
+  vel.y += (tvel.y - vel.y) * VEL_LERP
+  vel.z += (tvel.z - vel.z) * VEL_LERP
+  camera.position.x += vel.x
+  camera.position.y += vel.y
+  camera.position.z += vel.z
+  tvel.x *= VEL_DECAY; tvel.y *= VEL_DECAY; tvel.z *= VEL_DECAY
+
+  updateChunks()
+
+  const cx = camera.position.x, cy = camera.position.y, cz = camera.position.z
+  for (const [, chunk] of chunks) {
+    for (const m of chunk.meshes) {
+      const dxy = Math.hypot(m.position.x - cx, m.position.y - cy)
+      const dz = Math.abs(m.position.z - cz)
+      const hFade = dxy <= HFADE_START ? 1 : clamp01(1 - (dxy - HFADE_START) / (HFADE_END - HFADE_START))
+      const zFade = dz <= ZFADE_START ? 1 : clamp01(1 - (dz - ZFADE_START) / (ZFADE_END - ZFADE_START))
+      const target = Math.min(hFade, zFade * zFade)
+      const op = m.userData.op + (target - m.userData.op) * FADE_LERP
+      m.userData.op = op
+      m.material.opacity = op
+      m.visible = op > INVIS
+    }
+  }
+  renderer.render(scene, camera)
   raf = requestAnimationFrame(tick)
 }
 
-// ─── Ambient CRT backdrop (shared crt.js) — behind the plane ──────────────────
+// ── Ambient CRT backdrop ─────────────────────────────────────────────────────
 function initBackdrop () {
   crt = createCRT({ zIndex: -1, tune: CRT_AMBIENT, mobileTune: CRT_AMBIENT_MOBILE })
   if (!crt) return
@@ -142,48 +150,56 @@ function initBackdrop () {
   crt.add(crtSrc)
 }
 
-// ─── Input — drag (mouse + touch) + wheel pan; cursor parallax (desktop) ──────
+// ── Input — drag pan (1 pointer), pinch zoom (2), wheel zoom ──────────────────
 function bindInput () {
   onDown = (e) => {
-    drag.active = true; drag.id = e.pointerId; drag.moved = 0
-    drag.startX = e.clientX; drag.startY = e.clientY
-    drag.baseX = scroll.target.x; drag.baseY = scroll.target.y
+    plane.setPointerCapture?.(e.pointerId)
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     plane.classList.add('is-dragging')
-    try { plane.setPointerCapture(e.pointerId) } catch {}
+    if (pointers.size === 1) dragLast = { x: e.clientX, y: e.clientY }
+    else if (pointers.size === 2) pinchLast = pinchDist()
   }
   onMove = (e) => {
-    if (!drag.active || e.pointerId !== drag.id) return
-    const dx = e.clientX - drag.startX, dy = e.clientY - drag.startY
-    drag.moved = Math.max(drag.moved, Math.abs(dx) + Math.abs(dy))
-    scroll.target.x = drag.baseX + dx
-    scroll.target.y = drag.baseY + dy
-    // Touch: stop the browser/Lenis from scrolling the page under the drag.
+    if (!pointers.has(e.pointerId)) return
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (e.pointerType === 'touch' && e.cancelable) e.preventDefault()
+    if (pointers.size >= 2) {
+      const d = pinchDist()
+      if (pinchLast) tvel.z -= (d - pinchLast) * PINCH_ACCEL   // fingers apart → fly in
+      pinchLast = d
+      return
+    }
+    if (dragLast) {
+      const dx = e.clientX - dragLast.x, dy = e.clientY - dragLast.y
+      tvel.x -= dx * DRAG_ACCEL           // drag right → world right (camera left)
+      tvel.y += dy * DRAG_ACCEL           // drag down → world down
+      dragLast = { x: e.clientX, y: e.clientY }
+    }
   }
   onUp = (e) => {
-    if (!drag.active) return
-    drag.active = false; plane.classList.remove('is-dragging')
-    try { plane.releasePointerCapture(e.pointerId) } catch {}
+    pointers.delete(e.pointerId)
+    if (pointers.size < 2) pinchLast = 0
+    if (pointers.size === 0) { dragLast = null; plane.classList.remove('is-dragging') }
+    else { const p = pointers.values().next().value; dragLast = { x: p.x, y: p.y } }
   }
-  // Cursor parallax — desktop pointers only (no hover on touch).
-  onPointerMove = (e) => {
-    if (e.pointerType === 'touch') return
-    mouse.x = e.clientX / winW
-    mouse.y = e.clientY / winH
-  }
-  onWheel = (e) => {
-    e.preventDefault()
-    scroll.target.x -= e.deltaX * WHEEL_MULT
-    scroll.target.y -= e.deltaY * WHEEL_MULT
-  }
+  onWheel = (e) => { e.preventDefault(); tvel.z += e.deltaY * ZOOM_ACCEL }   // scroll down → pull back
+  onResize = () => resize()
+
   plane.addEventListener('pointerdown', onDown)
   plane.addEventListener('pointermove', onMove)
   plane.addEventListener('pointerup', onUp)
   plane.addEventListener('pointercancel', onUp)
-  window.addEventListener('pointermove', onPointerMove, { passive: true })
   plane.addEventListener('wheel', onWheel, { passive: false })
-  onResize = () => { winW = window.innerWidth; winH = window.innerHeight }
   window.addEventListener('resize', onResize)
+}
+function pinchDist () {
+  const ps = [...pointers.values()]
+  return ps.length >= 2 ? Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y) : 0
+}
+function resize () {
+  winW = window.innerWidth; winH = window.innerHeight
+  camera.aspect = winW / winH; camera.updateProjectionMatrix()
+  renderer.setSize(winW, winH, false)
 }
 
 export function init () {
@@ -192,27 +208,51 @@ export function init () {
   reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   winW = window.innerWidth; winH = window.innerHeight
   initBackdrop()
+
+  scene = new THREE.Scene()
+  camera = new THREE.PerspectiveCamera(62, winW / winH, 0.1, 260)
+  camera.position.set(CHUNK / 2, CHUNK / 2, CHUNK / 2)     // start inside a chunk, not on a seam
+  const isTouch = window.matchMedia('(pointer: coarse)').matches
+  renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' })
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouch ? 1.25 : 1.5))
+  renderer.setSize(winW, winH, false)
+  renderer.setClearColor(0x000000, 0)                     // transparent → CRT shows through
+  plane.appendChild(renderer.domElement)
+  unitGeo = new THREE.PlaneGeometry(1, 1)
+
   fetch('/lab/tags.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(tags => {
       if (!tags.length) { plane.innerHTML = '<p class="tags-empty">No tags yet — drop images in /public/lab/tags</p>'; return }
-      build(tags)
+      const loader = new THREE.TextureLoader()
+      textures = tags.map(t => {
+        const texture = loader.load(t.src)
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.anisotropy = 4
+        return { texture, aspect: (t.w && t.h) ? t.w / t.h : 1.4 }
+      })
       bindInput()
-      if (reduce) { position(true) }        // static under reduced-motion (no rAF glide)
-      else raf = requestAnimationFrame(tick)
-      revealTiles()                          // in case entered() already fired
+      raf = requestAnimationFrame(tick)
+      revealTags()
+      // Debug/tuning + verification handle (matches biakoStickers/biakoWork).
+      window.biakoTags = {
+        get pos () { return camera ? [+camera.position.x.toFixed(2), +camera.position.y.toFixed(2), +camera.position.z.toFixed(2)] : null },
+        get chunks () { return chunks.size },
+        get planes () { let n = 0; chunks.forEach(c => n += c.meshes.length); return n },
+        get visible () { let n = 0; chunks.forEach(c => c.meshes.forEach(m => { if (m.visible) n++ })); return n },
+      }
     })
     .catch(() => {})
 }
 
-// Glitch-reveal the tags in (staggered) once the page has entered.
-let revealed = false
-function revealTiles () {
+// Entrance — fade the canvas in once the page has arrived (planes also fade in
+// individually as they stream, so this is a gentle overall reveal).
+function revealTags () {
   if (revealed || !plane) return
   revealed = true
   requestAnimationFrame(() => plane.classList.add('is-in'))
 }
-export function entered () { revealTiles() }
+export function entered () { revealTags() }
 
 export function destroy () {
   cancelAnimationFrame(raf); raf = 0
@@ -222,17 +262,28 @@ export function destroy () {
     plane.removeEventListener('pointerup', onUp)
     plane.removeEventListener('pointercancel', onUp)
     plane.removeEventListener('wheel', onWheel)
-    plane.innerHTML = ''
-    plane.classList.remove('is-in')
   }
-  window.removeEventListener('pointermove', onPointerMove)
   window.removeEventListener('resize', onResize)
+
+  // Dispose the GPU graph: chunk materials, the shared geometry, every texture,
+  // then the renderer + its context. No creep across repeated visits.
+  for (const [, chunk] of chunks) disposeChunk(chunk)
+  chunks.clear()
+  if (unitGeo) { unitGeo.dispose(); unitGeo = null }
+  for (const t of textures) t.texture.dispose()
+  textures = []
+  if (renderer) {
+    renderer.dispose()
+    renderer.forceContextLoss?.()
+    if (renderer.domElement && renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement)
+    renderer = null
+  }
+  scene = camera = null
   if (crt) { crt.destroy(); crt = null }
   if (crtSrc) { crtSrc.remove(); crtSrc = null }
-  items = []
-  scroll.current = { x: 0, y: 0 }; scroll.target = { x: 0, y: 0 }; scroll.last = { x: 0, y: 0 }
-  mouse.x = 0.5; mouse.y = 0.5
-  drag.active = false
-  revealed = false
-  plane = null
+  if (plane) plane.classList.remove('is-in')
+  pointers.clear(); dragLast = null; pinchLast = 0
+  vel.x = vel.y = vel.z = 0; tvel.x = tvel.y = tvel.z = 0
+  revealed = false; plane = null
+  delete window.biakoTags
 }

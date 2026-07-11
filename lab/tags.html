@@ -19,13 +19,14 @@
     <main class="tags" aria-label="Tags — infinite canvas">
       <h1 class="sr-only">Tags — an infinite canvas of Biako's hand-painted graffiti tags</h1>
 
-      <!-- Infinite parallax plane (lab-tags.js). data-lenis-prevent: while this
-           page is open Lenis must not intercept touch/wheel over the plane, so the
-           custom drag/wheel pan owns the gesture (same guard as the Work gallery). -->
+      <!-- 3D infinite canvas mount (lab-tags.js → Three.js). data-lenis-prevent:
+           while this page is open Lenis must not intercept touch/wheel over the
+           plane, so the custom pan/zoom owns the gesture (same guard as the Work
+           gallery). -->
       <div class="tags-plane" id="tags-plane" data-lenis-prevent role="application"
-           aria-label="Draggable infinite tag canvas — drag or scroll to explore"></div>
+           aria-label="Infinite 3D tag space — drag to pan, scroll or pinch to zoom"></div>
 
-      <p class="tags-hint" aria-hidden="true">Drag to explore ↔ ↕</p>
+      <p class="tags-hint" aria-hidden="true">Drag to pan — scroll / pinch to zoom</p>
     </main>
   </div>
 

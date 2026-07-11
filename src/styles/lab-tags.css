@@ -1,61 +1,31 @@
 /* ============================================================
-   LAB · TAGS — infinite parallax canvas (/lab/tags).
-   A fixed full-viewport plane of scattered graffiti tags (lab-tags.js) floating
-   over the shared AMBIENT CRT backdrop. Draggable + wheel-pannable infinitely in
-   both axes. Nav / footer / grain sit above it (shell z-indices). Dark theme,
-   tokens only.
+   LAB · TAGS — true 3D infinite canvas (/lab/tags).
+   A transparent Three.js WebGL canvas fills the viewport; the AMBIENT CRT
+   scanline screen shows through behind it. Draggable (pan X/Y) + wheel/pinch
+   (fly-through Z). Nav / footer / grain sit above (shell z-indices). Dark theme.
    ============================================================ */
 
 .tags { display: block; }
 
-/* The interactive plane owns the pan gesture. touch-action:none + the module's
-   preventDefault (plus data-lenis-prevent) keep the browser AND Lenis from
-   scrolling/zooming the page under a touch drag. Transparent → the CRT scanline
-   screen shows through between tags. */
+/* The interactive plane hosts the WebGL canvas and owns the gesture. touch-action:
+   none + the module's preventDefault (plus data-lenis-prevent in the markup) keep
+   the browser AND Lenis from scrolling/zooming the page under a touch drag. */
 .tags-plane {
   position: fixed;
   inset: 0;
-  z-index: 0;                        /* above the CRT canvas (z-1), below nav (z-20) */
+  z-index: 0;                         /* above the CRT canvas (z-1), below nav (z-20) */
   overflow: hidden;
   cursor: grab;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
   overscroll-behavior: none;
+  opacity: 0;                         /* entrance fade (lab-tags.js adds .is-in) */
+  transition: opacity 600ms ease;
 }
+.tags-plane.is-in { opacity: 1; }
 .tags-plane.is-dragging { cursor: grabbing; }
-
-/* Each scattered tag. The plane (not the tile) receives pointer events so a drag
-   anywhere pans; JS drives translate+rotate every frame. */
-.tags-tile {
-  position: absolute;
-  top: 0;
-  left: 0;
-  pointer-events: none;
-  will-change: transform;
-  transform: translate3d(0, 0, 0);
-}
-.tags-tile__img {
-  display: block;
-  width: 100%;
-  height: auto;
-  -webkit-user-drag: none;
-  user-select: none;
-  opacity: 0;                        /* revealed by the glitch entrance below */
-}
-
-/* ── Glitch-reveal entrance — the site's VHS language, self-contained (no
-   #about-rgb filter dependency). Staggered per --rv-i (base tag index). ── */
-.tags-plane.is-in .tags-tile__img {
-  animation: tags-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
-  animation-delay: calc(var(--rv-i, 0) * 18ms);
-}
-@keyframes tags-in {
-  0%   { opacity: 0; transform: scale(0.82) translateY(10px); clip-path: inset(46% 0 46% 0); filter: brightness(1.6); }
-  22%  { opacity: 1; transform: scale(1.04) translateY(0);    clip-path: inset(0 0 42% 0);   filter: brightness(1.25); }
-  55%  { transform: scale(0.99) translateY(0);                clip-path: inset(0 0 0 0);     filter: brightness(1.06); }
-  100% { opacity: 1; transform: none;                         clip-path: inset(0 0 0 0);     filter: none; }
-}
+.tags-plane canvas { display: block; width: 100%; height: 100%; }
 
 /* Affordance — fades the moment a drag starts. */
 .tags-hint {
@@ -93,6 +63,5 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tags-tile__img { opacity: 1; }
-  .tags-plane.is-in .tags-tile__img { animation: none; }
+  .tags-plane { opacity: 1; transition: none; }
 }
