@@ -228,9 +228,12 @@ export function init () {
   // Section dividers (Escale World / Stickers / Lab / Posters) get the SAME
   // elastic drag/bounce line as the portfolio's ElasticLine (shared
   // elastic-line.js). Desktop / fine-pointer only; static CSS border otherwise.
+  // revealSelector keeps each line dormant (static border shows) until its section's
+  // glitch-reveal finishes, so the SVG never animates under the reveal's filter/
+  // clip-path (the flicker) — see elastic-line.js.
   elasticDestroy = initElasticLines(
     document.querySelectorAll('.hv2-head'),
-    { className: 'hv2-elastic-line', activeClass: 'hv2-head--elastic' })
+    { className: 'hv2-elastic-line', activeClass: 'hv2-head--elastic', revealSelector: '.hv2-reveal' })
 
   // Work manifest → featured slideshow + Escale World carousel.
   fetch('/work.json', { cache: 'no-cache' })

@@ -47,8 +47,10 @@
   padding-top: var(--space-3);
   margin-bottom: var(--space-5);
 }
-/* When the shared elastic line is live it replaces the static border (mirrors
-   .work--elastic hiding the row borders). */
+/* When the shared elastic line is live (activated only AFTER the section's glitch-
+   reveal finishes) it replaces the static border and fades in — mirrors
+   .work--elastic hiding the row borders. The SVG stays hidden until then, so it
+   never animates under the reveal's filter/clip-path (the old flicker). */
 .hv2-head--elastic { border-top-color: transparent; }
 .hv2-elastic-line {
   position: absolute;
@@ -60,13 +62,45 @@
   overflow: visible;                 /* let the bulge escape the 1px box */
   color: var(--border-strong);       /* path stroke = currentColor */
   pointer-events: none;
+  opacity: 0;                        /* hidden until activated (post-reveal) */
+  transition: opacity 240ms ease;
 }
+.hv2-head--elastic .hv2-elastic-line { opacity: 1; }
 .hv2-label {
   font-family: var(--font-ui);
   font-size: var(--text-ui-sm);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--text-secondary);
+}
+
+/* ── Clickable module headers — nav-style ↘ arrow on hover (reuses .nav-arrow),
+   pointer cursor on the whole header row, and NO background-box highlight. ── */
+.hv2-head--link {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 140ms ease-in;
+}
+.hv2-head--link .hv2-label { transition: color 140ms ease-in; }
+@media (hover: hover) and (pointer: fine) {
+  .hv2-head--link:hover,
+  .hv2-head--link:focus-visible { color: var(--text-primary); outline: none; }
+  .hv2-head--link:hover .hv2-label,
+  .hv2-head--link:focus-visible .hv2-label { color: var(--text-primary); }
+  .hv2-head--link:hover .nav-arrow .shaft,
+  .hv2-head--link:focus-visible .nav-arrow .shaft {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 360ms cubic-bezier(0.16, 1, 0.3, 1) 150ms;
+  }
+  .hv2-head--link:hover .nav-arrow .head,
+  .hv2-head--link:focus-visible .nav-arrow .head {
+    stroke-dashoffset: 0;
+    transition: stroke-dashoffset 320ms cubic-bezier(0.16, 1, 0.3, 1) 310ms;
+  }
 }
 
 /* ============================================================
