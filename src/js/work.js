@@ -588,10 +588,16 @@ function removeGlitchLayers () {
 
 // ─── Inner parallax — Codrops "Horizontal Parallax Gallery" (DOM port) ────────
 // Each frame's image counter-translates by its position in the viewport: t goes
-// -1 (frame at the left edge) → 0 (centre) → 1 (right), and the image (125% wide)
-// shifts translate3d(-t·10%). So the image drifts inside its frame, slightly
+// -1 (frame at the left edge) → 0 (centre) → 1 (right), and the image (145% wide)
+// shifts translate3d(-t·15.5%). So the image visibly slides inside its frame,
 // offset from the frame itself. Transforms only, reads batched before writes to
 // avoid layout thrash. Off on touch and under reduced motion.
+//
+// Edge safety: translate % is of the IMAGE's own width, so 15.5% = 15.5·1.45 =
+// 22.475% of the frame — just under the 22.5% overscan each side (145% wide,
+// centred). At the strip extremes (t=±1, first/last slide) the frame stays fully
+// covered with a hair of margin. (18% would be 26.1% of the frame > 22.5%
+// overscan → a 3.6%-of-frame empty edge; 15.5% is the safe max at 145%.)
 let parallaxRaf = 0
 function applyParallax () {
   if (!dGallery || window.matchMedia('(max-width: 767px)').matches) return
@@ -602,7 +608,7 @@ function applyParallax () {
   for (let i = 0; i < slides.length; i++) {                 // READ pass
     const r = slides[i].getBoundingClientRect()
     const t = Math.max(-1, Math.min(1, (r.left + r.width * 0.5 - vpCenter) / vpCenter))
-    shifts[i] = (-t * 10).toFixed(3)                        // maxShift 10% of the image (= 12.5% of the frame)
+    shifts[i] = (-t * 15.5).toFixed(3)                      // maxShift 15.5% of the image (≈ 22.5% of the frame = the overscan)
   }
   for (let i = 0; i < slides.length; i++) {                 // WRITE pass
     const img = slides[i].firstElementChild

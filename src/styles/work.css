@@ -579,8 +579,8 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   .drawer__slide img {
     position: absolute;
     top: 0;
-    left: -12.5%;                             /* 125% wide, centred → 12.5% overscan each side */
-    width: 125%;
+    left: -22.5%;                             /* 145% wide, centred → 22.5% overscan each side */
+    width: 145%;
     height: 100%;
     will-change: transform;                   /* JS drives translate3d for the parallax */
   }
