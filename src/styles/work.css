@@ -260,74 +260,86 @@
 .work__cell img {
   display: block;
   position: absolute;
-  left: 0;
-  width: 100%;
-  /* Small vertical overscan so the hover tape-jitter never reveals the cell edge. */
+  /* Small overscan so the hover signal-blip displacement never reveals the cell edge. */
   top: -4px;
+  left: -4px;
+  width: calc(100% + 8px);
   height: calc(100% + 8px);
   object-fit: cover;
-  will-change: transform;
-  transition: transform 150ms ease;  /* eases the jitter back to rest on hover-out (no snap) */
+  will-change: transform, filter;
+  transition: transform 150ms ease, filter 150ms ease;   /* smooth fade in/out — no snap */
 }
 
-/* ── Hover — "VHS paused tape" tracking wobble (hover + fine pointer only) ──────
-   Replaces the old scale/zoom. NO glitch (that's reserved for entrances/takeover):
-   a subtle vertical tape-jitter of the image, a soft bright distortion band slowly
-   travelling down, and faint scanlines — all fading in/out ~150ms. GPU-only
-   (transform/opacity), no layout shift (the image has a vertical overscan above). */
-.work__cell-vhs {                    /* faint scanline sheet, shown while hovered */
+/* ── Hover — analog "signal loss" (hover + fine pointer only) ───────────────────
+   Replaces the tape-jitter. NO RGB layer splits (reserved for entrances/takeover):
+   animated grain/static over the image, occasional horizontal interference blips,
+   and a slight desaturation + contrast so the picture "degrades". Fades ~150ms.
+   GPU-friendly: ONE shared noise texture (a data-URI feTurbulence, decoded once)
+   reused by every cell's overlay; only the hovered cell animates (transform/opacity). */
+.work__cell-vhs {                    /* animated static / noise sheet */
   position: absolute;
-  inset: 0;
+  inset: -40px;                      /* overscan so the noise can jump without revealing edges */
   z-index: 1;                        /* over the image, under the label (z 2) */
   pointer-events: none;
   opacity: 0;
   transition: opacity 150ms ease;
-  background: repeating-linear-gradient(0deg,
-    rgba(0, 0, 0, 0.55) 0, rgba(0, 0, 0, 0.55) 1px, transparent 1px, transparent 3px);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='150'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  mix-blend-mode: overlay;
+  will-change: transform, opacity;
 }
-.work__cell::before {                /* travelling distortion band (~5px bright line) */
+.work__cell::before {                /* horizontal interference tear band (blips only) */
   content: "";
   position: absolute;
   left: 0;
   right: 0;
   top: 0;
-  height: 100%;                      /* full cell; translateY(±100%) sweeps top→bottom at any height */
+  height: 14%;                       /* a horizontal slice; the blip keyframes reposition it */
   z-index: 1;
   pointer-events: none;
   background: linear-gradient(180deg,
-    transparent 49%, rgba(255, 255, 255, 0.5) 50%, transparent 51%);
+    transparent 0%, rgba(255, 255, 255, 0.5) 42%, rgba(0, 0, 0, 0.45) 58%, transparent 100%);
   opacity: 0;
   transition: opacity 150ms ease;
   will-change: transform, opacity;
 }
-.work__cell-label { z-index: 2; }    /* keep the label above the VHS overlays */
+.work__cell-label { z-index: 2; }    /* keep the label above the overlays */
 
 @media (hover: hover) and (pointer: fine) {
-  .work__cell:hover .work__cell-vhs { opacity: 0.07; }
-  .work__cell:hover::before          { animation: vhs-band 2.8s linear infinite; }
-  .work__cell:hover img              { animation: vhs-jitter 0.5s steps(1, end) infinite; }
+  .work__cell:hover img {
+    filter: saturate(0.55) contrast(1.18) brightness(0.96);    /* the picture degrades */
+    animation: work-signal-blip 2.4s steps(1, end) infinite;   /* occasional h-displacement */
+  }
+  .work__cell:hover .work__cell-vhs {
+    opacity: 0.2;
+    animation: work-noise 0.5s steps(5, end) infinite;         /* flickering static */
+  }
+  .work__cell:hover::before { animation: work-tear 2.4s steps(1, end) infinite; }   /* tear blips */
 }
 
-/* Irregular vertical tape-tracking jitter (±1–2px, uneven keyframe spacing so it
-   reads analog rather than metronomic). steps() = hard jumps, like tape sync loss. */
-@keyframes vhs-jitter {
+/* Flickering static — jump the SHARED noise texture around (transform = GPU). */
+@keyframes work-noise {
   0%   { transform: translate3d(0, 0, 0); }
-  13%  { transform: translate3d(0, -1px, 0); }
-  27%  { transform: translate3d(0, 1px, 0); }
-  36%  { transform: translate3d(0, 0, 0); }
-  51%  { transform: translate3d(0, 2px, 0); }
-  62%  { transform: translate3d(0, -1px, 0); }
-  70%  { transform: translate3d(0, 1px, 0); }
-  85%  { transform: translate3d(0, -2px, 0); }
-  94%  { transform: translate3d(0, 0, 0); }
-  100% { transform: translate3d(0, 1px, 0); }
+  20%  { transform: translate3d(-24px, 16px, 0); }
+  40%  { transform: translate3d(20px, -28px, 0); }
+  60%  { transform: translate3d(-16px, -14px, 0); }
+  80%  { transform: translate3d(28px, 22px, 0); }
+  100% { transform: translate3d(0, 0, 0); }
 }
-/* Soft bright band travelling top → bottom on a slow loop, low opacity. */
-@keyframes vhs-band {
-  0%   { transform: translate3d(0, -100%, 0); opacity: 0; }
-  10%  { opacity: 0.55; }
-  90%  { opacity: 0.55; }
-  100% { transform: translate3d(0, 100%, 0); opacity: 0; }
+/* Occasional horizontal displacement — the "signal struggling" blip. Mostly at rest;
+   brief ±px jumps at IRREGULAR spacings (≈ 0.8–1.5s apart over the loop). */
+@keyframes work-signal-blip {
+  0%, 18%, 19%, 52%, 53%, 84%, 85%, 100% { transform: translate3d(0, 0, 0); }
+  18.5% { transform: translate3d(-5px, 0, 0); }
+  52.5% { transform: translate3d(4px, 0, 0); }
+  84.5% { transform: translate3d(-3px, 0, 0); }
+}
+/* Interference tear band — flashes WITH the blips, at varying vertical spots. */
+@keyframes work-tear {
+  0%, 18%, 19%, 52%, 53%, 84%, 85%, 100% { opacity: 0; }
+  18.5% { opacity: 0.55; transform: translate3d(-6px, 120%, 0); }
+  52.5% { opacity: 0.45; transform: translate3d(5px, 380%, 0); }
+  84.5% { opacity: 0.5;  transform: translate3d(-4px, 600%, 0); }
 }
 .work__cell-label {
   position: absolute;
@@ -372,8 +384,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .work__cell img { transition: none; }
-  /* No tape-jitter, no travelling band — at most the static scanline sheet. */
+  /* Static noise sheet only — no flickering static, no displacement/tear blips.
+     The desaturation filter stays (a static state change, not motion). */
   .work__cell:hover img { animation: none; }
+  .work__cell:hover .work__cell-vhs { animation: none; }
   .work__cell:hover::before { animation: none; opacity: 0; }
 }
 

@@ -300,6 +300,7 @@ function bindToggle () {
 // FIRST. Below 48em we hand back to the simple CSS grid (mobile 2→4 col).
 const MOSAIC_ASPECT   = 0.8    // cell width / height (portrait)
 const MOSAIC_TARGET_W = 200    // px target cell width (≈ desktop 7-col at ~1440)
+const MOSAIC_MIN_H    = 140    // px — below this, stop shrinking to fit and allow scroll
 function layoutMosaic () {
   if (!grid) return
   const cells = grid.querySelectorAll('.work__cell')
@@ -316,10 +317,34 @@ function layoutMosaic () {
   const C = Math.max(2, Math.min(N, Math.round(W / MOSAIC_TARGET_W)))   // target columns
   const R = Math.ceil(N / C)                         // rows needed
   const base = Math.floor(N / R), rem = N % R         // the LAST `rem` rows get +1 → smaller rows first
-  let i = 0
+  const sizes = [], natH = []                         // per-row cell count + natural (width-derived) height
   for (let r = 0; r < R; r++) {
     const size = base + (r >= R - rem ? 1 : 0)
-    const h = Math.round((W / size) / MOSAIC_ASPECT)  // uniform height for this row
+    sizes.push(size)
+    natH.push((W / size) / MOSAIC_ASPECT)
+  }
+
+  // Vertical fit: the whole mosaic should fit the initial viewport when it can
+  // (same approach as the home hero). available = viewport − everything above the
+  // grid (nav + intro header, from the grid's own top) − the fixed footer − a little
+  // breathing room. If the width-derived rows overflow vertically, scale them ALL
+  // down (widths stay justified) — but never below MOSAIC_MIN_H; past that, let it
+  // scroll rather than shrink to unreadable. More pieces (3+ rows) naturally scroll.
+  const naturalTotal = natH.reduce((s, h) => s + h, 0)
+  const gridTop = grid.getBoundingClientRect().top + window.scrollY
+  const footer  = document.querySelector('.bottom')
+  const footerH = footer ? footer.getBoundingClientRect().height : 74
+  const availH  = window.innerHeight - gridTop - footerH - 24    // 24px breathing above footer
+  let f = 1
+  if (availH > 0 && naturalTotal > availH) {
+    const minNat = Math.min(...natH)
+    f = Math.min(1, Math.max(availH / naturalTotal, MOSAIC_MIN_H / minNat))
+  }
+
+  let i = 0
+  for (let r = 0; r < R; r++) {
+    const size = sizes[r]
+    const h = Math.round(natH[r] * f)                 // uniform (fit-scaled) height for this row
     let used = 0
     for (let k = 0; k < size; k++, i++) {
       const cw = (k === size - 1) ? (W - used) : Math.round(W / size)   // last cell absorbs rounding → exact full width
