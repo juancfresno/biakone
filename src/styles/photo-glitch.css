@@ -1,0 +1,71 @@
+/* ============================================================
+   PHOTO HOVER GLITCH — shared by the Work mosaic + Home hero.
+   A subdued, LOOPING version of the takeover entrance glitch: cyan/red RGB slices
+   (clip-path bands) that flicker in brief bursts with quiet gaps, offset a few px,
+   low opacity. Layers are transient clones of the hovered image, built + removed by
+   photo-glitch.js. GPU-only (clip-path / transform / opacity).
+   ============================================================ */
+.photo-glitch__layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;                    /* over the base image, under any label/chrome (z 2+) */
+  opacity: 0;
+  transition: opacity 150ms ease;
+  will-change: clip-path, transform, opacity;
+}
+.photo-glitch__layer.is-in { opacity: 0.7; }   /* low-opacity tint */
+.photo-glitch__layer img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.photo-glitch__layer::after {   /* RGB channel tint, screened over the sliced clone */
+  content: "";
+  position: absolute;
+  inset: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.photo-glitch__layer--c::after { background: #14e0ff; }   /* cyan channel */
+.photo-glitch__layer--r::after { background: #ff2d3d; }   /* red channel  */
+.photo-glitch__layer--c { animation: photo-glitch-c 2.2s steps(1, end) infinite; }
+.photo-glitch__layer--r { animation: photo-glitch-r 2.6s steps(1, end) infinite; }
+
+/* Cyan — brief bursts of thin slices (clip-path bands) with quiet gaps; +offset.
+   inset(100% 0 0 0) = fully clipped (the "quiet" state). Two layers at different
+   durations desync into an irregular, live-signal rhythm. */
+@keyframes photo-glitch-c {
+  0%   { clip-path: inset(100% 0 0 0); transform: translate3d(6px, 0, 0); }
+  6%   { clip-path: polygon(0 12%, 100% 12%, 100% 16%, 0 16%); transform: translate3d(-6px, 0, 0); }
+  9%   { clip-path: polygon(0 27%, 100% 27%, 100% 30%, 0 30%); transform: translate3d(5px, 0, 0); }
+  12%  { clip-path: polygon(0 19%, 100% 19%, 100% 22%, 0 22%); transform: translate3d(-4px, 0, 0); }
+  16%  { clip-path: inset(100% 0 0 0); }
+  45%  { clip-path: polygon(0 58%, 100% 58%, 100% 62%, 0 62%); transform: translate3d(6px, 0, 0); }
+  49%  { clip-path: polygon(0 51%, 100% 51%, 100% 54%, 0 54%); transform: translate3d(-5px, 0, 0); }
+  53%  { clip-path: inset(100% 0 0 0); }
+  74%  { clip-path: polygon(0 73%, 100% 73%, 100% 77%, 0 77%); transform: translate3d(-6px, 0, 0); }
+  78%  { clip-path: polygon(0 40%, 100% 40%, 100% 43%, 0 43%); transform: translate3d(4px, 0, 0); }
+  82%, 100% { clip-path: inset(100% 0 0 0); }
+}
+/* Red — different band positions + timing; −offset. */
+@keyframes photo-glitch-r {
+  0%   { clip-path: inset(100% 0 0 0); transform: translate3d(-5px, 0, 0); }
+  10%  { clip-path: polygon(0 33%, 100% 33%, 100% 37%, 0 37%); transform: translate3d(5px, 0, 0); }
+  13%  { clip-path: polygon(0 22%, 100% 22%, 100% 25%, 0 25%); transform: translate3d(-6px, 0, 0); }
+  17%  { clip-path: inset(100% 0 0 0); }
+  40%  { clip-path: polygon(0 64%, 100% 64%, 100% 68%, 0 68%); transform: translate3d(-6px, 0, 0); }
+  44%  { clip-path: polygon(0 56%, 100% 56%, 100% 59%, 0 59%); transform: translate3d(5px, 0, 0); }
+  48%  { clip-path: inset(100% 0 0 0); }
+  70%  { clip-path: polygon(0 15%, 100% 15%, 100% 19%, 0 19%); transform: translate3d(6px, 0, 0); }
+  73%  { clip-path: polygon(0 82%, 100% 82%, 100% 85%, 0 85%); transform: translate3d(-4px, 0, 0); }
+  77%, 100% { clip-path: inset(100% 0 0 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .photo-glitch__layer { display: none; }   /* JS also skips building — belt + braces */
+}

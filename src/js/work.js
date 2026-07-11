@@ -11,10 +11,12 @@
 // tooltip.js) — adapted to vanilla + Biako tokens.
 
 import gsap from 'gsap'
+import { bindPhotoGlitch } from './photo-glitch.js'
 
 let list, grid, stage, section, drawer, dGallery, dInfo
 let panel, backdrop, toolbar, gridTip
 let stageEl, escHint, closeBtn                 // takeover stage + chrome (glitch)
+let cellGlitches = []                           // per-cell photo-hover-glitch controllers
 let projects = [], rows = [], activeIndex = -1
 let stageImg = null, currentSrc = null
 let drawerIndex = -1, lastFocused = null
@@ -137,7 +139,6 @@ function cellHtml (p) {
     '<button class="work__cell" type="button" data-index="' + p._i + '" data-aspect="' + aspect.toFixed(4) + '" ' +
         'style="--i:' + p._i + '" aria-label="' + p.code + ' ' + p.name + '">' +
       '<img src="' + cover + '" alt="' + p.name + '" loading="lazy" decoding="async" draggable="false">' +
-      '<span class="work__cell-vhs" aria-hidden="true"></span>' +
       '<span class="work__cell-label"><span class="work__cell-num">' + p.code + '</span> ' + p.name + '</span>' +
     '</button>'
   )
@@ -153,6 +154,10 @@ function render (items) {
   list.innerHTML = projects.map(rowHtml).join('')
   grid.innerHTML = projects.map(cellHtml).join('')
   rows = [...list.querySelectorAll('.work__row')]
+  // Photo hover glitch — bind one controller per mosaic cell (desktop/fine only,
+  // no-op otherwise). Rebound fresh here since render() replaces the cells.
+  cellGlitches.forEach(g => g.destroy()); cellGlitches = []
+  grid.querySelectorAll('.work__cell').forEach(c => cellGlitches.push(bindPhotoGlitch(c)))
   buildStage()
   setActive(0)   // default active = project 01, image visible immediately
   initElasticLines()
@@ -892,6 +897,7 @@ export function init () {
 
 export function destroy () {
   cleanup.forEach(fn => fn()); cleanup = []
+  cellGlitches.forEach(g => g.destroy()); cellGlitches = []
   cancelAnimationFrame(elasticRafId); elasticRafId = 0
   cancelAnimationFrame(scrollRafId); scrollRafId = 0
   if (gridTip) { gsap.killTweensOf(gridTip); gridTip.remove(); gridTip = null }

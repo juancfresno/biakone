@@ -10,10 +10,12 @@
 import { initElasticLines } from './elastic-line.js'
 import { initCharacter } from './pixel-character.js'
 import { setPendingDeepLink } from './deep-link.js'
+import { bindPhotoGlitch } from './photo-glitch.js'
 
 let timers = []          // setInterval ids (slideshows)
 let revealCleanup = null // scroll/resize listener teardown for reveals
 let elasticDestroy = null// shared ElasticLine teardown (section dividers)
+let heroGlitch = null    // photo-hover-glitch controller for the featured hero image
 let figCleanup = null    // pixel-character teardown
 let rgbSvg = null        // #about-rgb owner (only if WE created it)
 let pageEntered = false
@@ -154,6 +156,7 @@ function fillFeatured (items) {
       glitch(img)           // …and the image, name AND description glitch in sync
       glitch(nameEl)
       glitch(infoEl)
+      if (heroGlitch) heroGlitch.refresh()   // pause/rebuild the hover glitch for the new photo
     }
     pre.onload = apply; pre.onerror = apply; pre.src = p.src
   }
@@ -220,6 +223,7 @@ export function init () {
 
   ensureRgbFilter()
   figCleanup = initCharacter(document.getElementById('hv2-figure'))
+  heroGlitch = bindPhotoGlitch(els.featStage)   // photo hover glitch on the big hero image
 
   // Section dividers (Escale World / Stickers / Lab / Posters) get the SAME
   // elastic drag/bounce line as the portfolio's ElasticLine (shared
@@ -288,6 +292,7 @@ export function destroy () {
   timers.forEach(clearInterval); timers = []
   if (revealCleanup) revealCleanup()
   if (elasticDestroy) { elasticDestroy(); elasticDestroy = null }
+  if (heroGlitch) { heroGlitch.destroy(); heroGlitch = null }
   if (figCleanup) { figCleanup(); figCleanup = null }
   if (rgbSvg) { rgbSvg.remove(); rgbSvg = null }
   pageEntered = false; started = false; els = {}
