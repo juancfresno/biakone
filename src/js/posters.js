@@ -14,7 +14,7 @@
 //   biakoPosters.tune
 
 import { VFX } from '@vfx-js/core'
-import { scrollToDeepLink } from './deep-link.js'
+import { scrollToDeepLink, newestFirst } from './deep-link.js'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
 const TUNE = {
@@ -196,7 +196,8 @@ export function init () {
   if (!mount) return
   fetch('/posters.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(items => {
+    .then(raw => {
+      const items = newestFirst(raw)                 // newest poster first
       if (!items.length) { mount.innerHTML = '<p class="posters__empty">No posters yet — drop images in /public/posters</p>'; return }
       mount.innerHTML = items.map(cellHtml).join('')
       initEffect([...mount.querySelectorAll('.posters__cell img')])

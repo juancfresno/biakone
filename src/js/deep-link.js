@@ -12,6 +12,14 @@ import { getLenis } from './shell.js'
 let pending = null
 export function setPendingDeepLink (target) { pending = target }
 
+// Display order for the Stickers/Posters manifests = NEWEST FIRST. The manifests
+// are built in ascending filename-numeric order (oldest → newest), so newest-first
+// is just the reverse. Applied at every consumer (both pages AND both home modules)
+// so their indices stay in lock-step — the deep-link n from a home module lands on
+// the same item on the destination page. Not by renaming: a new drop = next number
+// = automatically first. Returns a new array (never mutates the manifest).
+export function newestFirst (items) { return Array.isArray(items) ? items.slice().reverse() : [] }
+
 export function scrollToDeepLink (prefix, cellSelector) {
   const re = new RegExp('^' + prefix + '-(\\d+)$')
   const hash = (location.hash || '').replace(/^#/, '')

@@ -9,7 +9,7 @@
 
 import { initElasticLines } from './elastic-line.js'
 import { initCharacter } from './pixel-character.js'
-import { setPendingDeepLink } from './deep-link.js'
+import { setPendingDeepLink, newestFirst } from './deep-link.js'
 import { bindPhotoGlitch } from './photo-glitch.js'
 
 let timers = []          // setInterval ids (slideshows)
@@ -258,7 +258,7 @@ export function init () {
   fetch('/stickers.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(items => {
-      const srcs = items.map(s => s.src).filter(Boolean)
+      const srcs = newestFirst(items).map(s => s.src).filter(Boolean)   // lead with the newest
       if (els.stickers) {
         // Keep the module's link pointed at the sticker it's currently showing;
         // record the click intent for the barba SPA nav (hash gets stripped).
@@ -274,7 +274,7 @@ export function init () {
   // Posters manifest → Posters module (VHS-cut cycle, same images as /posters).
   fetch('/posters.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(items => initPosters(items.map(p => p.src).filter(Boolean)))
+    .then(items => initPosters(newestFirst(items).map(p => p.src).filter(Boolean)))   // lead with the newest
     .catch(() => {})
 }
 

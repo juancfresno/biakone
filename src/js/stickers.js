@@ -14,7 +14,7 @@
 //   biakoStickers.tune
 
 import { VFX } from '@vfx-js/core'
-import { scrollToDeepLink } from './deep-link.js'
+import { scrollToDeepLink, newestFirst } from './deep-link.js'
 
 // ─── Tunable parameters (master → uniforms below) ──────────────────────────
 const TUNE = {
@@ -196,7 +196,8 @@ export function init () {
   if (!mount) return
   fetch('/stickers.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
-    .then(items => {
+    .then(raw => {
+      const items = newestFirst(raw)                 // newest sticker first
       if (!items.length) { mount.innerHTML = '<p class="stickers__empty">No stickers yet — drop images in /public/stickers</p>'; return }
       mount.innerHTML = items.map(cellHtml).join('')
       initEffect([...mount.querySelectorAll('.stickers__cell img')])
