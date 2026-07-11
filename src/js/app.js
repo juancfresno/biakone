@@ -5,9 +5,22 @@
 // init()/destroy() so its effects mount on enter and fully clean up on leave.
 
 import barba from '@barba/core'
+import { inject as injectAnalytics, pageview } from '@vercel/analytics'
+import { injectSpeedInsights } from '@vercel/speed-insights'
 import { initShell, getLenis } from './shell.js'
 import { runTransition } from './transition.js'
 import { initTags, destroyTags } from './tags.js'
+
+// ─── Vercel Web Analytics + Speed Insights ───────────────────────────────────
+// Vanilla/SPA wiring: inject() loads the beacon script once (it fires the FIRST
+// pageview on load). barba swaps the URL via pushState but only settles the new
+// route ~one transition later, so we DISABLE the script's pushState auto-track and
+// fire the pageview ourselves from barba's `after` hook (the docs' recommended
+// "route updated after pushState" path) — exactly one pageview per navigation, no
+// double count. Localhost runs in debug mode (console, no real beacon); on Vercel
+// it POSTs to /_vercel/insights/*. Ad blockers can suppress the beacon.
+injectAnalytics({ mode: 'auto', disableAutoTrack: true })
+injectSpeedInsights()
 
 // ─── Page registry (lazy — each page + its heavy deps code-split so e.g.
 // VFX-JS only loads when you actually visit Stickers) ────────────────────────
@@ -120,4 +133,6 @@ barba.hooks.after(({ next }) => {
   const l = getLenis()
   if (l) { l.resize(); l.start() }
   ensureMarquee(next.container)               // marquee self-check
+  // Count the SPA route change (auto-track is off — see the inject() note above).
+  pageview({ route: location.pathname, path: location.pathname + location.search })
 })
