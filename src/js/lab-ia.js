@@ -11,7 +11,7 @@
 // SPA-safe: init()/destroy() own the CRT, the tilt, and every listener.
 
 import { createCRT, CRT_AMBIENT, CRT_AMBIENT_MOBILE } from './crt.js'
-import { attachTilt } from './tilt.js'
+import { attachTilt, createGyroTilt } from './tilt.js'
 import { vhsCut } from './transition.js'
 
 let detail, frame, img, curEl, totalEl, hintEl, gridToggle, mosaic, mosaicGrid, mosaicClose
@@ -21,9 +21,25 @@ let index = 0
 let mosaicOpen = false
 let switching = false
 let detachTilt = null, detachMosaicTilt = null
+let gyro = null, gyroAsked = false
 let onKey = null
 
 const isMobile = () => window.matchMedia('(max-width: 640px)').matches
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+// On touch devices the cursor tilt is off — drive the SAME 3D tilt from the
+// gyroscope instead. iOS needs DeviceOrientationEvent.requestPermission() from a
+// user gesture, so the FIRST detail tap (which also switches) requests it; if
+// granted → enable. Android has no requestPermission → enabled at load. Denied /
+// unsupported / reduced-motion → nothing happens (static render). No prompts.
+function requestGyro () {
+  if (gyroAsked || !gyro) return
+  gyroAsked = true
+  const DOE = window.DeviceOrientationEvent
+  if (DOE && typeof DOE.requestPermission === 'function') {
+    DOE.requestPermission().then(state => { if (state === 'granted') gyro.enable() }).catch(() => {})
+  }
+}
 const norm = (i) => ((i % items.length) + items.length) % items.length
 
 function setImage (i) {
@@ -79,7 +95,7 @@ function closeMosaic () {
 }
 
 // ─── Listeners ────────────────────────────────────────────────────────────────
-function onDetailClick () { if (!mosaicOpen) next() }
+function onDetailClick () { requestGyro(); if (!mosaicOpen) next() }
 function onThumbClick (e) {
   const b = e.target.closest('.ia-thumb')
   if (!b) return
@@ -122,7 +138,14 @@ export function init () {
       if (totalEl) totalEl.textContent = String(items.length).padStart(2, '0')
       setImage(0)                                    // first render — no cut
       buildMosaic()
-      if (!isMobile()) detachTilt = attachTilt(detail, frame)   // cursor 3D tilt (desktop)
+      if (!isMobile()) {
+        detachTilt = attachTilt(detail, frame)                  // cursor 3D tilt (desktop)
+      } else if (!reduceMotion()) {
+        gyro = createGyroTilt(frame)                            // gyroscope tilt (touch)
+        // Android: enable now. iOS (requestPermission exists): wait for the first tap.
+        const DOE = window.DeviceOrientationEvent
+        if (DOE && typeof DOE.requestPermission !== 'function') gyro.enable()
+      }
 
       detail.addEventListener('click', onDetailClick)
       gridToggle.addEventListener('click', openMosaic)
@@ -143,6 +166,8 @@ export function destroy () {
   onKey = null
   if (detachTilt) { detachTilt(); detachTilt = null }
   if (detachMosaicTilt) { detachMosaicTilt(); detachMosaicTilt = null }
+  if (gyro) { gyro.detach(); gyro = null }
+  gyroAsked = false
   if (crt) { crt.destroy(); crt = null }
   if (crtSrc) { crtSrc.remove(); crtSrc = null }
   items = []; index = 0; mosaicOpen = false; switching = false
