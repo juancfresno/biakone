@@ -8,6 +8,12 @@
 // Reduced-motion renders the word once, static, with no cursor interaction.
 //
 // SPA-safe: init()/destroy() tear down the rAF + listeners.
+//
+// Lab also carries the ambient CRT backdrop (shared crt.js, AMBIENT tuning — the
+// dark screen + full-width scanlines, decoupled from the image fisheye) and a
+// staggered VHS-style reveal on the experiment entries.
+
+import { createCRT, CRT_AMBIENT, CRT_AMBIENT_MOBILE } from './crt.js'
 
 const WORD = 'BIAKO'
 
@@ -20,6 +26,9 @@ let color = '#FFFFE6'
 let mouse = { x: -9999, y: -9999, active: false }
 let onMove, onLeave, onResize
 let reduce = false
+
+// Ambient CRT backdrop (shared module) + its full-viewport dark source element.
+let crt = null, crtSrc = null
 
 const AMP_BASE = 2.2      // px — gentle "alive" ripple on every line
 const RADIUS   = 170      // px — cursor influence radius
@@ -126,7 +135,32 @@ function draw () {
   if (!reduce) raf = requestAnimationFrame(draw)
 }
 
+// ─── Ambient CRT backdrop ────────────────────────────────────────────────────
+// The shared CRT post-effect in AMBIENT tuning (no fisheye/aberration/glitch —
+// just the dark screen + full-width scanlines). A single fixed full-viewport dark
+// element is routed through it as the "screen"; VFX renders it to a fixed canvas
+// behind the page content. Null under reduced-motion / no-WebGL → plain dark page.
+function initBackdrop () {
+  // zIndex -1: the canvas paints above the page's root background but BELOW all
+  // page content (which lives in the barba container — its own stacking context,
+  // so a z-0 canvas would sit on top of the whole container and hide everything).
+  crt = createCRT({ zIndex: -1, tune: CRT_AMBIENT, mobileTune: CRT_AMBIENT_MOBILE })
+  if (!crt) return
+  crtSrc = document.createElement('div')
+  crtSrc.className = 'lab-crt-src'
+  crtSrc.setAttribute('aria-hidden', 'true')
+  document.body.appendChild(crtSrc)
+  crt.add(crtSrc)                     // VFX maps its rect + hides it; the canvas is the screen
+}
+
+// Staggered VHS-style reveal on the experiment entries (per --rv-i in the markup).
+function revealEntries () {
+  document.querySelectorAll('.lab-entry').forEach(el => el.classList.add('is-in'))
+}
+
 export function init () {
+  initBackdrop()                      // ambient CRT screen (independent of the wave)
+
   canvas = document.getElementById('lab-wave')
   if (!canvas) return
   ctx = canvas.getContext('2d')
@@ -161,6 +195,10 @@ export function init () {
   window.addEventListener('resize', onResize)
 }
 
+// Fires after the barba transition-in (or first load) — play the staggered entry
+// reveal now, so it runs AFTER the page has arrived.
+export function entered () { revealEntries() }
+
 export function destroy () {
   cancelAnimationFrame(raf); raf = 0
   if (onMove) canvas.removeEventListener('pointermove', onMove)
@@ -170,4 +208,9 @@ export function destroy () {
   canvas = ctx = off = octx = null
   mouse = { x: -9999, y: -9999, active: false }
   t = 0
+
+  // Tear down the CRT backdrop: destroy the WebGL context + rAF (removes the fixed
+  // canvas VFX appended to <body>) and remove our source element.
+  if (crt) { crt.destroy(); crt = null }
+  if (crtSrc) { crtSrc.remove(); crtSrc = null }
 }

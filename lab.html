@@ -27,6 +27,33 @@
         <canvas class="lab__wave" id="lab-wave" role="img" aria-label="BIAKO"></canvas>
       </section>
 
+      <!-- Experiments index (Figma 6221:4693). Each exercise is a hairline
+           divider + Geist-Mono label + a dark CRT "screen" holding the preview
+           render, linking to its own route. Staggered reveal via --rv-i (lab.js).
+           Routes stub in for now; the exercise pages land in the next tasks. -->
+      <section class="lab-index" aria-label="Experiments">
+        <a class="lab-entry" href="/lab/tags" style="--rv-i:0">
+          <span class="lab-entry__head">
+            <span class="lab-entry__no">01</span>
+            <span class="lab-entry__label">Tags</span>
+            <span class="lab-entry__cta" aria-hidden="true">↘</span>
+          </span>
+          <span class="lab-entry__screen">
+            <img class="lab-entry__preview" src="/lab/lab-tags.png" alt="Biako hand-painted graffiti tag" loading="lazy" decoding="async">
+          </span>
+        </a>
+        <a class="lab-entry" href="/lab/ia" style="--rv-i:1">
+          <span class="lab-entry__head">
+            <span class="lab-entry__no">02</span>
+            <span class="lab-entry__label">IA Experiments</span>
+            <span class="lab-entry__cta" aria-hidden="true">↘</span>
+          </span>
+          <span class="lab-entry__screen">
+            <img class="lab-entry__preview" src="/lab/lab-ia.png" alt="Biako AI-rendered 3D graffiti object" loading="lazy" decoding="async">
+          </span>
+        </a>
+      </section>
+
       <!-- Experiments — playable Lab projects.
            HIDDEN for now: Vandal Rush isn't ready for the public (placeholder art).
            The game still works at /lab/vandal-rush (direct access only). To put the

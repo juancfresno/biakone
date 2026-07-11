@@ -52,3 +52,146 @@
   .lab-card:hover { border-color: var(--brand-blue); background: color-mix(in srgb, var(--neutral-900) 85%, transparent); }
 }
 @media (max-width: 640px) { .lab-experiments { margin-top: var(--space-8); } }
+
+/* ─── Ambient CRT backdrop (shared crt.js, AMBIENT tuning) ──────────────────
+   A fixed full-viewport dark "screen" (raw --neutral-950 so it stays dark on the
+   dark-themed page) is routed through the CRT post-effect; VFX renders a scanline
+   screen to a fixed <canvas>. Both source + canvas sit at z-0, behind content. */
+.lab-crt-src {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--neutral-950);      /* the dark screen the scanlines modulate */
+}
+/* The WebGL canvas VFX appends is a fixed full-viewport overlay — never let it
+   eat clicks (shell links sit above it), and keep it behind the content. */
+body[data-page="lab"] > canvas { pointer-events: none !important; }
+/* Lift the page content above the backdrop canvas/source (both at z-0). */
+body[data-page="lab"] .intro { position: relative; z-index: 1; }
+
+/* ─── Experiments index (Figma 6221:4693) ──────────────────────────────────
+   Per exercise: a hairline divider + Geist-Mono label, then a dark CRT "screen"
+   panel holding the preview render. Whole entry links to its route. */
+.lab-index {
+  margin-top: var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-10);
+}
+.lab-entry {
+  display: block;
+  text-decoration: none;
+  color: var(--neutral-50);
+  opacity: 0;                          /* revealed on entrance (lab.js → .is-in) */
+}
+.lab-entry__head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  border-top: 1px solid var(--border-strong);   /* Figma: hairline divider above the label */
+  padding-top: var(--space-3);
+  margin-bottom: var(--space-5);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.lab-entry__no    { color: var(--brand-blue); }
+.lab-entry__label { flex: 1; }
+.lab-entry__cta   { color: var(--brand-blue); transition: transform 200ms ease; }
+
+.lab-entry__screen {
+  position: relative;
+  aspect-ratio: 1392 / 800;            /* Figma screen proportions */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--neutral-950);      /* the black "screen" */
+  border: 1px solid var(--neutral-900);
+}
+.lab-entry__preview {
+  max-width: 56%;
+  max-height: 78%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  transition: transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+@media (hover: hover) {
+  .lab-entry:hover .lab-entry__preview { transform: scale(1.03); }
+  .lab-entry:hover .lab-entry__cta     { transform: translate(2px, 2px); }
+  .lab-entry:hover .lab-entry__label   { color: var(--brand-blue); }
+}
+
+/* Staggered VHS-style reveal — lab.js adds .is-in after the page has entered;
+   --rv-i cascades the timing (consistent with the site's reveals). */
+.lab-entry.is-in {
+  animation: lab-entry-in 0.56s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: calc(var(--rv-i, 0) * 150ms);
+}
+.lab-entry__screen::after {            /* scanline flash on reveal */
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.28) 0 1px, transparent 1px 3px);
+  opacity: 0;
+}
+.lab-entry.is-in .lab-entry__screen::after {
+  animation: lab-entry-flash 0.56s ease-out both;
+  animation-delay: calc(var(--rv-i, 0) * 150ms);
+}
+@keyframes lab-entry-in {
+  0%   { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes lab-entry-flash {
+  0%, 100% { opacity: 0; }
+  20%      { opacity: 0.5; }
+}
+
+@media (max-width: 640px) {
+  .lab-index { margin-top: var(--space-8); gap: var(--space-8); }
+  .lab-entry__screen  { aspect-ratio: 4 / 3; }
+  .lab-entry__preview { max-width: 74%; max-height: 76%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lab-entry { opacity: 1; }
+  .lab-entry.is-in { animation: none; }
+  .lab-entry__screen::after,
+  .lab-entry.is-in .lab-entry__screen::after { animation: none; opacity: 0; }
+}
+
+/* ─── Experiment route stubs (/lab/tags, /lab/ia) — placeholder until the real
+   exercise pages land in the next tasks. ─── */
+.lab-stub { margin-top: var(--space-10); }
+.lab-stub__title {
+  margin-top: var(--space-5);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(40px, 12vw, 120px);
+  line-height: 0.95;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  color: var(--neutral-50);
+}
+.lab-stub__note {
+  margin-top: var(--space-5);
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm);
+  color: var(--neutral-300);
+}
+.lab-stub__back {
+  display: inline-block;
+  margin-top: var(--space-8);
+  font-family: var(--font-ui);
+  font-size: var(--text-ui-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-blue);
+  text-decoration: none;
+}
+@media (max-width: 640px) { .lab-stub { margin-top: var(--space-8); } }

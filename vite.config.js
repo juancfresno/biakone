@@ -67,6 +67,8 @@ export default defineConfig({
         stickers: resolve(__dirname, 'stickers.html'),
         posters:  resolve(__dirname, 'posters.html'),
         lab:      resolve(__dirname, 'lab.html'),
+        'lab-tags': resolve(__dirname, 'lab/tags.html'),
+        'lab-ia':   resolve(__dirname, 'lab/ia.html'),
         'vandal-rush': resolve(__dirname, 'lab/vandal-rush.html'),
         about:    resolve(__dirname, 'about.html'),
         contact:  resolve(__dirname, 'contact.html'),
