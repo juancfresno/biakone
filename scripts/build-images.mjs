@@ -172,7 +172,7 @@ async function buildWork () {
     const images = []
     for (const name of imgFiles) {
       const r = await optimize(`work/${slug}`, path.join(dirAbs, name), name)
-      images.push({ src: r.src })
+      images.push(r.w ? { src: r.src, w: r.w, h: r.h } : { src: r.src })   // w/h → native aspect for the mosaic
       if (r.srcBytes != null) { totalSrc += r.srcBytes; totalOpt += r.optBytes }
     }
     // No photo yet → fall back to the shared placeholder so the centre image
