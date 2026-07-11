@@ -521,8 +521,11 @@ function fillDrawer (i) {
   drawerIndex = i
   const imgs = p.images || []
   dGallery.innerHTML = imgs
-    .map((im, n) => '<figure class="drawer__slide" data-img-index="' + n + '">' +
-      '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async"></figure>')
+    .map((im, n) => {
+      const ar = (im.w && im.h) ? (im.w + '/' + im.h) : '3/4'   // native frame aspect (portrait fallback)
+      return '<figure class="drawer__slide" data-img-index="' + n + '" style="aspect-ratio:' + ar + '">' +
+        '<img src="' + im.src + '" alt="' + p.name + '" draggable="false" decoding="async"></figure>'
+    })
     .join('')
   dGallery.scrollLeft = 0
   dGallery.scrollTop = 0
@@ -578,6 +581,37 @@ function removeGlitchLayers () {
   glitchLayers = []
 }
 
+// ─── Inner parallax — Codrops "Horizontal Parallax Gallery" (DOM port) ────────
+// Each frame's image counter-translates by its position in the viewport: t goes
+// -1 (frame at the left edge) → 0 (centre) → 1 (right), and the image (125% wide)
+// shifts translate3d(-t·10%). So the image drifts inside its frame, slightly
+// offset from the frame itself. Transforms only, reads batched before writes to
+// avoid layout thrash. Off on touch and under reduced motion.
+let parallaxRaf = 0
+function applyParallax () {
+  if (!dGallery || window.matchMedia('(max-width: 767px)').matches) return
+  const slides = dGallery.querySelectorAll('.drawer__slide')
+  if (!slides.length) return
+  const vpCenter = window.innerWidth * 0.5
+  const shifts = new Array(slides.length)
+  for (let i = 0; i < slides.length; i++) {                 // READ pass
+    const r = slides[i].getBoundingClientRect()
+    const t = Math.max(-1, Math.min(1, (r.left + r.width * 0.5 - vpCenter) / vpCenter))
+    shifts[i] = (-t * 10).toFixed(3)                        // maxShift 10% of the image (= 12.5% of the frame)
+  }
+  for (let i = 0; i < slides.length; i++) {                 // WRITE pass
+    const img = slides[i].firstElementChild
+    if (img) img.style.transform = 'translate3d(' + shifts[i] + '%,0,0)'
+  }
+}
+function startParallax () {
+  stopParallax()
+  if (reduceMotion()) return                                 // no parallax under reduced motion
+  const tick = () => { applyParallax(); parallaxRaf = requestAnimationFrame(tick) }
+  parallaxRaf = requestAnimationFrame(tick)
+}
+function stopParallax () { if (parallaxRaf) { cancelAnimationFrame(parallaxRaf); parallaxRaf = 0 } }
+
 function openDrawer (i) {
   if (!drawer || !projects[i]) return
   lastFocused = document.activeElement
@@ -623,6 +657,7 @@ function openDrawer (i) {
       .to(layers, { autoAlpha: 0, duration: 0.16, ease: 'power1.in' }, POWER + 0.5)   // clones fade as the base solidifies
       .to([escHint, closeBtn], { autoAlpha: 1, duration: 0.26, ease: 'power2.out' }, POWER + 0.34)
   }
+  startParallax()                              // inner-image parallax (desktop, non-reduced)
   if (closeBtn) closeBtn.focus()
 }
 
@@ -635,6 +670,7 @@ function closeDrawer (opts) {
   const done = () => {
     if (!closing) return
     closing = false
+    stopParallax()
     drawer.hidden = true
     drawer.classList.remove('is-glitching', 'is-glitching-out', 'is-powering', 'is-powering-off')
     removeGlitchLayers()
@@ -843,6 +879,7 @@ export function init () {
   cleanup.push(() => window.removeEventListener('scroll', onScroll))
   cleanup.push(() => window.removeEventListener('resize', onResize))
   cleanup.push(() => clearTimeout(mosaicResizeT))
+  cleanup.push(stopParallax)
 
   fetch('/work.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])

@@ -610,6 +610,7 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
   overscroll-behavior: contain;
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
+  gap: var(--space-8);               /* black separators — the film-strip / diapositiva feel */
   background: var(--bg-inverse);     /* theme-aware; #141414 in light (Figma) */
   cursor: grab;
 }
@@ -620,18 +621,26 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
 @media (hover: hover) and (pointer: fine) {
   .drawer__gallery { cursor: none; }
 }
+/* Each slide is a FRAME (fixed height, native aspect via inline aspect-ratio) that
+   clips its image. The image is 25% wider than the frame so it can translate for
+   the inner parallax (Codrops "Horizontal Parallax Gallery" technique). */
 .drawer__slide {
   height: 100%;
   flex: 0 0 auto;
+  position: relative;
+  overflow: hidden;
   display: block;
   margin: 0;
+  /* width comes from the inline aspect-ratio work.js sets per image */
 }
 .drawer__slide img {
-  display: block;
-  height: 100vh;
-  height: 100dvh;
-  width: auto;
+  position: absolute;
+  top: 0;
+  left: -12.5%;                      /* 125% wide, centred → 12.5% overscan each side */
+  width: 125%;
+  height: 100%;
   object-fit: cover;
+  will-change: transform;            /* JS drives translate3d for the parallax */
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -756,11 +765,13 @@ body.drawer-open > *:not(#work-drawer):not(.biako-cursor):not(script) {
     overflow-x: hidden;
     overflow-y: auto;
     align-items: stretch;
+    gap: 0;                  /* native vertical stack — no film-strip gaps / parallax */
     padding-bottom: 340px;   /* clear the full-width info box */
     cursor: default;
   }
-  .drawer__slide { height: auto; width: 100%; }
-  .drawer__slide img { height: auto; width: 100%; }
+  /* Native stacked images (no frame overscan / parallax on touch). */
+  .drawer__slide { aspect-ratio: auto !important; height: auto; width: 100%; overflow: visible; }
+  .drawer__slide img { position: static; left: auto; width: 100%; height: auto; transform: none !important; }
   /* Info box stays floating on mobile — a small ~12px margin all round so it
      reads as a card without losing much width for the text. */
   .drawer__info {
