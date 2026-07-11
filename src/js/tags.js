@@ -9,6 +9,8 @@
 // render into it, leaving the new page's marquee empty. Querying within the
 // entering container fixes that. initTags is idempotent (it tears down first).
 
+import { attachTilt } from './tilt.js'
+
 let cleanup = []
 
 function itemHtml (item, i) {
@@ -53,11 +55,6 @@ export function initTags (root) {
   const frame = lb && lb.querySelector('.lightbox__frame')
   if (!lb || !img || !frame) return
 
-  const reduce  = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  const MAX_DEG = 28    // stronger tilt
-  const MAX_TX  = 44    // more parallax drift
-  const MAX_TZ  = 55    // depth — pops toward the viewer near centre
-
   function recenter () {
     frame.style.setProperty('--lb-rx', '0deg')
     frame.style.setProperty('--lb-ry', '0deg')
@@ -98,20 +95,7 @@ export function initTags (root) {
   document.addEventListener('keydown', onKey)
   cleanup.push(() => document.removeEventListener('keydown', onKey))
 
-  if (!reduce) {
-    lb.addEventListener('mousemove', (e) => {
-      const nx = (e.clientX / window.innerWidth  - 0.5) * 2
-      const ny = (e.clientY / window.innerHeight - 0.5) * 2
-      const dist = Math.min(1, Math.hypot(nx, ny))    // 0 centre → 1 corners
-      frame.style.setProperty('--lb-ry', (nx * MAX_DEG).toFixed(2) + 'deg')
-      frame.style.setProperty('--lb-rx', (-ny * MAX_DEG).toFixed(2) + 'deg')
-      frame.style.setProperty('--lb-tx', (nx * MAX_TX).toFixed(1) + 'px')
-      frame.style.setProperty('--lb-ty', (ny * MAX_TX).toFixed(1) + 'px')
-      frame.style.setProperty('--lb-tz', ((1 - dist) * MAX_TZ).toFixed(1) + 'px')
-      frame.style.setProperty('--lb-s', (1.02 + (1 - dist) * 0.05).toFixed(3))
-    })
-    lb.addEventListener('mouseleave', recenter)
-  }
+  cleanup.push(attachTilt(lb, frame))               // shared cursor-tilt (see tilt.js)
 
   // Ensure a page leaving mid-lightbox doesn't strip the next page's scroll lock,
   // and remove the re-parented lightbox so it doesn't outlive its page.

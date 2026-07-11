@@ -2,14 +2,13 @@
 <html lang="en" data-theme="dark">
 <head>
   <title>IA Experiments — Lab — Biakone</title>
-  <meta name="robots" content="noindex, follow">
-  <meta name="description" content="IA Experiments — AI-rendered 3D graffiti objects. A Biakone lab experiment.">
+  <meta name="description" content="Exploring tag textures with AI — a browsable archive of Biako's AI experiments. Click, space or arrow through them, or open the full grid. A Biakone lab experiment.">
   <link rel="canonical" href="https://biakone.com/lab/ia">
   <meta property="og:title" content="IA Experiments — Lab — Biakone">
-  <meta property="og:description" content="AI-rendered 3D graffiti objects. A Biakone lab experiment.">
+  <meta property="og:description" content="Exploring tag textures with AI — a browsable archive of Biako's AI experiments. A Biakone lab experiment.">
   <meta property="og:url" content="https://biakone.com/lab/ia">
   <meta name="twitter:title" content="IA Experiments — Lab — Biakone">
-  <meta name="twitter:description" content="AI-rendered 3D graffiti objects. A Biakone lab experiment.">
+  <meta name="twitter:description" content="Exploring tag textures with AI — a browsable archive of Biako's AI experiments. A Biakone lab experiment.">
   <!-- @include partials/head.html -->
 </head>
 <body data-page="lab-ia" data-barba="wrapper">
@@ -17,21 +16,34 @@
   <!-- @include partials/nav.html -->
 
   <div data-barba="container" data-barba-namespace="lab-ia" data-theme="dark">
-    <main class="intro">
-      <p class="intro__bio">
-        Visual Artist — Designer<br>
-        ↘ Urban Objects, graffiti &amp; scale work
-      </p>
+    <main class="ia" aria-label="IA Experiments">
+      <h1 class="sr-only">IA Experiments — exploring tag textures with AI</h1>
 
-      <section class="lab-stub" aria-label="IA Experiments">
-        <span class="lab-entry__head">
-          <span class="lab-entry__no">02</span>
-          <span class="lab-entry__label">IA Experiments</span>
+      <!-- Side vertical labels (Figma 6342:2923). -->
+      <span class="ia-side ia-side--l" aria-hidden="true"><span>/ Exploring Tag Textures with AI</span></span>
+      <span class="ia-side ia-side--r" aria-hidden="true"><span>/ Exploring Tag Textures with AI</span></span>
+
+      <!-- DETAIL VIEW — one experiment, cursor-tilted (tilt.js), click/tap = next. -->
+      <div class="ia-detail" id="ia-detail" role="button" tabindex="0"
+           aria-label="Experiment viewer — click, space, or arrow keys to change experiment">
+        <span class="ia-frame" id="ia-frame">
+          <img class="ia-img" id="ia-img" alt="AI tag-texture experiment" decoding="async">
         </span>
-        <h1 class="lab-stub__title">IA Experiments</h1>
-        <p class="lab-stub__note">Coming soon — this experiment is still in the lab.</p>
-        <a class="lab-stub__back" href="/lab">↖ Back to Lab</a>
-      </section>
+      </div>
+
+      <!-- Discreet terminal controls (task 4). -->
+      <div class="ia-controls">
+        <button class="ia-grid-toggle" id="ia-grid-toggle" type="button" aria-label="View all experiments">⊞ ALL</button>
+        <p class="ia-hint" id="ia-hint" aria-hidden="true"></p>
+        <p class="ia-counter" aria-live="polite" aria-label="Current experiment"><span id="ia-cur">01</span> / <span id="ia-total">00</span></p>
+      </div>
+
+      <!-- GLOBAL MOSAIC — all experiments; opens with the 3D-lightbox feel. On
+           mobile it scrolls natively (data-lenis-prevent keeps Lenis off it). -->
+      <div class="ia-mosaic" id="ia-mosaic" hidden aria-hidden="true" data-lenis-prevent aria-label="All experiments">
+        <button class="ia-mosaic__close" id="ia-mosaic-close" type="button" aria-label="Close grid">✕ CLOSE</button>
+        <div class="ia-mosaic__grid" id="ia-mosaic-grid"></div>
+      </div>
     </main>
   </div>
 

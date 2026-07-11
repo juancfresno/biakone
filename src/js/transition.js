@@ -49,6 +49,41 @@ export function runTransition (phase, container) {
   return phase === 'leave' ? leave(container, mobile()) : enter(container, mobile())
 }
 
+// ─── VHS CUT — brief in-page "channel change" (reused by the IA experiments) ──
+// A short static burst that hides a swap performed at its peak (onSwap fires once,
+// behind the static). Same overlay as the page transition — no particles, no
+// dissolve. Resolves when the static clears. Reduced-motion → instant swap.
+export function vhsCut (onSwap) {
+  if (reduce()) { if (onSwap) onSwap(); return Promise.resolve() }
+  ensureOverlay()
+  const light = mobile()
+  const staticPeak = light ? 0.78 : 0.95
+  const scanPeak   = light ? 0.6 : 0.9
+  const jitter     = light ? 3 : 6
+  gsap.killTweensOf([overlay, elStatic, elScan, elRoll])
+  gsap.set(overlay, { opacity: 1, x: 0 })
+  gsap.set([elStatic, elScan, elRoll], { opacity: 0 })
+  let swapped = false
+  const doSwap = () => { if (!swapped) { swapped = true; if (onSwap) onSwap() } }
+
+  const tl = gsap.timeline()
+  tl.to(elScan, { opacity: scanPeak, duration: 0.04 }, 0)
+  tl.fromTo(elRoll, { yPercent: -130, opacity: 0.9 }, { yPercent: 130, duration: 0.28, ease: 'none' }, 0)
+  tl.to(elStatic, { opacity: staticPeak, duration: 0.08, ease: 'steps(4)' }, 0)
+  tl.to(overlay, {
+    keyframes: [{ x: -jitter, duration: 0.03 }, { x: jitter * 0.7, duration: 0.03 }, { x: 0, duration: 0.03 }],
+    ease: 'steps(1)',
+  }, 0.02)
+  tl.add(doSwap, 0.11)                                      // swap hidden behind peak static
+  tl.to(elStatic, { opacity: 0, duration: 0.13, ease: 'steps(4)' }, 0.13)
+  tl.to(elScan, { opacity: 0, duration: 0.14, ease: 'power1.out' }, 0.16)
+  return play(tl, () => {
+    doSwap()                                               // safety: ensure the swap ran
+    gsap.set(overlay, { opacity: 0, x: 0 })
+    gsap.set([elStatic, elScan, elRoll], { opacity: 0 })
+  })
+}
+
 // ─── LEAVE — old page tears out, buried under static (~320ms) ───────────────
 function leave (container, light) {
   document.documentElement.classList.add('is-transitioning')

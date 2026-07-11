@@ -24,6 +24,7 @@ const SECTIONS = [
   { name: 'stickers', manifest: 'stickers.json' },
   { name: 'tags',     manifest: 'tags.json' },
   { name: 'lab/tags', manifest: 'lab/tags.json' },   // TAGS infinite canvas (/lab/tags)
+  { name: 'lab/ia',   manifest: 'lab/ia.json' },     // IA EXPERIMENTS (/lab/ia)
   { name: 'about',    manifest: 'about.json' },
   { name: 'posters',  manifest: 'posters.json' },
 ]
