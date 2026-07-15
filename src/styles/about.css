@@ -233,7 +233,14 @@ body[data-page="about"] .intro {
   18%  { opacity: 1; transform: translate3d(8px, 0, 0);   clip-path: inset(8% 0 60% 0);  filter: url(#about-rgb) brightness(1.3); }
   38%  { transform: translate3d(-5px, 0, 0);              clip-path: inset(55% 0 6% 0);  filter: url(#about-rgb) brightness(1.12); }
   58%  { transform: translate3d(2px, 0, 0);               clip-path: inset(0 0 0 0);     filter: url(#about-rgb) brightness(1.04); }
-  100% { opacity: 1; transform: none; clip-path: inset(0 0 0 0); filter: none; }
+  /* Final frame MUST resolve clip-path to `none`, not inset(0). With animation-fill-mode
+     `both`, the 100% state is held forever after the reveal ends — and clip-path: inset(0),
+     though visually identical to unclipped, is still an ACTIVE clipping context that traps
+     every descendant to the element's box. That permanently clipped the HOME elastic divider
+     SVG's bulge (it lives inside a .hv2-reveal), so the line could never deflect past the 1px
+     box — the real cause of the "not elastic / flicker" bug. `none` removes the clip context
+     once revealed; inset(0)→none is a discrete, invisible snap (both show the full element). */
+  100% { opacity: 1; transform: none; clip-path: none; filter: none; }
 }
 @keyframes about-scan-flash { 0% { opacity: 0.55; } 45% { opacity: 0.28; } 100% { opacity: 0; } }
 @keyframes about-fade-in { from { opacity: 0; } to { opacity: 1; } }
