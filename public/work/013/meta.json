@@ -1,1 +1,9 @@
-{ "name": "Storage Door 02", "type": "Wall Piece", "year": "2026", "description": "", "draft": true }
+{
+  "name": "Service Door",
+  "type": "Scale object",
+  "year": "2026",
+  "description": "A scale metal service door treated as a small urban fragment, with stickers, tags, dirt and worn street texture.",
+  "materials": "3D print, acrylic paint, stickers, markers and weathering.",
+  "scale": "Approx. 1:12",
+  "status": "Archive / available on request"
+}
