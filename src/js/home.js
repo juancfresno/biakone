@@ -235,11 +235,15 @@ export function init () {
     document.querySelectorAll('.hv2-head'),
     { className: 'hv2-elastic-line', activeClass: 'hv2-head--elastic', revealSelector: '.hv2-reveal' })
 
-  // Work manifest → featured slideshow + Escale World carousel.
+  // Work manifest → featured slideshow + Escale World carousel. The manifest is
+  // built ascending (oldest → newest); on the HOME we lead with the NEWEST piece
+  // (same as the Stickers/Posters modules) — reverse it at consumption so a future
+  // upload (next number) automatically leads. The Work page keeps its own order.
   fetch('/work.json', { cache: 'no-cache' })
     .then(r => r.ok ? r.json() : [])
     .then(items => {
-      fillFeatured(items); fillCarousel(items)
+      const ordered = newestFirst(items)
+      fillFeatured(ordered); fillCarousel(ordered)
       // The meta block grows once populated; on the viewport-fit hero it can
       // start below the reveal cutoff (empty → no text), so the initial check
       // misses it and there's no scroll to retrigger. Re-run the reveal check
